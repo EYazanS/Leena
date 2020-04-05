@@ -1,37 +1,52 @@
 #include <Windows.h>
+
 #include "Defines.h"
 
 LRESULT CALLBACK Win32WindowCallback(HWND, UINT, WPARAM, LPARAM);
-Internal HWND* Win32InitWindow(const HINSTANCE& instance, int cmdShow);
+
+Internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow);
 Internal void Win32ResizeDIBSection(int width, int height);
-MSG Win32ProcessMessage(const HWND& windowHandle);
+Internal void Win32UpdateWindow(HDC deviceContext, int width, int height);
+Internal void RenderWirdGradiend(int XOffset, int YOffset);
+Internal MSG Win32ProcessMessage(const HWND& windowHandle);
 
 GlobalVariable bool IsRunning = true;
-GlobalVariable BITMAPINFO BitmapInfo;
-GlobalVariable 	void* Buffer;
-GlobalVariable 	HBITMAP BitmapHandle;
-GlobalVariable 	HDC Devicecontext;
 
-int WINAPI wWinMain(
-	HINSTANCE instance,
-	HINSTANCE prevInstance,
-	PWSTR cmdLine,
-	int cmdShow)
+GlobalVariable BITMAPINFO BitmapInfo;
+GlobalVariable 	HDC Devicecontext;
+GlobalVariable 	int BytesPerPixel = 4;
+GlobalVariable 	void* BitmapMemory;
+GlobalVariable 	int BitmapWidth, BitmapHeight;
+
+int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, int cmdShow)
 {
-	auto windowHandle = Win32InitWindow(instance, cmdShow);
+	HWND windowHandle = Win32InitWindow(instance, cmdShow);
 
 	if (windowHandle)
 	{
+		int XOffset = 0;
+		int YOffset = 0;
+
 		while (IsRunning)
 		{
-			auto msg = Win32ProcessMessage(*windowHandle);
+			MSG msg = Win32ProcessMessage(windowHandle);
+			RenderWirdGradiend(XOffset, YOffset);
+			HDC deviceContext = GetDC(windowHandle);
+			RECT clientRect;
+			GetClientRect(windowHandle, &clientRect);
+			int width = clientRect.right - clientRect.left;
+			int height = clientRect.bottom - clientRect.top;
+			Win32UpdateWindow(deviceContext, width, height);
+			ReleaseDC(windowHandle, deviceContext);
+
+			++XOffset;
 		}
 	}
 
 	return 0;
 }
 
-MSG Win32ProcessMessage(const HWND& windowHandle)
+Internal MSG Win32ProcessMessage(const HWND& windowHandle)
 {
 	MSG message;
 
@@ -46,7 +61,7 @@ MSG Win32ProcessMessage(const HWND& windowHandle)
 	return message;
 }
 
-Internal HWND* Win32InitWindow(const HINSTANCE& instance, int cmdShow)
+Internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow)
 {
 	WNDCLASS window = {};
 
@@ -59,7 +74,7 @@ Internal HWND* Win32InitWindow(const HINSTANCE& instance, int cmdShow)
 
 	RegisterClass(&window);
 
-	auto windowHandle = CreateWindowEx(
+	HWND windowHandle = CreateWindowEx(
 		0,
 		window.lpszClassName,
 		L"Leena Game Engine",
@@ -77,7 +92,66 @@ Internal HWND* Win32InitWindow(const HINSTANCE& instance, int cmdShow)
 	if (windowHandle == NULL)
 		return NULL;
 
-	return &windowHandle;
+	return windowHandle;
+}
+
+Internal void Win32UpdateWindow(HDC deviceContext, int width, int height)
+{
+	StretchDIBits(
+		deviceContext,
+		0, 0, BitmapWidth, BitmapHeight,
+		0, 0, width, height,
+		BitmapMemory,
+		&BitmapInfo,
+		DIB_RGB_COLORS,
+		SRCCOPY
+	);
+}
+
+Internal void Win32ResizeDIBSection(int width, int height)
+{
+	if (BitmapMemory)
+		VirtualFree(BitmapMemory, NULL, MEM_RELEASE);
+
+	BitmapWidth = width;
+	BitmapHeight = height;
+
+	BitmapInfo.bmiHeader.biSize = sizeof(BitmapInfo.bmiHeader);
+
+	BitmapInfo.bmiHeader.biWidth = BitmapWidth;
+	BitmapInfo.bmiHeader.biHeight = BitmapHeight;
+	BitmapInfo.bmiHeader.biPlanes = 1;
+
+	BitmapInfo.bmiHeader.biBitCount = 32;
+	BitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+	int bitmapMemorySize = BitmapWidth * BitmapHeight * BytesPerPixel;
+
+	BitmapMemory = VirtualAlloc(0, bitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
+}
+
+Internal void RenderWirdGradiend(int XOffset, int YOffset)
+{
+	int Pitch = BitmapWidth * BytesPerPixel;
+	uint8* Row = (uint8*)BitmapMemory;
+	for (int Y = 0; Y < BitmapHeight; ++Y)
+	{
+		uint32* Pixel = (uint32*)Row;
+		for (int X = 0; X < BitmapWidth; ++X)
+		{
+			uint8 g = (Y + YOffset);
+			uint8 b = (X + XOffset);
+
+			/*
+			Memory:   BB GG RR xx
+			Register: xx RR GG BB
+			Pixel (32-bits)
+			*/
+
+			*Pixel++ = (g << 8) | b;
+		}
+		Row += Pitch;
+	}
 }
 
 LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wParam, LPARAM lParam)
@@ -98,15 +172,11 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 
 		case WM_SIZE:
 		{
-			RECT rect = {};
+			RECT rect;
 			GetClientRect(windowHandle, &rect);
-
 			int width = rect.right - rect.left;
 			int height = rect.bottom - rect.top;
-
 			Win32ResizeDIBSection(width, height);
-
-			OutputDebugString(L"RESIZE");
 		} break;
 
 		case WM_ACTIVATEAPP:
@@ -115,14 +185,14 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 
 		case WM_PAINT:
 		{
-			RECT rect = {};
-			GetClientRect(windowHandle, &rect);
-
-			int width = rect.right - rect.left;
-			int height = rect.bottom - rect.top;
-
-			Win32ResizeDIBSection(width, height);
-
+			PAINTSTRUCT paint;
+			HDC deviceContext = BeginPaint(windowHandle, &paint);
+			RECT clientRect;
+			GetClientRect(windowHandle, &clientRect);
+			int width = clientRect.right - clientRect.left;
+			int height = clientRect.bottom - clientRect.top;
+			Win32UpdateWindow(deviceContext, width, height);
+			EndPaint(windowHandle, &paint);
 		} break;
 
 		default:
@@ -132,41 +202,4 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 	}
 
 	return result;
-}
-
-Internal void Win32UpdateWindow(HWND windowHandle, int x, int y, int width, int height)
-{
-	PAINTSTRUCT paint;
-
-	auto hdc = BeginPaint(windowHandle, &paint);
-
-	StretchDIBits(
-		hdc,
-		x, y, width, height,
-		x, y, width, height,
-		Buffer,
-		&BitmapInfo,
-		DIB_RGB_COLORS,
-		SRCCOPY
-	);
-}
-
-Internal void Win32ResizeDIBSection(int width, int height)
-{
-	if (BitmapHandle)
-		DeleteObject(BitmapHandle);
-
-	if (!Devicecontext)
-		Devicecontext = CreateCompatibleDC(0);
-
-	BitmapInfo.bmiHeader.biSize = sizeof(BitmapInfo.bmiHeader);
-
-	BitmapInfo.bmiHeader.biWidth = width;
-	BitmapInfo.bmiHeader.biHeight = height;
-	BitmapInfo.bmiHeader.biPlanes = 1;
-
-	BitmapInfo.bmiHeader.biBitCount = 32;
-	BitmapInfo.bmiHeader.biCompression = BI_RGB;
-
-	CreateDIBSection(Devicecontext, &BitmapInfo, DIB_RGB_COLORS, &Buffer, NULL, NULL);
 }
