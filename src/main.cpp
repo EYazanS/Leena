@@ -135,9 +135,10 @@ Internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, 
 	bitmapBuffer->BytesPerPixel = 4;
 	bitmapBuffer->Pitch = bitmapBuffer->Width * bitmapBuffer->BytesPerPixel;
 
+	// If the height is negative, it goes top down, instead of down up
 	bitmapBuffer->Info.bmiHeader.biSize = sizeof(bitmapBuffer->Info.bmiHeader);
 	bitmapBuffer->Info.bmiHeader.biWidth = bitmapBuffer->Width;
-	bitmapBuffer->Info.bmiHeader.biHeight = bitmapBuffer->Height;
+	bitmapBuffer->Info.bmiHeader.biHeight = -bitmapBuffer->Height;
 	bitmapBuffer->Info.bmiHeader.biPlanes = 1;
 	bitmapBuffer->Info.bmiHeader.biBitCount = 32;
 	bitmapBuffer->Info.bmiHeader.biCompression = BI_RGB;
