@@ -1,18 +1,10 @@
 #include <Windows.h>
 #include <Xinput.h>
+#include <xaudio2.h>
 #include <tuple>
 
 #include "Defines.h"
-
-struct Win32BitmapBuffer
-{
-	BITMAPINFO Info;
-	void* Memory;
-	int BytesPerPixel;
-	int Width;
-	int Height;
-	int Pitch;
-};
+#include "GameStructs.h"
 
 LRESULT CALLBACK Win32WindowCallback(HWND, UINT, WPARAM, LPARAM);
 
@@ -22,18 +14,28 @@ Internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC de
 Internal void RenderWirdGradiend(Win32BitmapBuffer* bitmapBuffer, int XOffset, int YOffset);
 Internal MSG Win32ProcessMessage(const HWND& windowHandle);
 Internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
+Internal HRESULT Wind32InitializeXAudio(int SampleBits);
+Internal HRESULT PlayTestSound(int SampleBits);
 
 GlobalVariable bool IsRunning = true;
+GlobalVariable bool shouldPlaySound = false;
 GlobalVariable Win32BitmapBuffer GlobalBitmapBuffer;
+GlobalVariable  IXAudio2* xAudio;
+GlobalVariable  IXAudio2SourceVoice* sourceVoice;
+GlobalVariable  XAUDIO2_BUFFER buffer = { 0 };
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, int cmdShow)
 {
 	HWND windowHandle = Win32InitWindow(instance, cmdShow);
 
-	Win32ResizeDIBSection(&GlobalBitmapBuffer, 1280, 720);
-
 	if (windowHandle)
 	{
+		const int SampleBits = 32;
+
+		Win32ResizeDIBSection(&GlobalBitmapBuffer, 1280, 720);
+
+		Wind32InitializeXAudio(SampleBits);
+
 		int XOffset = 0;
 		int YOffset = 0;
 
@@ -79,10 +81,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 						YOffset += 2;
 						vibrations.wLeftMotorSpeed = 60000;
 						vibrations.wRightMotorSpeed = 60000;
+
+						PlayTestSound(SampleBits);
 					}
 
 					XInputSetState(controllerIndex, &vibrations);
-
 				}
 				else
 				{
@@ -91,13 +94,17 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 				}
 			}
 
-
 			RenderWirdGradiend(&GlobalBitmapBuffer, XOffset, YOffset);
 			HDC deviceContext = GetDC(windowHandle);
 			auto [width, height] = GetWindowDimensions(windowHandle);
 			Win32DisplayBufferInWindow(&GlobalBitmapBuffer, deviceContext, width, height);
 			ReleaseDC(windowHandle, deviceContext);
 			++XOffset;
+
+			if (sourceVoice && !shouldPlaySound)
+			{
+				sourceVoice->Stop();
+			}
 		}
 	}
 
@@ -227,6 +234,79 @@ Internal void RenderWirdGradiend(Win32BitmapBuffer* bitmapBuffer, int XOffset, i
 	}
 }
 
+Internal HRESULT Wind32InitializeXAudio(int SampleBits)
+{
+	// TODO: UncoInitialize on error.
+	HRESULT result;
+
+	if (FAILED(result = CoInitialize(NULL)))
+		return result;
+
+	if (FAILED(result = XAudio2Create(&xAudio)))
+		return result;
+
+	IXAudio2MasteringVoice* masteringVoice;
+
+	if (FAILED(result = xAudio->CreateMasteringVoice(&masteringVoice)))
+		return result;
+
+	const int CHANNELS = 2;
+	const int SAMPLE_RATE = 44100;
+
+	WAVEFORMATEX waveFormat = { 0 };
+	waveFormat.wBitsPerSample = SampleBits;
+	waveFormat.nAvgBytesPerSec = (SampleBits / 8) * CHANNELS * SAMPLE_RATE;
+	waveFormat.nChannels = CHANNELS;
+	waveFormat.nBlockAlign = CHANNELS * (SampleBits / 8);
+	waveFormat.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
+	waveFormat.nSamplesPerSec = SAMPLE_RATE;
+
+	if (FAILED(result = xAudio->CreateSourceVoice(&sourceVoice, &waveFormat)))
+		return result;
+}
+
+Internal HRESULT PlayTestSound(int SampleBits)
+{
+	HRESULT result = {};
+
+	const int SAMPLE_RATE = 44100;
+	const float PI = 3.1415;
+	const int VOICE_BUFFER_SAMPLE_COUNT = SAMPLE_RATE * 2;
+	const int NOTE_FREQ = 55;
+
+	float bufferData[VOICE_BUFFER_SAMPLE_COUNT];
+
+	for (int i = 0; i < VOICE_BUFFER_SAMPLE_COUNT; i += 2)
+	{
+		bufferData[i] = sin(i * 2 * PI * NOTE_FREQ / SAMPLE_RATE);
+		bufferData[i + 1] = sin(i * 2 * PI * (NOTE_FREQ + 2) / SAMPLE_RATE);
+	}
+
+	buffer.pAudioData = (BYTE*)&bufferData;
+	buffer.AudioBytes = VOICE_BUFFER_SAMPLE_COUNT * (SampleBits / 8);
+	buffer.LoopCount = XAUDIO2_LOOP_INFINITE;
+
+	if (FAILED(sourceVoice->SubmitSourceBuffer(&buffer)))
+		return result;
+
+	sourceVoice->Start();
+
+
+	CoUninitialize();
+}
+
+Internal real32 Win32ProcessXInputStickValues(real32 value, int16 deadZoneThreshold)
+{
+	real32 result = 0.f;
+
+	if (value < -deadZoneThreshold)
+		result = (real32)(value + deadZoneThreshold) / (32768.f - deadZoneThreshold);
+	else if (value > deadZoneThreshold)
+		result = (real32)(value + deadZoneThreshold) / (32767.f - deadZoneThreshold);
+
+	return result;
+}
+
 LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	LRESULT result = 0;
@@ -257,13 +337,23 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 		case WM_KEYUP:
 		{
 			uint32 vkCode = wParam;
-			bool wasKeyDown = (lParam & (1 << 30)) != 0;
+
+			bool wasDown = ((lParam & (1 << 30)) != 0);
+			bool isDown = ((lParam & (1 << 31)) == 0);
 
 			switch (vkCode)
 			{
 				case 'W':
 				{
-
+					if (isDown)
+					{
+						PlayTestSound(32);
+						shouldPlaySound = true;
+					}
+					else
+					{
+						shouldPlaySound = false;
+					}
 				} break;
 
 				case 'A':
@@ -318,6 +408,14 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 
 				case VK_ESCAPE:
 				{
+
+				} break;
+
+				case VK_F4:
+				{
+					// Is alt button held down
+					if ((lParam & (1 << 29)) != 0)
+						IsRunning = false;
 
 				} break;
 
