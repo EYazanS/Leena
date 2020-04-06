@@ -1,4 +1,5 @@
 #include <Windows.h>
+#include <Xinput.h>
 #include <tuple>
 
 #include "Defines.h"
@@ -28,7 +29,7 @@ GlobalVariable Win32BitmapBuffer GlobalBitmapBuffer;
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, int cmdShow)
 {
 	HWND windowHandle = Win32InitWindow(instance, cmdShow);
-	
+
 	Win32ResizeDIBSection(&GlobalBitmapBuffer, 1280, 720);
 
 	if (windowHandle)
@@ -39,6 +40,58 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		while (IsRunning)
 		{
 			MSG msg = Win32ProcessMessage(windowHandle);
+
+			for (uint8 controllerIndex = 0; controllerIndex < XUSER_MAX_COUNT; controllerIndex++)
+			{
+				XINPUT_STATE controllerState;
+
+				if (XInputGetState(controllerIndex, &controllerState) == ERROR_SUCCESS)
+				{
+					// Controller is connected
+					auto* pad = &controllerState.Gamepad;
+
+					bool dPadUp = pad->wButtons & XINPUT_GAMEPAD_DPAD_UP;
+					bool dPadDown = pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
+					bool dPadRight = pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
+					bool dPadleft = pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
+
+					bool start = pad->wButtons & XINPUT_GAMEPAD_START;
+					bool back = pad->wButtons & XINPUT_GAMEPAD_BACK;
+
+					bool rightShould = pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER;
+					bool leftShoulder = pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER;
+
+					bool rightThumb = pad->wButtons & XINPUT_GAMEPAD_RIGHT_THUMB;
+					bool leftThumb = pad->wButtons & XINPUT_GAMEPAD_LEFT_THUMB;
+
+					bool aButton = pad->wButtons & XINPUT_GAMEPAD_A;
+					bool bButton = pad->wButtons & XINPUT_GAMEPAD_B;
+					bool xButton = pad->wButtons & XINPUT_GAMEPAD_X;
+					bool yButton = pad->wButtons & XINPUT_GAMEPAD_Y;
+
+					int16 leftStickX = pad->sThumbLX;
+					int16 leftStickY = pad->sThumbLY;
+
+					XINPUT_VIBRATION vibrations = {};
+
+					if (aButton)
+					{
+						YOffset += 2;
+						vibrations.wLeftMotorSpeed = 60000;
+						vibrations.wRightMotorSpeed = 60000;
+					}
+
+					XInputSetState(controllerIndex, &vibrations);
+
+				}
+				else
+				{
+					// Controller is not connected
+
+				}
+			}
+
+
 			RenderWirdGradiend(&GlobalBitmapBuffer, XOffset, YOffset);
 			HDC deviceContext = GetDC(windowHandle);
 			auto [width, height] = GetWindowDimensions(windowHandle);
@@ -196,6 +249,83 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 
 		case WM_ACTIVATEAPP:
 		{
+		} break;
+
+		case WM_SYSKEYDOWN:
+		case WM_SYSKEYUP:
+		case WM_KEYDOWN:
+		case WM_KEYUP:
+		{
+			uint32 vkCode = wParam;
+			bool wasKeyDown = (lParam & (1 << 30)) != 0;
+
+			switch (vkCode)
+			{
+				case 'W':
+				{
+
+				} break;
+
+				case 'A':
+				{
+
+				} break;
+
+				case 'S':
+				{
+
+				} break;
+
+				case 'D':
+				{
+
+				} break;
+
+				case 'E':
+				{
+
+				} break;
+
+				case 'Q':
+				{
+
+				} break;
+
+				case VK_UP:
+				{
+
+				} break;
+
+				case VK_DOWN:
+				{
+
+				} break;
+
+				case VK_RIGHT:
+				{
+
+				} break;
+
+				case VK_LEFT:
+				{
+
+				} break;
+
+				case VK_SPACE:
+				{
+
+				} break;
+
+				case VK_ESCAPE:
+				{
+
+				} break;
+
+				default:
+				{
+
+				} break;
+			}
 		} break;
 
 		case WM_PAINT:
