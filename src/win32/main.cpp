@@ -15,9 +15,14 @@ struct Win32BitmapBuffer
 	int Pitch;
 };
 
+struct ProgramState
+{
+	bool IsRunning;
+};
+
 LRESULT CALLBACK Win32WindowCallback(HWND, UINT, WPARAM, LPARAM);
 
-internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow);
+internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow, ProgramState* state);
 internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height);
 internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height);
 internal MSG Win32ProcessMessage(const HWND& windowHandle);
@@ -26,17 +31,21 @@ internal void DrawBuffer(const HWND& windowHandle);
 internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, int SampleBits);
 internal void PlayGameSound();
 internal HRESULT FillSoundBuffer(GameSoundBuffer* soundBuffer);
+internal inline ProgramState* GetAppState(HWND handle);
 
-GlobalVariable bool IsRunning = true;
 GlobalVariable Win32BitmapBuffer GlobalBitmapBuffer;
 GlobalVariable IXAudio2SourceVoice* sourceVoice;
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, int cmdShow)
 {
-	HWND windowHandle = Win32InitWindow(instance, cmdShow);
+	ProgramState state = {  };
+
+	HWND windowHandle = Win32InitWindow(instance, cmdShow, &state);
 
 	if (windowHandle)
 	{
+		state.IsRunning = true;
+
 		const int SampleBits = 32;
 
 		// Get the performance frequence
@@ -55,7 +64,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		// Get how many cycle the cpu went through
 		uint64 lastCycleCount = __rdtsc();
 
-		while (IsRunning)
+		while (state.IsRunning)
 		{
 			MSG msg = Win32ProcessMessage(windowHandle);
 
@@ -184,7 +193,7 @@ internal MSG Win32ProcessMessage(const HWND& windowHandle)
 	return message;
 }
 
-internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow)
+internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow, ProgramState* state)
 {
 	WNDCLASS window = {};
 
@@ -209,7 +218,7 @@ internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow)
 		NULL,
 		NULL,
 		instance,
-		NULL
+		state
 	);
 
 	return windowHandle;
@@ -321,16 +330,29 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 {
 	LRESULT result = 0;
 
+	ProgramState* programState;
+
+	if (message == WM_CREATE)
+	{
+		CREATESTRUCT* pCreate = reinterpret_cast<CREATESTRUCT*>(lParam);
+		programState = reinterpret_cast<ProgramState*>(pCreate->lpCreateParams);
+		SetWindowLongPtr(windowHandle, GWLP_USERDATA, (LONG_PTR)programState);
+	}
+	else
+	{
+		programState = GetAppState(windowHandle);
+	}
+
 	switch (message)
 	{
 		case WM_CLOSE:
 		{
-			IsRunning = false;
+			programState->IsRunning = false;
 		} break;
 
 		case WM_DESTROY:
 		{
-			IsRunning = false;
+			programState->IsRunning = false;
 		} break;
 
 		case WM_SIZE:
@@ -417,7 +439,7 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 				{
 					// Is alt button held down
 					if ((lParam & (1 << 29)) != 0)
-						IsRunning = false;
+						programState->IsRunning = false;
 
 				} break;
 
@@ -444,4 +466,9 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 	}
 
 	return result;
+}
+
+internal inline ProgramState* GetAppState(HWND handle)
+{
+	return reinterpret_cast<ProgramState*>(GetWindowLongPtr(handle, GWLP_USERDATA));
 }
