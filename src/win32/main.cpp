@@ -1,9 +1,9 @@
+#include <Leena.h>
+
 #include <Windows.h>
 #include <Xinput.h>
 #include <xaudio2.h>
 #include <tuple>
-
-#include <Leena.h>
 
 struct Win32BitmapBuffer
 {
@@ -17,15 +17,15 @@ struct Win32BitmapBuffer
 
 LRESULT CALLBACK Win32WindowCallback(HWND, UINT, WPARAM, LPARAM);
 
-Internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow);
-Internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height);
-Internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height);
-Internal MSG Win32ProcessMessage(const HWND& windowHandle);
-Internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
-Internal void DrawBuffer(const HWND& windowHandle);
-Internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, int SampleBits);
-Internal void PlayGameSound();
-Internal HRESULT FillSoundBuffer(GameSoundBuffer* soundBuffer);
+internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow);
+internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height);
+internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height);
+internal MSG Win32ProcessMessage(const HWND& windowHandle);
+internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
+internal void DrawBuffer(const HWND& windowHandle);
+internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, int SampleBits);
+internal void PlayGameSound();
+internal HRESULT FillSoundBuffer(GameSoundBuffer* soundBuffer);
 
 GlobalVariable bool IsRunning = true;
 GlobalVariable Win32BitmapBuffer GlobalBitmapBuffer;
@@ -107,13 +107,14 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 				}
 			}
 
-			GameSoundBuffer soundBuffer = {};
 			GameScreenBuffer screenBuffer = {};
 
 			screenBuffer.Memory = GlobalBitmapBuffer.Memory;
 			screenBuffer.Height = GlobalBitmapBuffer.Height;
 			screenBuffer.Width = GlobalBitmapBuffer.Width;
 			screenBuffer.Pitch = GlobalBitmapBuffer.Pitch;
+
+			GameSoundBuffer soundBuffer = {};
 
 			GameUpdate(&screenBuffer, &soundBuffer);
 
@@ -151,7 +152,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 	return 0;
 }
 
-Internal void DrawBuffer(const HWND& windowHandle)
+internal void DrawBuffer(const HWND& windowHandle)
 {
 	HDC deviceContext = GetDC(windowHandle);
 	auto [width, height] = GetWindowDimensions(windowHandle);
@@ -159,7 +160,7 @@ Internal void DrawBuffer(const HWND& windowHandle)
 	ReleaseDC(windowHandle, deviceContext);
 }
 
-Internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle)
+internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle)
 {
 	RECT clientRect;
 	GetClientRect(windowHandle, &clientRect);
@@ -168,7 +169,7 @@ Internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle)
 	return std::make_tuple(width, height);
 }
 
-Internal MSG Win32ProcessMessage(const HWND& windowHandle)
+internal MSG Win32ProcessMessage(const HWND& windowHandle)
 {
 	MSG message;
 
@@ -183,7 +184,7 @@ Internal MSG Win32ProcessMessage(const HWND& windowHandle)
 	return message;
 }
 
-Internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow)
+internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow)
 {
 	WNDCLASS window = {};
 
@@ -211,13 +212,10 @@ Internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow)
 		NULL
 	);
 
-	if (windowHandle == NULL)
-		return NULL;
-
 	return windowHandle;
 }
 
-Internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height)
+internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height)
 {
 	// TOOD: aspect ratio correction 
 	StretchDIBits(
@@ -233,7 +231,7 @@ Internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC de
 	);
 }
 
-Internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height)
+internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height)
 {
 	if (bitmapBuffer->Memory)
 		VirtualFree(bitmapBuffer->Memory, NULL, MEM_RELEASE);
@@ -256,7 +254,7 @@ Internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, 
 	bitmapBuffer->Memory = VirtualAlloc(0, bitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
 }
 
-Internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, int SampleBits)
+internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, int SampleBits)
 {
 	// TODO: UncoInitialize on error.
 	HRESULT result;
@@ -288,15 +286,15 @@ Internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, int SampleBits)
 		return result;
 }
 
-Internal void PlayGameSound()
+internal void PlayGameSound()
 {
 	sourceVoice->Start();
 }
 
-Internal HRESULT FillSoundBuffer(GameSoundBuffer* soundBuffer)
+internal HRESULT FillSoundBuffer(GameSoundBuffer* soundBuffer)
 {
 	HRESULT result = {};
-	
+
 	XAUDIO2_BUFFER buffer = { 0 };
 
 	buffer.pAudioData = (BYTE*)soundBuffer->BufferData;
@@ -307,7 +305,7 @@ Internal HRESULT FillSoundBuffer(GameSoundBuffer* soundBuffer)
 		return result;
 }
 
-Internal real32 Win32ProcessXInputStickValues(real32 value, int16 deadZoneThreshold)
+internal real32 Win32ProcessXInputStickValues(real32 value, int16 deadZoneThreshold)
 {
 	real32 result = 0.f;
 

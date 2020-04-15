@@ -4,7 +4,7 @@
 #define LocalPersist static
 #define GlobalVariable static
 
-#define Internal static
+#define internal static
 
 typedef uint8_t  uint8;
 typedef uint16_t uint16;
@@ -20,7 +20,6 @@ typedef int32 bool32;
 
 typedef float  real32;
 typedef double real64;
-
 
 #define ArrayCount(Array) (sizeof((Array)) / sizeof((Array)[0]))
 
