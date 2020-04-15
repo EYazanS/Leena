@@ -1,10 +1,9 @@
 #pragma once
 
-#include "Defines.h"
-
 struct GameSoundBuffer
 {
 	uint32 VoiceBufferSampleCount;
+	int32 SamplesPerSecond;
 	int SampleRate;
 	int Frequency;
 	real32 WavePeriod;

@@ -4,7 +4,7 @@
 
 #if !defined(LeenaH)
 
-#include "Defines.h"
+#include "GameTypes.h"
 #include "GameStructs.h"
 
 // Functions provided for the platform layer

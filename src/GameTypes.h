@@ -1,11 +1,6 @@
 #pragma once
 #include <cstdint>
 
-#define LocalPersist static
-#define GlobalVariable static
-
-#define internal static
-
 typedef uint8_t  uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;

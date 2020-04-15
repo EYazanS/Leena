@@ -20,20 +20,30 @@ struct Win32BitmapBuffer
 	int Pitch;
 };
 
+#define LocalPersist static
+#define GlobalVariable static
+#define internal static
+
 LRESULT CALLBACK Win32WindowCallback(HWND, UINT, WPARAM, LPARAM);
 
+internal inline ProgramState* GetAppState(HWND handle);
+
 internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow, ProgramState* state);
+
+internal MSG Win32ProcessMessage(const HWND& windowHandle);
+
+internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
+
+internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, int SampleBits);
+internal HRESULT FillSoundBuffer(IXAudio2SourceVoice* sourceVoice, GameSoundBuffer* soundBuffer);
+
+internal int64 GetPerformanceFrequence();
+internal int64 QueryPerformance();
+
+internal void PlayGameSound(IXAudio2SourceVoice* sourceVoice);
 internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height);
 internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height);
-internal MSG Win32ProcessMessage(const HWND& windowHandle);
-internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
 internal void DrawBuffer(const HWND& windowHandle);
-internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, int SampleBits);
-internal void PlayGameSound(IXAudio2SourceVoice* sourceVoice);
-internal HRESULT FillSoundBuffer(IXAudio2SourceVoice* sourceVoice, GameSoundBuffer* soundBuffer);
-internal inline ProgramState* GetAppState(HWND handle);
-internal int64 GetPerformanceFrequence();
-internal LARGE_INTEGER QueryPerformance();
 
 GlobalVariable Win32BitmapBuffer GlobalBitmapBuffer;
 GlobalVariable IXAudio2SourceVoice* sourceVoice;
@@ -56,10 +66,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		Win32ResizeDIBSection(&GlobalBitmapBuffer, 1280, 720);
 
 		IXAudio2* xAudio = {};
-		
+
 		Wind32InitializeXAudio(xAudio, SampleBits);
 
-		LARGE_INTEGER lastCounter = QueryPerformance();
+		int64 lastCounter = QueryPerformance();
 
 		// Get how many cycle the cpu went through
 		uint64 lastCycleCount = __rdtsc();
@@ -122,6 +132,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 			GameSoundBuffer soundBuffer = {};
 
+			soundBuffer.SamplesPerSecond = 4800;
+
 			GameUpdate(&screenBuffer, &soundBuffer);
 
 			FillSoundBuffer(sourceVoice, &soundBuffer);
@@ -133,9 +145,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			// Display performance counter
 			uint64 endCycleCount = __rdtsc();
 
-			LARGE_INTEGER endCounter = QueryPerformance();
+			int64 endCounter = QueryPerformance();
 
-			int64 counterElapsed = endCounter.QuadPart - lastCounter.QuadPart;
+			int64 counterElapsed = endCounter - lastCounter;
 			int64 cyclesElapsed = endCycleCount - lastCycleCount;
 
 			// how many cycles the cpu went throught a single frame
@@ -276,7 +288,7 @@ internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, int SampleBits)
 		return result;
 
 	const int CHANNELS = 2;
-	const int SAMPLE_RATE = 44100;
+	const int SAMPLE_RATE = 48000;
 
 	WAVEFORMATEX waveFormat = { 0 };
 
@@ -338,11 +350,11 @@ internal int64 GetPerformanceFrequence()
 	return performanceFrequenceResult.QuadPart;
 }
 
-internal LARGE_INTEGER QueryPerformance()
+internal int64 QueryPerformance()
 {
 	LARGE_INTEGER counter;
 	QueryPerformanceCounter(&counter);
-	return counter;
+	return counter.QuadPart;
 }
 
 LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wParam, LPARAM lParam)
