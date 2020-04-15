@@ -3,8 +3,8 @@
 #include <xaudio2.h>
 #include <tuple>
 
-#include "Defines.h"
-#include "GameStructs.h"
+#include <Defines.h>
+#include <GameStructs.h>
 
 LRESULT CALLBACK Win32WindowCallback(HWND, UINT, WPARAM, LPARAM);
 
