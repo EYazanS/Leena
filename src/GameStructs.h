@@ -2,12 +2,11 @@
 
 struct GameSoundBuffer
 {
-	uint32 VoiceBufferSampleCount;
+	real32 Time; // In Seconds
+	real32 SampleRate; // In HZ
+	real32 Period; // In Seconds
 	int32 SamplesPerSecond;
-	int SampleRate;
-	int Frequency;
-	real32 WavePeriod;
-	real32 Time;
+	uint32 SampleCount;
 	void* BufferData;
 };
 

@@ -40,18 +40,20 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOf
 
 void FillSoundBuffer(GameSoundBuffer* soundBuffer)
 {
-	const int SAMPLE_RATE = 44100;
-	const float PI = 3.1415f;
-	const int NOTE_FREQ = 55;
+	const float Pi = 3.1415f;
 
-	soundBuffer->VoiceBufferSampleCount = SAMPLE_RATE * 2;
+	soundBuffer->SampleCount = soundBuffer->SamplesPerSecond * 2;
 
-	float* bufferData = new float[soundBuffer->VoiceBufferSampleCount];
+	float* bufferData = new float[soundBuffer->SampleCount];
 
-	for (uint32 i = 0; i < soundBuffer->VoiceBufferSampleCount; i += 2)
+	for (uint32 i = 0; i < soundBuffer->SampleCount; i += 2)
 	{
-		*(bufferData + i) = sin(i * 2 * PI * NOTE_FREQ / SAMPLE_RATE);
-		*(bufferData + i + 1) = sin(i * 2 * PI * (NOTE_FREQ + 2) / SAMPLE_RATE);
+		*(bufferData + i) = sinf((soundBuffer->Time * 2 * Pi) / soundBuffer->Period);
+
+		soundBuffer->Time += (1.0f / soundBuffer->SampleRate);             // move time forward one sample-tick
+
+		if (soundBuffer->Time > soundBuffer->Period)
+			soundBuffer->Time -= soundBuffer->Period;
 	}
 
 	soundBuffer->BufferData = bufferData;
