@@ -15,7 +15,8 @@ Internal void RenderWirdGradiend(Win32BitmapBuffer* bitmapBuffer, int XOffset, i
 Internal MSG Win32ProcessMessage(const HWND& windowHandle);
 Internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
 Internal HRESULT Wind32InitializeXAudio(int SampleBits);
-Internal HRESULT PlayTestSound(int SampleBits);
+Internal void PlayTestSound();
+Internal HRESULT FillSoundBuffer(int SampleBits);
 
 GlobalVariable bool IsRunning = true;
 GlobalVariable bool shouldPlaySound = false;
@@ -32,13 +33,21 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 	{
 		const int SampleBits = 32;
 
-		Win32ResizeDIBSection(&GlobalBitmapBuffer, 1280, 720);
+		// Get the performance frequence
+		LARGE_INTEGER performanceFrequenceResult;
+		QueryPerformanceFrequency(&performanceFrequenceResult);
+		int64 performanceFrequence = performanceFrequenceResult.QuadPart;
 
+		Win32ResizeDIBSection(&GlobalBitmapBuffer, 1280, 720);
 		Wind32InitializeXAudio(SampleBits);
 
 		int XOffset = 0;
 		int YOffset = 0;
 
+		FillSoundBuffer(32);
+
+		LARGE_INTEGER lastCounter;
+		QueryPerformanceCounter(&lastCounter);
 		while (IsRunning)
 		{
 			MSG msg = Win32ProcessMessage(windowHandle);
@@ -82,7 +91,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 						vibrations.wLeftMotorSpeed = 60000;
 						vibrations.wRightMotorSpeed = 60000;
 
-						PlayTestSound(SampleBits);
+						PlayTestSound();
 					}
 
 					XInputSetState(controllerIndex, &vibrations);
@@ -105,6 +114,22 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			{
 				sourceVoice->Stop();
 			}
+
+			// Display performance counter
+			LARGE_INTEGER endCounter;
+			QueryPerformanceCounter(&endCounter);
+
+			int64 counterElapsed = endCounter.QuadPart - lastCounter.QuadPart;
+
+			int64 msPerFrame = 1000 * counterElapsed / performanceFrequence;
+			int64 fps = performanceFrequence / counterElapsed;
+
+			// Register last counter we got
+			char formatBuffer[40];
+			wsprintfA(formatBuffer, "ms/frame: %I64u - %I64ufps\n", msPerFrame, fps);
+			OutputDebugStringA(formatBuffer);
+			
+			lastCounter = endCounter;
 		}
 	}
 
@@ -265,7 +290,12 @@ Internal HRESULT Wind32InitializeXAudio(int SampleBits)
 		return result;
 }
 
-Internal HRESULT PlayTestSound(int SampleBits)
+Internal void PlayTestSound()
+{
+	sourceVoice->Start();
+}
+
+Internal HRESULT FillSoundBuffer(int SampleBits)
 {
 	HRESULT result = {};
 
@@ -288,11 +318,6 @@ Internal HRESULT PlayTestSound(int SampleBits)
 
 	if (FAILED(sourceVoice->SubmitSourceBuffer(&buffer)))
 		return result;
-
-	sourceVoice->Start();
-
-
-	CoUninitialize();
 }
 
 Internal real32 Win32ProcessXInputStickValues(real32 value, int16 deadZoneThreshold)
@@ -347,7 +372,7 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 				{
 					if (isDown)
 					{
-						PlayTestSound(32);
+						PlayTestSound();
 						shouldPlaySound = true;
 					}
 					else
