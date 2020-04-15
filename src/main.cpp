@@ -48,6 +48,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		LARGE_INTEGER lastCounter;
 		QueryPerformanceCounter(&lastCounter);
+
+		uint64 lastCycleCount = __rdtsc();
+
 		while (IsRunning)
 		{
 			MSG msg = Win32ProcessMessage(windowHandle);
@@ -116,19 +119,26 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			}
 
 			// Display performance counter
+			uint64 endCycleCount = __rdtsc();
+
 			LARGE_INTEGER endCounter;
 			QueryPerformanceCounter(&endCounter);
 
 			int64 counterElapsed = endCounter.QuadPart - lastCounter.QuadPart;
+			int64 cyclesElapsed = endCycleCount - lastCycleCount;
+
+			// how many cycles the cpu went throught a single frame
+			int64 mcpf = cyclesElapsed / (1000 * 1000);
 
 			int64 msPerFrame = 1000 * counterElapsed / performanceFrequence;
 			int64 fps = performanceFrequence / counterElapsed;
 
 			// Register last counter we got
-			char formatBuffer[40];
-			wsprintfA(formatBuffer, "ms/frame: %I64u - %I64ufps\n", msPerFrame, fps);
+			char formatBuffer[256];
+			wsprintfA(formatBuffer, "%I64ums/f - %I64ufps - %I64uc/f\n", msPerFrame, fps, mcpf);
 			OutputDebugStringA(formatBuffer);
-			
+
+			lastCycleCount = endCycleCount;
 			lastCounter = endCounter;
 		}
 	}
