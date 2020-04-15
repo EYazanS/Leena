@@ -22,10 +22,10 @@ Internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, 
 Internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height);
 Internal MSG Win32ProcessMessage(const HWND& windowHandle);
 Internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
-void DrawBuffer(const HWND& windowHandle);
+Internal void DrawBuffer(const HWND& windowHandle);
 Internal HRESULT Wind32InitializeXAudio(int SampleBits);
-Internal void PlayTestSound();
-Internal HRESULT FillSoundBuffer(int SampleBits);
+Internal void PlaySound();
+Internal HRESULT FillSoundBuffer(GameSoundBuffer* soundBuffer);
 
 GlobalVariable bool IsRunning = true;
 GlobalVariable bool shouldPlaySound = false;
@@ -50,11 +50,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		Win32ResizeDIBSection(&GlobalBitmapBuffer, 1280, 720);
 		Wind32InitializeXAudio(SampleBits);
 
-		FillSoundBuffer(32);
-
 		LARGE_INTEGER lastCounter;
 		QueryPerformanceCounter(&lastCounter);
 
+		// Get how many cycle the cpu went through
 		uint64 lastCycleCount = __rdtsc();
 
 		while (IsRunning)
@@ -99,7 +98,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 						vibrations.wLeftMotorSpeed = 60000;
 						vibrations.wRightMotorSpeed = 60000;
 
-						PlayTestSound();
+						PlaySound();
 					}
 
 					XInputSetState(controllerIndex, &vibrations);
@@ -111,6 +110,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 				}
 			}
 
+			GameSoundBuffer soundBuffer = {};
 			GameScreenBuffer screenBuffer = {};
 
 			screenBuffer.Memory = GlobalBitmapBuffer.Memory;
@@ -118,7 +118,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			screenBuffer.Width = GlobalBitmapBuffer.Width;
 			screenBuffer.Pitch = GlobalBitmapBuffer.Pitch;
 
-			GameUpdate(&screenBuffer);
+			GameUpdate(&screenBuffer, &soundBuffer);
+
+			FillSoundBuffer(&soundBuffer);
 
 			DrawBuffer(windowHandle);
 
@@ -155,7 +157,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 	return 0;
 }
 
-void DrawBuffer(const HWND& windowHandle)
+Internal void DrawBuffer(const HWND& windowHandle)
 {
 	HDC deviceContext = GetDC(windowHandle);
 	auto [width, height] = GetWindowDimensions(windowHandle);
@@ -280,6 +282,7 @@ Internal HRESULT Wind32InitializeXAudio(int SampleBits)
 	const int SAMPLE_RATE = 44100;
 
 	WAVEFORMATEX waveFormat = { 0 };
+
 	waveFormat.wBitsPerSample = SampleBits;
 	waveFormat.nAvgBytesPerSec = (SampleBits / 8) * CHANNELS * SAMPLE_RATE;
 	waveFormat.nChannels = CHANNELS;
@@ -291,30 +294,17 @@ Internal HRESULT Wind32InitializeXAudio(int SampleBits)
 		return result;
 }
 
-Internal void PlayTestSound()
+Internal void PlaySound()
 {
 	sourceVoice->Start();
 }
 
-Internal HRESULT FillSoundBuffer(int SampleBits)
+Internal HRESULT FillSoundBuffer(GameSoundBuffer* soundBuffer)
 {
 	HRESULT result = {};
 
-	const int SAMPLE_RATE = 44100;
-	const float PI = 3.1415;
-	const int VOICE_BUFFER_SAMPLE_COUNT = SAMPLE_RATE * 2;
-	const int NOTE_FREQ = 55;
-
-	float* bufferData = new float[VOICE_BUFFER_SAMPLE_COUNT];
-
-	for (int i = 0; i < VOICE_BUFFER_SAMPLE_COUNT; i += 2)
-	{
-		*(bufferData + i) = sin(i * 2 * PI * NOTE_FREQ / SAMPLE_RATE);
-		*(bufferData + i + 1) = sin(i * 2 * PI * (NOTE_FREQ + 2) / SAMPLE_RATE);
-	}
-
-	buffer.pAudioData = (BYTE*)bufferData;
-	buffer.AudioBytes = VOICE_BUFFER_SAMPLE_COUNT * (SampleBits / 8);
+	buffer.pAudioData = (BYTE*)soundBuffer->BufferData;
+	buffer.AudioBytes = soundBuffer->VoiceBufferSampleCount;
 	buffer.LoopCount = XAUDIO2_LOOP_INFINITE;
 
 	if (FAILED(sourceVoice->SubmitSourceBuffer(&buffer)))
@@ -373,7 +363,7 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 				{
 					if (isDown)
 					{
-						PlayTestSound();
+						PlaySound();
 						shouldPlaySound = true;
 					}
 					else

@@ -9,7 +9,7 @@ struct GameSoundBuffer
 	int Frequency;
 	real32 WavePeriod;
 	real32 Time;
-	real32 BufferData[96000];
+	void* BufferData;
 };
 
 struct GameScreenBuffer
