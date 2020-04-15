@@ -20,9 +20,9 @@ Internal HRESULT PlayTestSound(int SampleBits);
 GlobalVariable bool IsRunning = true;
 GlobalVariable bool shouldPlaySound = false;
 GlobalVariable Win32BitmapBuffer GlobalBitmapBuffer;
-GlobalVariable  IXAudio2* xAudio;
-GlobalVariable  IXAudio2SourceVoice* sourceVoice;
-GlobalVariable  XAUDIO2_BUFFER buffer = { 0 };
+GlobalVariable IXAudio2* xAudio;
+GlobalVariable IXAudio2SourceVoice* sourceVoice;
+GlobalVariable XAUDIO2_BUFFER buffer = { 0 };
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, int cmdShow)
 {
@@ -274,15 +274,15 @@ Internal HRESULT PlayTestSound(int SampleBits)
 	const int VOICE_BUFFER_SAMPLE_COUNT = SAMPLE_RATE * 2;
 	const int NOTE_FREQ = 55;
 
-	float bufferData[VOICE_BUFFER_SAMPLE_COUNT];
+	float* bufferData = new float[VOICE_BUFFER_SAMPLE_COUNT];
 
 	for (int i = 0; i < VOICE_BUFFER_SAMPLE_COUNT; i += 2)
 	{
-		bufferData[i] = sin(i * 2 * PI * NOTE_FREQ / SAMPLE_RATE);
-		bufferData[i + 1] = sin(i * 2 * PI * (NOTE_FREQ + 2) / SAMPLE_RATE);
+		*(bufferData + i) = sin(i * 2 * PI * NOTE_FREQ / SAMPLE_RATE);
+		*(bufferData + i + 1) = sin(i * 2 * PI * (NOTE_FREQ + 2) / SAMPLE_RATE);
 	}
 
-	buffer.pAudioData = (BYTE*)&bufferData;
+	buffer.pAudioData = (BYTE*)bufferData;
 	buffer.AudioBytes = VOICE_BUFFER_SAMPLE_COUNT * (SampleBits / 8);
 	buffer.LoopCount = XAUDIO2_LOOP_INFINITE;
 
