@@ -3,17 +3,26 @@
 #include <xaudio2.h>
 #include <tuple>
 
-#include <Defines.h>
-#include <GameStructs.h>
+#include <Leena.h>
+
+struct Win32BitmapBuffer
+{
+	BITMAPINFO Info;
+	void* Memory;
+	int BytesPerPixel;
+	int Width;
+	int Height;
+	int Pitch;
+};
 
 LRESULT CALLBACK Win32WindowCallback(HWND, UINT, WPARAM, LPARAM);
 
 Internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow);
 Internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height);
 Internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height);
-Internal void RenderWirdGradiend(Win32BitmapBuffer* bitmapBuffer, int XOffset, int YOffset);
 Internal MSG Win32ProcessMessage(const HWND& windowHandle);
 Internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
+void DrawBuffer(const HWND& windowHandle);
 Internal HRESULT Wind32InitializeXAudio(int SampleBits);
 Internal void PlayTestSound();
 Internal HRESULT FillSoundBuffer(int SampleBits);
@@ -40,9 +49,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		Win32ResizeDIBSection(&GlobalBitmapBuffer, 1280, 720);
 		Wind32InitializeXAudio(SampleBits);
-
-		int XOffset = 0;
-		int YOffset = 0;
 
 		FillSoundBuffer(32);
 
@@ -90,7 +96,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 					if (aButton)
 					{
-						YOffset += 2;
 						vibrations.wLeftMotorSpeed = 60000;
 						vibrations.wRightMotorSpeed = 60000;
 
@@ -106,12 +111,16 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 				}
 			}
 
-			RenderWirdGradiend(&GlobalBitmapBuffer, XOffset, YOffset);
-			HDC deviceContext = GetDC(windowHandle);
-			auto [width, height] = GetWindowDimensions(windowHandle);
-			Win32DisplayBufferInWindow(&GlobalBitmapBuffer, deviceContext, width, height);
-			ReleaseDC(windowHandle, deviceContext);
-			++XOffset;
+			GameScreenBuffer screenBuffer = {};
+
+			screenBuffer.Memory = GlobalBitmapBuffer.Memory;
+			screenBuffer.Height = GlobalBitmapBuffer.Height;
+			screenBuffer.Width = GlobalBitmapBuffer.Width;
+			screenBuffer.Pitch = GlobalBitmapBuffer.Pitch;
+
+			GameUpdate(&screenBuffer);
+
+			DrawBuffer(windowHandle);
 
 			if (sourceVoice && !shouldPlaySound)
 			{
@@ -144,6 +153,14 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 	}
 
 	return 0;
+}
+
+void DrawBuffer(const HWND& windowHandle)
+{
+	HDC deviceContext = GetDC(windowHandle);
+	auto [width, height] = GetWindowDimensions(windowHandle);
+	Win32DisplayBufferInWindow(&GlobalBitmapBuffer, deviceContext, width, height);
+	ReleaseDC(windowHandle, deviceContext);
 }
 
 Internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle)
@@ -241,32 +258,6 @@ Internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, 
 	int bitmapMemorySize = bitmapBuffer->Width * bitmapBuffer->Height * bitmapBuffer->BytesPerPixel;
 
 	bitmapBuffer->Memory = VirtualAlloc(0, bitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
-}
-
-Internal void RenderWirdGradiend(Win32BitmapBuffer* bitmapBuffer, int XOffset, int YOffset)
-{
-	uint8* Row = (uint8*)bitmapBuffer->Memory;
-
-	for (int Y = 0; Y < bitmapBuffer->Height; ++Y)
-	{
-		uint32* Pixel = (uint32*)Row;
-
-		for (int X = 0; X < bitmapBuffer->Width; ++X)
-		{
-			uint8 g = (Y + YOffset);
-			uint8 b = (X + XOffset);
-
-			/*
-			Memory:   BB GG RR xx
-			Register: xx RR GG BB
-			Pixel (32-bits)
-			*/
-
-			*Pixel++ = (g << 8) | b;
-		}
-
-		Row += bitmapBuffer->Pitch;
-	}
 }
 
 Internal HRESULT Wind32InitializeXAudio(int SampleBits)

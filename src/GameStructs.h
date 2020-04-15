@@ -1,17 +1,6 @@
 #pragma once
 
-#include <Windows.h>
 #include "Defines.h"
-
-struct Win32BitmapBuffer
-{
-	BITMAPINFO Info;
-	void* Memory;
-	int BytesPerPixel;
-	int Width;
-	int Height;
-	int Pitch;
-};
 
 struct GameSoundBuffer
 {
@@ -21,6 +10,14 @@ struct GameSoundBuffer
 	real32 WavePeriod;
 	real32 Time;
 	real32 BufferData[96000];
+};
+
+struct GameScreenBuffer
+{
+	void* Memory;
+	int Width;
+	int Height;
+	int Pitch;
 };
 
 struct GameButtonState

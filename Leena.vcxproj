@@ -146,11 +146,13 @@
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Leena.cpp" />
     <ClCompile Include="src\win32\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Defines.h" />
     <ClInclude Include="src\GameStructs.h" />
+    <ClInclude Include="src\Leena.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

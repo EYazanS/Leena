@@ -26,9 +26,15 @@
     <ClInclude Include="src\GameStructs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Leena.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\win32\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Leena.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
