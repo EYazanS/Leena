@@ -14,10 +14,10 @@ enum class Key
 	Ctrl,
 	Alt,
 	Enter,
-	PadUp,
-	PadRight,
-	PadDown,
-	PadLeft
+	MoveUp,
+	MoveRight,
+	MoveDown,
+	MoveLeft
 };
 
 struct GameSoundBuffer
@@ -48,12 +48,19 @@ struct GameControllerInput
 {
 	bool32 IsConnected;
 	bool32 IsAnalog;
-	real32 StickAverageX;
-	real32 StickAverageY;
+
+	real32 LeftStickAverageX;
+	real32 LeftStickAverageY;
+
+	real32 RightStickAverageX;
+	real32 RightStickAverageY;
+
+	real32 RightTrigger;
+	real32 LeftTrigger;
 
 	union
 	{
-		GameButtonState Buttons[12];
+		GameButtonState Buttons[16];
 
 		struct
 		{
@@ -62,10 +69,15 @@ struct GameControllerInput
 			GameButtonState Y;
 			GameButtonState B;
 
-			GameButtonState PadUp;
-			GameButtonState PadDown;
-			GameButtonState PadRight;
-			GameButtonState PadLeft;
+			GameButtonState MoveUp;
+			GameButtonState MoveDown;
+			GameButtonState MoveRight;
+			GameButtonState MoveLeft;
+
+			GameButtonState DpadUp;
+			GameButtonState DpadDown;
+			GameButtonState DpadRight;
+			GameButtonState DpadLeft;
 
 			GameButtonState LeftShoulder;
 			GameButtonState RightShoulder;
@@ -81,7 +93,7 @@ struct GameControllerInput
 
 struct GameInput
 {
-	GameControllerInput Controllers[4];
+	GameControllerInput Controllers[5];
 };
 
 struct GameMemory

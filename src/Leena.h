@@ -10,6 +10,13 @@
 // Functions provided for the platform layer
 void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameSoundBuffer* soundBuffer, GameInput* input);
 
+inline GameControllerInput* GetController(GameInput* input, uint8 index)
+{
+	Assert(index < ArrayCount(input->Controllers));
+	GameControllerInput* result = &input->Controllers[index];
+	return result;
+}
+
 // Functions provided for the game layer
 #if Leena_Internal
 struct DebugFileResult

@@ -21,12 +21,26 @@ void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameSoun
 	RenderWirdGradiend(screenBuffer, gameState->XOffset, gameState->YOffset);
 	Win32FillSoundBuffer(soundBuffer);
 
-	gameState->XOffset += static_cast<int>(5 * input->Controllers[0].StickAverageX);
-	
-	if (input->Controllers[0].PadDown.EndedDown)
-		gameState->YOffset -= 5;
-	
-	gameState->YOffset += static_cast<int>(5 * input->Controllers[0].StickAverageY);
+	for each (GameControllerInput controller in input->Controllers)
+	{
+		if (controller.IsAnalog)
+		{
+			// gameState->XOffset += static_cast<int>(5 * controller.LeftStickAverageX);
+			// gameState->YOffset += static_cast<int>(5 * controller.LeftStickAverageY);
+		}
+
+		if (controller.MoveLeft.EndedDown)
+			gameState->XOffset -= 5;
+
+		if (controller.MoveRight.EndedDown)
+			gameState->XOffset += 5;
+
+		if (controller.MoveUp.EndedDown)
+			gameState->YOffset += 5;
+
+		if (controller.MoveDown.EndedDown)
+			gameState->YOffset -= 5;
+	}
 }
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset)

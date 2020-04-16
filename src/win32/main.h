@@ -42,6 +42,7 @@ internal HWND Win32InitWindow(const HINSTANCE& instance, ProgramState* state);
 internal MSG Win32ProcessMessage();
 internal int64 Win32GetPerformanceFrequence();
 internal int64 Win32QueryPerformance();
+internal GameMemory InitGameMemory();
 
 // Audio
 internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, Wind32SoundBuffer* soundBuffer);
@@ -52,8 +53,8 @@ internal Wind32SoundBuffer IniWin32SoundBuffer();
 // Input
 internal void Win32ProcessDigitalButton(DWORD button, DWORD buttonBit, GameButtonState* oldState, GameButtonState* newState);
 internal real32 Win32ProcessXInputStickValues(real32 value, int16 deadZoneThreshold);
-internal GameMemory InitGameMemory();
 internal void ProccessControllerInput(GameInput* newInput, GameInput* oldInput);
+internal real32 Win32CalculateTriggerValue(real32 triggerValue);
 internal void ProccessKeyboardKeys(MSG& message, GameControllerInput* input);
 internal void Win32ProccessKeyboardMessage(GameButtonState& state, bool isPressed);
 
