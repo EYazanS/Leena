@@ -18,9 +18,10 @@ typedef double real64;
 
 #define ArrayCount(Array) (sizeof((Array)) / sizeof((Array)[0]))
 
-#define Killobytes(Value) ((Value)*1024LL)
-#define Megabytes(Value) (Killobytes(Value)*1024LL)
-#define Gigabytes(value) (Megabytes(value)*1024LL)
-#define Terabytes(value) (Gigabytes(value)*1024LL)
+#define Killobytes(Value) ((Value) * 1024LL)
+#define Megabytes(Value) (Killobytes(Value) * 1024LL)
+#define Gigabytes(value) (Megabytes(value) * 1024LL)
+#define Terabytes(value) (Gigabytes(value) * 1024LL)
+
 #define Assert(Expression) \
 	if (!(Expression)) { *(int*)0 = 0; }

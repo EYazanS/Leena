@@ -68,9 +68,20 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		// Get the performance frequence
 		int64 performanceFrequence = Win32GetPerformanceFrequence();
 
+		// Get how many cycle the cpu went through
+		uint64 lastCycleCount = __rdtsc();
+
+		int64 lastCounter = Win32QueryPerformance();
+
 		programState.IsRunning = true;
 
-		Win32ResizeDIBSection(&GlobalBitmapBuffer, 1280, 720);
+		GameMemory gameMemory = {};
+
+		gameMemory.PermenantStorageSize = Megabytes(64);
+		gameMemory.PermenantStorage = VirtualAlloc(0, gameMemory.PermenantStorageSize, MEM_COMMIT, PAGE_READWRITE);
+
+		gameMemory.TransiateStorageSize = Gigabytes(4);
+		gameMemory.TransiateStorage = VirtualAlloc(0, gameMemory.TransiateStorageSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
 		IXAudio2* xAudio = {};
 
@@ -82,10 +93,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		Wind32InitializeXAudio(xAudio, &soundBuffer);
 
-		int64 lastCounter = Win32QueryPerformance();
-
-		// Get how many cycle the cpu went through
-		uint64 lastCycleCount = __rdtsc();
+		Win32ResizeDIBSection(&GlobalBitmapBuffer, 1280, 720);
 
 		// Uncomment when we have proper wave to play ...
 		// PlayGameSound(soundBuffer.SourceVoice);
@@ -108,14 +116,14 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 			for (uint8 controllerIndex = 0; controllerIndex < maxCount; controllerIndex++)
 			{
-				GameControllerInput* oldController = &oldInput->Controllers[controllerIndex];
-				GameControllerInput* newController = &newInput->Controllers[controllerIndex];
-
 				XINPUT_STATE controllerState;
 
 				// If the controller is connected
 				if (XInputGetState(controllerIndex, &controllerState) == ERROR_SUCCESS)
 				{
+					GameControllerInput* oldController = &oldInput->Controllers[controllerIndex];
+					GameControllerInput* newController = &newInput->Controllers[controllerIndex];
+
 					// Controller is connected
 					XINPUT_GAMEPAD* pad = &controllerState.Gamepad;
 
@@ -166,7 +174,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			gameSoundBuffer.Time = 1.f;; // in Seconds
 			gameSoundBuffer.Period = 0.3f; // in Seconds, 1/3 of a second
 
-			GameUpdate(&screenBuffer, &gameSoundBuffer, newInput);
+			GameUpdate(&gameMemory, &screenBuffer, &gameSoundBuffer, newInput);
 
 			Win32FillSoundBuffer(soundBuffer.SourceVoice, &gameSoundBuffer);
 			Win32DrawBuffer(windowHandle);

@@ -9,7 +9,7 @@
 #include "GameStructs.h"
 
 // Functions provided for the platform layer
-void GameUpdate(GameScreenBuffer* gameScreenBuffer, GameSoundBuffer* soundBuffer, GameInput* input);
+void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameSoundBuffer* soundBuffer, GameInput* input);
 
 #define LeenaH
 
