@@ -87,8 +87,8 @@ struct GameInput
 
 struct GameMemory
 {
-	uint32 PermenantStorageSize;
-	uint32 TransiateStorageSize;
+	uint64 PermenantStorageSize;
+	uint64 TransiateStorageSize;
 	void* PermenantStorage;
 	void* TransiateStorage;
 	bool32 IsInitialized;

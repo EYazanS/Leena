@@ -28,9 +28,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		#endif
 
 		gameMemory.PermenantStorageSize = Megabytes(64);
-		gameMemory.TransiateStorageSize = Gigabytes(2);
+		gameMemory.TransiateStorageSize = Gigabytes(5);
 
-		uint32 totalSize = gameMemory.PermenantStorageSize + gameMemory.TransiateStorageSize;
+		uint64 totalSize = gameMemory.PermenantStorageSize + gameMemory.TransiateStorageSize;
 
 		gameMemory.PermenantStorage = VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 		gameMemory.TransiateStorage = (uint8*)gameMemory.PermenantStorage + gameMemory.PermenantStorageSize;
@@ -49,6 +49,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		// Uncomment when we have proper wave to play ...
 		Win32PlaySound(soundBuffer.SourceVoice);
+		soundBuffer.SourceVoice->Stop();
 
 		GameInput Input[2] = { };
 
