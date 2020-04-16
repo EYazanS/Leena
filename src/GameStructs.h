@@ -82,13 +82,13 @@ struct GameControllerInput
 struct GameInput
 {
 	GameControllerInput Controllers[4];
-	std::map<Key, bool> KeysPressed;
+	// std::map<Key, bool> KeysPressed;
 };
 
 struct GameMemory
 {
-	uint64 PermenantStorageSize;
-	uint64 TransiateStorageSize;
+	uint32 PermenantStorageSize;
+	uint32 TransiateStorageSize;
 	void* PermenantStorage;
 	void* TransiateStorage;
 	bool32 IsInitialized;

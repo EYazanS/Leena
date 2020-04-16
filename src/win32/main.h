@@ -10,7 +10,7 @@
 struct ProgramState
 {
 	bool IsRunning;
-	std::map<Key, bool> KeysPressed;
+	// std::map<Key, bool> KeysPressed;
 };
 
 struct Win32BitmapBuffer
@@ -39,8 +39,8 @@ struct Wind32SoundBuffer
 LRESULT CALLBACK Win32WindowCallback(HWND, UINT, WPARAM, LPARAM);
 
 internal inline ProgramState* GetAppState(HWND handle);
-internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow, ProgramState* state);
-internal MSG Win32ProcessMessage(const HWND& windowHandle);
+internal HWND Win32InitWindow(const HINSTANCE& instance, ProgramState* state);
+internal MSG Win32ProcessMessage();
 internal int64 Win32GetPerformanceFrequence();
 internal int64 Win32QueryPerformance();
 
@@ -51,6 +51,7 @@ internal void Win32PlaySound(IXAudio2SourceVoice* sourceVoice);
 
 // Input
 internal void Win32ProcessDigitalButton(DWORD button, DWORD buttonBit, GameButtonState* oldState, GameButtonState* newState);
+internal real32 Win32ProcessXInputStickValues(real32 value, int16 deadZoneThreshold);
 
 // Graphics
 internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);

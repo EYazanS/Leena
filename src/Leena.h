@@ -3,7 +3,6 @@
 #if !defined(LeenaH)
 
 #include <math.h>
-#include <map>
 
 #include "GameTypes.h"
 #include "GameStructs.h"

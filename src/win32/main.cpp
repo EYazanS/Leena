@@ -4,7 +4,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 {
 	ProgramState programState = { };
 
-	HWND windowHandle = Win32InitWindow(instance, showCommand, &programState);
+	HWND windowHandle = Win32InitWindow(instance, &programState);
 
 	if (windowHandle)
 	{
@@ -18,7 +18,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		programState.IsRunning = true;
 
-		GameMemory gameMemory = {};
+		GameMemory gameMemory = {};	
 
 
 		#if Leena_Internal
@@ -28,9 +28,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		#endif
 
 		gameMemory.PermenantStorageSize = Megabytes(64);
-		gameMemory.TransiateStorageSize = Gigabytes(4);
+		gameMemory.TransiateStorageSize = Gigabytes(2);
 
-		uint64 totalSize = gameMemory.PermenantStorageSize + gameMemory.TransiateStorageSize;
+		uint32 totalSize = gameMemory.PermenantStorageSize + gameMemory.TransiateStorageSize;
 
 		gameMemory.PermenantStorage = VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 		gameMemory.TransiateStorage = (uint8*)gameMemory.PermenantStorage + gameMemory.PermenantStorageSize;
@@ -48,7 +48,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		Win32ResizeDIBSection(&GlobalBitmapBuffer, 1280, 720);
 
 		// Uncomment when we have proper wave to play ...
-		// PlayGameSound(soundBuffer.SourceVoice);
+		Win32PlaySound(soundBuffer.SourceVoice);
 
 		GameInput Input[2] = { };
 
@@ -57,9 +57,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		while (programState.IsRunning)
 		{
-			Win32ProcessMessage(windowHandle);
+			Win32ProcessMessage();
 
-			newInput->KeysPressed = programState.KeysPressed;
+			// newInput->KeysPressed = programState.KeysPressed;
 
 			uint8 maxCount = XUSER_MAX_COUNT;
 
@@ -98,6 +98,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 					// Normalize the number
 					newController->StickAverageX = (real32)pad->sThumbLX / ((pad->sThumbLX < 0) ? 32768.0f : 32767.0f);
 					newController->StickAverageY = (real32)pad->sThumbLY / ((pad->sThumbLX < 0) ? 32768.0f : 32767.0f);
+					
+					Win32ProcessXInputStickValues(pad->sThumbLY, 4000);
 
 					XINPUT_VIBRATION vibrations = {};
 
@@ -179,7 +181,7 @@ internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle)
 	return std::make_tuple(width, height);
 }
 
-internal MSG Win32ProcessMessage(const HWND& windowHandle)
+internal MSG Win32ProcessMessage()
 {
 	MSG message;
 
@@ -194,7 +196,7 @@ internal MSG Win32ProcessMessage(const HWND& windowHandle)
 	return message;
 }
 
-internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow, ProgramState* state)
+internal HWND Win32InitWindow(const HINSTANCE& instance, ProgramState* state)
 {
 	WNDCLASS window = {};
 
@@ -282,7 +284,7 @@ internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, Wind32SoundBuffer* sou
 
 	WAVEFORMATEX waveFormat = { 0 };
 
-	waveFormat.wBitsPerSample = soundBuffer->SampleBits;
+	waveFormat.wBitsPerSample = static_cast<WORD>(soundBuffer->SampleBits);
 	waveFormat.nSamplesPerSec = soundBuffer->SamplesPerSecond;
 	waveFormat.nChannels = soundBuffer->Channels;
 	waveFormat.nBlockAlign = waveFormat.nChannels * waveFormat.wBitsPerSample / 8;
@@ -391,31 +393,31 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 		case WM_KEYDOWN:
 		case WM_KEYUP:
 		{
-			uint64 vkCode = wParam;
+			uint32 vkCode = static_cast<uint32>(wParam);
 
 			bool wasDown = ((lParam & (1 << 30)) != 0);
-			bool isDown = ((lParam & ((uint64)1 << 31)) == 0);
+			bool isDown = ((lParam & (static_cast<uint32>(1) << 31)) == 0);
 
-			programState->KeysPressed[Key::Alt] = (lParam & (1 << 29)) != 0;
-			programState->KeysPressed[Key::W] = vkCode == 'W';
-			programState->KeysPressed[Key::A] = vkCode == 'A';
-			programState->KeysPressed[Key::D] = vkCode == 'D';
-			programState->KeysPressed[Key::E] = vkCode == 'E';
-			programState->KeysPressed[Key::PadUp] = vkCode == VK_UP;
-			programState->KeysPressed[Key::PadDown] = vkCode == VK_DOWN;
-			programState->KeysPressed[Key::PadRight] = vkCode == VK_RIGHT;
-			programState->KeysPressed[Key::PadLeft] = vkCode == VK_LEFT;
-			programState->KeysPressed[Key::Space] = vkCode == VK_SPACE;
-			programState->KeysPressed[Key::Esc] = vkCode == VK_ESCAPE;
-			programState->KeysPressed[Key::Ctrl] = vkCode == VK_CONTROL;
+			//programState->KeysPressed[Key::Alt] = (lParam & (1 << 29)) != 0;
+			//programState->KeysPressed[Key::W] = vkCode == 'W' && isDown;
+			//programState->KeysPressed[Key::A] = vkCode == 'A' && isDown;
+			//programState->KeysPressed[Key::D] = vkCode == 'D' && isDown;
+			//programState->KeysPressed[Key::E] = vkCode == 'E' && isDown;
+			//programState->KeysPressed[Key::PadUp] = vkCode == VK_UP && isDown;
+			//programState->KeysPressed[Key::PadDown] = vkCode == VK_DOWN && isDown;
+			//programState->KeysPressed[Key::PadRight] = vkCode == VK_RIGHT && isDown;
+			//programState->KeysPressed[Key::PadLeft] = vkCode == VK_LEFT && isDown;
+			//programState->KeysPressed[Key::Space] = vkCode == VK_SPACE && isDown;
+			//programState->KeysPressed[Key::Esc] = vkCode == VK_ESCAPE && isDown;
+			//programState->KeysPressed[Key::Ctrl] = vkCode == VK_CONTROL && isDown;
 
 			switch (vkCode)
 			{
 				case VK_F4:
 				{
 					// Is alt button held down
-					if (programState->KeysPressed[Key::Alt])
-						programState->IsRunning = false;
+					//if (programState->KeysPressed[Key::Alt])
+					//	programState->IsRunning = false;
 				} break;
 
 				default:

@@ -15,17 +15,14 @@ void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameSoun
 
 	if (!gameMemory->IsInitialized)
 	{
-		DebugFileResult fileresult = DebugPlatformReadEntireFile("src/resources/WaterPipe_Smoke_Fienup_003.wav");
-
-		DebugPlatformWriteEntireFile("../Test.txt", fileresult.FileSize, fileresult.Memory);
 		gameMemory->IsInitialized = true;
 	}
 
 	RenderWirdGradiend(screenBuffer, gameState->XOffset, gameState->YOffset);
 	Win32FillSoundBuffer(soundBuffer);
 
-	gameState->XOffset += 5 * input->Controllers[0].StickAverageX;
-	gameState->YOffset += 5 * input->Controllers[0].StickAverageY;
+	gameState->XOffset += static_cast<int>(5 * input->Controllers[0].StickAverageX);
+	gameState->YOffset += static_cast<int>(5 * input->Controllers[0].StickAverageY);
 }
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset)
@@ -38,8 +35,8 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOf
 
 		for (int X = 0; X < gameScreenBuffer->Width; ++X)
 		{
-			uint8 g = (Y + YOffset);
-			uint8 b = (X + XOffset);
+			uint8 g = static_cast<uint8>(Y + YOffset);
+			uint8 b = static_cast<uint8>(X + XOffset);
 
 			/*
 			Memory:   BB GG RR xx
@@ -56,21 +53,24 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOf
 
 void Win32FillSoundBuffer(GameSoundBuffer* soundBuffer)
 {
-	//const float Pi = 3.1415f;
+	if (!soundBuffer->BufferData)
+	{
+		const float Pi = 3.1415f;
 
-	//soundBuffer->SampleCount = soundBuffer->SamplesPerSecond * 2;
+		soundBuffer->SampleCount = soundBuffer->SamplesPerSecond * 2;
 
-	//float* bufferData = new float[soundBuffer->SampleCount];
+		float* bufferData = new float[soundBuffer->SampleCount];
 
-	//for (uint32 i = 0; i < soundBuffer->SampleCount; i += 2)
-	//{
-	//	*(bufferData + i) = sinf((soundBuffer->Time * 2 * Pi) / soundBuffer->Period);
+		for (uint32 i = 0; i < soundBuffer->SampleCount; i += 2)
+		{
+			*(bufferData + i) = sinf((soundBuffer->Time * 2 * Pi) / soundBuffer->Period);
 
-	//	soundBuffer->Time += (1.0f / soundBuffer->SampleRate);             // move time forward one sample-tick
+			soundBuffer->Time += (1.0f / soundBuffer->SampleRate);             // move time forward one sample-tick
 
-	//	if (soundBuffer->Time > soundBuffer->Period)
-	//		soundBuffer->Time -= soundBuffer->Period;
-	//}
+			if (soundBuffer->Time > soundBuffer->Period)
+				soundBuffer->Time -= soundBuffer->Period;
+		}
 
-	//soundBuffer->BufferData = bufferData;
+		soundBuffer->BufferData = bufferData;
+	}
 }

@@ -1,5 +1,6 @@
 #include "main.h"
 
+#if Leena_Internal
 DebugFileResult DebugPlatformReadEntireFile(const char* fileName)
 {
 	DebugFileResult result = {};
@@ -67,3 +68,4 @@ bool32 DebugPlatformWriteEntireFile(const char* fileName, uint32 memorySize, voi
 
 	return result;
 }
+#endif
