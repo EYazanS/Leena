@@ -154,6 +154,10 @@
     <ClInclude Include="src\GameStructs.h" />
     <ClInclude Include="src\Leena.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Media Include="src\resources\WaterPipe_Smoke_Fienup_003.wav" />
+    <Media Include="src\resources\Water_Splash_SeaLion_Fienup_001.wav" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -1,5 +1,25 @@
 #pragma once
 
+enum class Key
+{
+	A,
+	S,
+	W,
+	D,
+	E,
+	Q,
+	R,
+	Space,
+	Esc,
+	Ctrl,
+	Alt,
+	Enter,
+	PadUp,
+	PadRight,
+	PadDown,
+	PadLeft
+};
+
 struct GameSoundBuffer
 {
 	real32 Time; // In Seconds
@@ -37,15 +57,15 @@ struct GameControllerInput
 
 		struct
 		{
-			GameButtonState ActionUp;
-			GameButtonState ActionDown;
-			GameButtonState ActionRight;
-			GameButtonState ActionLeft;
+			GameButtonState A;
+			GameButtonState X;
+			GameButtonState Y;
+			GameButtonState B;
 
-			GameButtonState MoveUp;
-			GameButtonState MoveDown;
-			GameButtonState MoveRight;
-			GameButtonState MoveLeft;
+			GameButtonState PadUp;
+			GameButtonState PadDown;
+			GameButtonState PadRight;
+			GameButtonState PadLeft;
 
 			GameButtonState LeftShoulder;
 			GameButtonState RightShoulder;
@@ -61,7 +81,8 @@ struct GameControllerInput
 
 struct GameInput
 {
-	GameControllerInput Controllers[5];
+	GameControllerInput Controllers[4];
+	std::map<Key, bool> KeysPressed;
 };
 
 struct GameMemory

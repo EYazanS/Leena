@@ -1,15 +1,18 @@
 #include "Leena.h"
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset);
-void FillSoundBuffer(GameSoundBuffer* soundBuffer);
+void Win32FillSoundBuffer(GameSoundBuffer* soundBuffer);
 
-void GameUpdate(GameScreenBuffer* gameScreenBuffer, GameSoundBuffer* soundBuffer)
+void GameUpdate(GameScreenBuffer* screenBuffer, GameSoundBuffer* soundBuffer, GameInput* input)
 {
-	int XOffset = 0;
-	int YOffset = 0;
+	static int XOffset = 0;
+	static int YOffset = 0;
 
-	RenderWirdGradiend(gameScreenBuffer, XOffset, YOffset);
-	FillSoundBuffer(soundBuffer);
+	RenderWirdGradiend(screenBuffer, XOffset, YOffset);
+	Win32FillSoundBuffer(soundBuffer);
+
+	XOffset++;
+	YOffset++;
 }
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset)
@@ -38,7 +41,7 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOf
 	}
 }
 
-void FillSoundBuffer(GameSoundBuffer* soundBuffer)
+void Win32FillSoundBuffer(GameSoundBuffer* soundBuffer)
 {
 	const float Pi = 3.1415f;
 

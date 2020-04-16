@@ -8,6 +8,7 @@
 struct ProgramState
 {
 	bool IsRunning;
+	std::map<Key, bool> KeysPressed;
 };
 
 struct Win32BitmapBuffer
@@ -37,21 +38,22 @@ LRESULT CALLBACK Win32WindowCallback(HWND, UINT, WPARAM, LPARAM);
 internal inline ProgramState* GetAppState(HWND handle);
 internal HWND Win32InitWindow(const HINSTANCE& instance, int cmdShow, ProgramState* state);
 internal MSG Win32ProcessMessage(const HWND& windowHandle);
-internal int64 GetPerformanceFrequence();
-internal int64 QueryPerformance();
+internal int64 Win32GetPerformanceFrequence();
+internal int64 Win32QueryPerformance();
 
 // Audio
 internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, Wind32SoundBuffer* soundBuffer);
-internal HRESULT FillSoundBuffer(IXAudio2SourceVoice* sourceVoice, GameSoundBuffer* soundBuffer);
-internal void PlayGameSound(IXAudio2SourceVoice* sourceVoice);
+internal HRESULT Win32FillSoundBuffer(IXAudio2SourceVoice* sourceVoice, GameSoundBuffer* soundBuffer);
+internal void Win32PlaySound(IXAudio2SourceVoice* sourceVoice);
 
 // Input
+internal void Win32ProcessDigitalButton(DWORD button, DWORD buttonBit, GameButtonState* oldState, GameButtonState* newState);
 
 // Graphics
 internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
 internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height);
 internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height);
-internal void DrawBuffer(const HWND& windowHandle);
+internal void Win32DrawBuffer(const HWND& windowHandle);
 
 GlobalVariable Win32BitmapBuffer GlobalBitmapBuffer;
 
@@ -64,7 +66,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 	if (windowHandle)
 	{
 		// Get the performance frequence
-		int64 performanceFrequence = GetPerformanceFrequence();
+		int64 performanceFrequence = Win32GetPerformanceFrequence();
 
 		programState.IsRunning = true;
 
@@ -80,53 +82,66 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		Wind32InitializeXAudio(xAudio, &soundBuffer);
 
-		int64 lastCounter = QueryPerformance();
+		int64 lastCounter = Win32QueryPerformance();
 
 		// Get how many cycle the cpu went through
 		uint64 lastCycleCount = __rdtsc();
 
 		// Uncomment when we have proper wave to play ...
 		// PlayGameSound(soundBuffer.SourceVoice);
-		
+
+		GameInput Input[2] = {};
+
+		GameInput* oldInput = &Input[0];
+		GameInput* newInput = &Input[0];
+
 		while (programState.IsRunning)
 		{
 			Win32ProcessMessage(windowHandle);
 
-			for (uint8 controllerIndex = 0; controllerIndex < XUSER_MAX_COUNT; controllerIndex++)
+			newInput->KeysPressed = programState.KeysPressed;
+
+			uint8 maxCount = XUSER_MAX_COUNT;
+
+			if (maxCount > ArrayCount(newInput->Controllers))
+				maxCount = ArrayCount(newInput->Controllers);
+
+			for (uint8 controllerIndex = 0; controllerIndex < maxCount; controllerIndex++)
 			{
+				GameControllerInput oldController = oldInput->Controllers[controllerIndex];
+				GameControllerInput newController = newInput->Controllers[controllerIndex];
+
 				XINPUT_STATE controllerState;
 
 				// If the controller is connected
 				if (XInputGetState(controllerIndex, &controllerState) == ERROR_SUCCESS)
 				{
 					// Controller is connected
-					auto* pad = &controllerState.Gamepad;
+					XINPUT_GAMEPAD* pad = &controllerState.Gamepad;
 
-					bool dPadUp = pad->wButtons & XINPUT_GAMEPAD_DPAD_UP;
-					bool dPadDown = pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
-					bool dPadRight = pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
-					bool dPadleft = pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
+					newController.IsConnected = true;
+					newController.IsAnalog = true;
 
-					bool start = pad->wButtons & XINPUT_GAMEPAD_START;
-					bool back = pad->wButtons & XINPUT_GAMEPAD_BACK;
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_UP, &oldController.PadUp, &newController.PadUp);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_DOWN, &oldController.PadDown, &newController.PadDown);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_RIGHT, &oldController.PadRight, &newController.PadRight);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_LEFT, &oldController.PadLeft, &newController.PadLeft);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_START, &oldController.Start, &newController.Start);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_BACK, &oldController.Back, &newController.Back);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_RIGHT_SHOULDER, &oldController.RightShoulder, &newController.RightShoulder);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_LEFT_SHOULDER, &oldController.LeftShoulder, &newController.LeftShoulder);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_A, &oldController.A, &newController.A);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_B, &oldController.B, &newController.B);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_X, &oldController.X, &newController.X);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_Y, &oldController.Y, &newController.Y);
 
-					bool rightShould = pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER;
-					bool leftShoulder = pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER;
-
-					bool rightThumb = pad->wButtons & XINPUT_GAMEPAD_RIGHT_THUMB;
-					bool leftThumb = pad->wButtons & XINPUT_GAMEPAD_LEFT_THUMB;
-
-					bool aButton = pad->wButtons & XINPUT_GAMEPAD_A;
-					bool bButton = pad->wButtons & XINPUT_GAMEPAD_B;
-					bool xButton = pad->wButtons & XINPUT_GAMEPAD_X;
-					bool yButton = pad->wButtons & XINPUT_GAMEPAD_Y;
-
-					int16 leftStickX = pad->sThumbLX;
-					int16 leftStickY = pad->sThumbLY;
+					// Normalize the number
+					newController.StickAverageX = (real32)pad->sThumbLX / ((pad->sThumbLX < 0) ? 32768.0f : 32767.0f);
+					newController.StickAverageY = (real32)pad->sThumbLY / ((pad->sThumbLX < 0) ? 32768.0f : 32767.0f);
 
 					XINPUT_VIBRATION vibrations = {};
 
-					if (aButton)
+					if (newController.A.EndedDown)
 					{
 						vibrations.wLeftMotorSpeed = 60000;
 						vibrations.wRightMotorSpeed = 60000;
@@ -151,15 +166,15 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			gameSoundBuffer.Time = 1.f;; // in Seconds
 			gameSoundBuffer.Period = 0.3f; // in Seconds, 1/3 of a second
 
-			GameUpdate(&screenBuffer, &gameSoundBuffer);
+			GameUpdate(&screenBuffer, &gameSoundBuffer, newInput);
 
-			FillSoundBuffer(soundBuffer.SourceVoice, &gameSoundBuffer);
-			DrawBuffer(windowHandle);
+			Win32FillSoundBuffer(soundBuffer.SourceVoice, &gameSoundBuffer);
+			Win32DrawBuffer(windowHandle);
 
 			// Display performance counter
 			uint64 endCycleCount = __rdtsc();
 
-			int64 endCounter = QueryPerformance();
+			int64 endCounter = Win32QueryPerformance();
 
 			int64 counterElapsed = endCounter - lastCounter;
 			int64 cyclesElapsed = endCycleCount - lastCycleCount;
@@ -177,13 +192,17 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 			lastCycleCount = endCycleCount;
 			lastCounter = endCounter;
+
+			GameInput* temp = newInput;
+			newInput = oldInput;
+			oldInput = temp;
 		}
 	}
 
 	return 0;
 }
 
-internal void DrawBuffer(const HWND& windowHandle)
+internal void Win32DrawBuffer(const HWND& windowHandle)
 {
 	HDC deviceContext = GetDC(windowHandle);
 	auto [width, height] = GetWindowDimensions(windowHandle);
@@ -316,12 +335,12 @@ internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, Wind32SoundBuffer* sou
 	return result;
 }
 
-internal void PlayGameSound(IXAudio2SourceVoice* sourceVoice)
+internal void Win32PlaySound(IXAudio2SourceVoice* sourceVoice)
 {
 	sourceVoice->Start();
 }
 
-internal HRESULT FillSoundBuffer(IXAudio2SourceVoice* sourceVoice, GameSoundBuffer* soundBuffer)
+internal HRESULT Win32FillSoundBuffer(IXAudio2SourceVoice* sourceVoice, GameSoundBuffer* soundBuffer)
 {
 	HRESULT result = {};
 
@@ -354,18 +373,24 @@ internal inline ProgramState* GetAppState(HWND handle)
 	return reinterpret_cast<ProgramState*>(GetWindowLongPtr(handle, GWLP_USERDATA));
 }
 
-internal int64 GetPerformanceFrequence()
+internal int64 Win32GetPerformanceFrequence()
 {
 	LARGE_INTEGER performanceFrequenceResult;
 	QueryPerformanceFrequency(&performanceFrequenceResult);
 	return performanceFrequenceResult.QuadPart;
 }
 
-internal int64 QueryPerformance()
+internal int64 Win32QueryPerformance()
 {
 	LARGE_INTEGER counter;
 	QueryPerformanceCounter(&counter);
 	return counter.QuadPart;
+}
+
+internal void Win32ProcessDigitalButton(DWORD button, DWORD buttonBit, GameButtonState* oldState, GameButtonState* newState)
+{
+	newState->HalfTransitionCount = newState->HalfTransitionCount != oldState->HalfTransitionCount ? 1 : 0;
+	newState->EndedDown = (button & buttonBit) == buttonBit;
 }
 
 LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wParam, LPARAM lParam)
@@ -411,74 +436,26 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 			bool wasDown = ((lParam & (1 << 30)) != 0);
 			bool isDown = ((lParam & (1 << 31)) == 0);
 
+			programState->KeysPressed[Key::Alt] = (lParam & (1 << 29)) != 0;
+			programState->KeysPressed[Key::W] = vkCode == 'W';
+			programState->KeysPressed[Key::A] = vkCode == 'A';
+			programState->KeysPressed[Key::D] = vkCode == 'D';
+			programState->KeysPressed[Key::E] = vkCode == 'E';
+			programState->KeysPressed[Key::PadUp] = vkCode == VK_UP;
+			programState->KeysPressed[Key::PadDown] = vkCode == VK_DOWN;
+			programState->KeysPressed[Key::PadRight] = vkCode == VK_RIGHT;
+			programState->KeysPressed[Key::PadLeft] = vkCode == VK_LEFT;
+			programState->KeysPressed[Key::Space] = vkCode == VK_SPACE;
+			programState->KeysPressed[Key::Esc] = vkCode == VK_ESCAPE;
+			programState->KeysPressed[Key::Ctrl] = vkCode == VK_CONTROL;
+
 			switch (vkCode)
 			{
-				case 'W':
-				{
-
-				} break;
-
-				case 'A':
-				{
-
-				} break;
-
-				case 'S':
-				{
-
-				} break;
-
-				case 'D':
-				{
-
-				} break;
-
-				case 'E':
-				{
-
-				} break;
-
-				case 'Q':
-				{
-
-				} break;
-
-				case VK_UP:
-				{
-
-				} break;
-
-				case VK_DOWN:
-				{
-
-				} break;
-
-				case VK_RIGHT:
-				{
-
-				} break;
-
-				case VK_LEFT:
-				{
-
-				} break;
-
-				case VK_SPACE:
-				{
-
-				} break;
-
-				case VK_ESCAPE:
-				{
-
-				} break;
-
 				case VK_F4:
 				{
 					// Is alt button held down
-					if ((lParam & (1 << 29)) != 0)
+					if (programState->KeysPressed[Key::Alt])
 						programState->IsRunning = false;
-
 				} break;
 
 				default:
