@@ -108,8 +108,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 			for (uint8 controllerIndex = 0; controllerIndex < maxCount; controllerIndex++)
 			{
-				GameControllerInput oldController = oldInput->Controllers[controllerIndex];
-				GameControllerInput newController = newInput->Controllers[controllerIndex];
+				GameControllerInput* oldController = &oldInput->Controllers[controllerIndex];
+				GameControllerInput* newController = &newInput->Controllers[controllerIndex];
 
 				XINPUT_STATE controllerState;
 
@@ -119,29 +119,29 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 					// Controller is connected
 					XINPUT_GAMEPAD* pad = &controllerState.Gamepad;
 
-					newController.IsConnected = true;
-					newController.IsAnalog = true;
+					newController->IsConnected = true;
+					newController->IsAnalog = true;
 
-					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_UP, &oldController.PadUp, &newController.PadUp);
-					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_DOWN, &oldController.PadDown, &newController.PadDown);
-					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_RIGHT, &oldController.PadRight, &newController.PadRight);
-					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_LEFT, &oldController.PadLeft, &newController.PadLeft);
-					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_START, &oldController.Start, &newController.Start);
-					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_BACK, &oldController.Back, &newController.Back);
-					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_RIGHT_SHOULDER, &oldController.RightShoulder, &newController.RightShoulder);
-					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_LEFT_SHOULDER, &oldController.LeftShoulder, &newController.LeftShoulder);
-					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_A, &oldController.A, &newController.A);
-					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_B, &oldController.B, &newController.B);
-					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_X, &oldController.X, &newController.X);
-					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_Y, &oldController.Y, &newController.Y);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_UP, &oldController->PadUp, &newController->PadUp);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_DOWN, &oldController->PadDown, &newController->PadDown);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_RIGHT, &oldController->PadRight, &newController->PadRight);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_LEFT, &oldController->PadLeft, &newController->PadLeft);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_START, &oldController->Start, &newController->Start);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_BACK, &oldController->Back, &newController->Back);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_RIGHT_SHOULDER, &oldController->RightShoulder, &newController->RightShoulder);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_LEFT_SHOULDER, &oldController->LeftShoulder, &newController->LeftShoulder);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_A, &oldController->A, &newController->A);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_B, &oldController->B, &newController->B);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_X, &oldController->X, &newController->X);
+					Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_Y, &oldController->Y, &newController->Y);
 
 					// Normalize the number
-					newController.StickAverageX = (real32)pad->sThumbLX / ((pad->sThumbLX < 0) ? 32768.0f : 32767.0f);
-					newController.StickAverageY = (real32)pad->sThumbLY / ((pad->sThumbLX < 0) ? 32768.0f : 32767.0f);
+					newController->StickAverageX = (real32)pad->sThumbLX / ((pad->sThumbLX < 0) ? 32768.0f : 32767.0f);
+					newController->StickAverageY = (real32)pad->sThumbLY / ((pad->sThumbLX < 0) ? 32768.0f : 32767.0f);
 
 					XINPUT_VIBRATION vibrations = {};
 
-					if (newController.A.EndedDown)
+					if (newController->A.EndedDown)
 					{
 						vibrations.wLeftMotorSpeed = 60000;
 						vibrations.wRightMotorSpeed = 60000;

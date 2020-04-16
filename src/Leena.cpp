@@ -11,8 +11,8 @@ void GameUpdate(GameScreenBuffer* screenBuffer, GameSoundBuffer* soundBuffer, Ga
 	RenderWirdGradiend(screenBuffer, XOffset, YOffset);
 	Win32FillSoundBuffer(soundBuffer);
 
-	XOffset++;
-	YOffset++;
+	XOffset += 5 * input->Controllers[0].StickAverageX;
+	YOffset += 5 * input->Controllers[0].StickAverageY;
 }
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset)
