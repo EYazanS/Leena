@@ -22,6 +22,10 @@ void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameSoun
 	Win32FillSoundBuffer(soundBuffer);
 
 	gameState->XOffset += static_cast<int>(5 * input->Controllers[0].StickAverageX);
+	
+	if (input->Controllers[0].PadDown.EndedDown)
+		gameState->YOffset -= 5;
+	
 	gameState->YOffset += static_cast<int>(5 * input->Controllers[0].StickAverageY);
 }
 

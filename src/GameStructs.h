@@ -82,7 +82,6 @@ struct GameControllerInput
 struct GameInput
 {
 	GameControllerInput Controllers[4];
-	// std::map<Key, bool> KeysPressed;
 };
 
 struct GameMemory
