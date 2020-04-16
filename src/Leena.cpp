@@ -15,6 +15,9 @@ void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameSoun
 
 	if (!gameMemory->IsInitialized)
 	{
+		DebugFileResult fileresult = DebugPlatformReadEntireFile("src/resources/WaterPipe_Smoke_Fienup_003.wav");
+
+		DebugPlatformWriteEntireFile("../Test.txt", fileresult.FileSize, fileresult.Memory);
 		gameMemory->IsInitialized = true;
 	}
 

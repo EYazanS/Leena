@@ -93,3 +93,8 @@ struct GameMemory
 	void* TransiateStorage;
 	bool32 IsInitialized;
 };
+
+struct GameClock
+{
+	real32 TimeElapsed;
+};

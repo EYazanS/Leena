@@ -157,11 +157,13 @@
   <ItemGroup>
     <ClCompile Include="src\Leena.cpp" />
     <ClCompile Include="src\win32\main.cpp" />
+    <ClCompile Include="src\win32\Win32Services.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\GameTypes.h" />
     <ClInclude Include="src\GameStructs.h" />
     <ClInclude Include="src\Leena.h" />
+    <ClInclude Include="src\win32\main.h" />
   </ItemGroup>
   <ItemGroup>
     <Media Include="src\resources\WaterPipe_Smoke_Fienup_003.wav" />
