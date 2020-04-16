@@ -1,6 +1,16 @@
 #pragma once
 #include <cstdint>
 
+/*
+	Leena_Speed:
+		0 - Slow build
+		1 - Fast build
+
+	Leena_Internal:
+		0 - Public
+		1 - Internal
+*/
+
 typedef uint8_t  uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
@@ -23,5 +33,9 @@ typedef double real64;
 #define Gigabytes(value) (Megabytes(value) * 1024LL)
 #define Terabytes(value) (Gigabytes(value) * 1024LL)
 
+#if Leena_Speed
+#define Assert(Expression)
+#else
 #define Assert(Expression) \
 	if (!(Expression)) { *(int*)0 = 0; }
+#endif // Leena_Speed

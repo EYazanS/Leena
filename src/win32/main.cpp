@@ -77,11 +77,20 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		GameMemory gameMemory = {};
 
-		gameMemory.PermenantStorageSize = Megabytes(64);
-		gameMemory.PermenantStorage = VirtualAlloc(0, gameMemory.PermenantStorageSize, MEM_COMMIT, PAGE_READWRITE);
 
+		#if Leena_Internal
+		LPVOID baseAddress = (LPVOID)Terabytes(2);
+		#else
+		LPVOID baseAddress = 0;
+		#endif
+
+		gameMemory.PermenantStorageSize = Megabytes(64);
 		gameMemory.TransiateStorageSize = Gigabytes(4);
-		gameMemory.TransiateStorage = VirtualAlloc(0, gameMemory.TransiateStorageSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
+		uint64 totalSize = gameMemory.PermenantStorageSize + gameMemory.TransiateStorageSize;
+
+		gameMemory.PermenantStorage = VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+		gameMemory.TransiateStorage = (uint8*)gameMemory.PermenantStorage + gameMemory.PermenantStorageSize;
 
 		IXAudio2* xAudio = {};
 
