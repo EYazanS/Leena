@@ -18,6 +18,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		int64 lastCounter = Win32QueryPerformance();
 
+		uint8 monitorRefreshRate = 60; // In HZ
+		uint8 gameUpdateInHz = monitorRefreshRate / 2; // In HZ
+		real32 TargetSecondsPerFrams = 1.f / monitorRefreshRate;
+
 		programState.IsRunning = true;
 
 		GameMemory gameMemory = InitGameMemory();
@@ -37,10 +41,12 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		GameInput Input[2] = { };
 
 		GameInput* oldInput = &Input[0];
-		GameInput* newInput = &Input[0];
+		GameInput* newInput = &Input[1];
 
 		while (programState.IsRunning)
 		{
+			MSG message = Win32ProcessMessage();
+
 			GameControllerInput* oldKeyboardInput = GetController(oldInput, 0);
 			GameControllerInput* newKeyboardInput = GetController(newInput, 0);
 
@@ -49,13 +55,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			newKeyboardInput->IsConnected = true;
 
 			// Keep the state of the down button from the past frame.
-			// TODO: Fix
 			for (int buttonIndex = 0; buttonIndex < ArrayCount(newKeyboardInput->Buttons); buttonIndex++)
 				newKeyboardInput->Buttons[buttonIndex].EndedDown = oldKeyboardInput->Buttons[buttonIndex].EndedDown;
-
-			MSG message = Win32ProcessMessage();
-
-			ProccessControllerInput(newInput, oldInput);
 
 			switch (message.message)
 			{
@@ -75,6 +76,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 				default:
 					break;
 			}
+
+			ProccessControllerInput(newInput, oldInput);
 
 			GameScreenBuffer screenBuffer =
 			{
@@ -110,6 +113,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			int64 msPerFrame = 1000 * counterElapsed / performanceFrequence;
 			int64 fps = performanceFrequence / counterElapsed;
 
+			real32 timeTakenOnWork = (real32)counterElapsed / (real32)performanceFrequence;
+			real32 timeTakenOnFrame = timeTakenOnWork;
+			
 			// Register last counter we got
 			char formatBuffer[256];
 			wsprintfA(formatBuffer, "%I64ums/f - %I64ufps - %I64uc/f\n", msPerFrame, fps, megaCyclesPerframe);
