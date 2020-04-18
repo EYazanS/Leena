@@ -47,7 +47,9 @@ internal inline int64 Win32GetWallClock();
 internal real32 GetSecondsElapsed(uint64 start, uint64 end, uint64 frequency);
 
 // Audio
-internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, Wind32SoundBuffer* soundBuffer);
+internal HRESULT Wind32InitializeXAudio(IXAudio2* &xAudio);
+internal HRESULT Wind32InitializeMasterVoice(IXAudio2* xAudio, IXAudio2MasteringVoice* &masteringVoice);
+internal WAVEFORMATEX Wind32InitializeWaveFormat(IXAudio2* xAudio, Wind32SoundBuffer* soundBuffer);
 internal HRESULT Win32FillSoundBuffer(IXAudio2SourceVoice* sourceVoice, GameSoundBuffer* soundBuffer);
 internal void Win32PlaySound(IXAudio2SourceVoice* sourceVoice);
 internal Wind32SoundBuffer IniWin32SoundBuffer();

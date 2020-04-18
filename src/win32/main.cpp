@@ -32,12 +32,18 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		GameMemory gameMemory = InitGameMemory();
 
-		IXAudio2* xAudio = {};
-
+		// Init Sound
 		Wind32SoundBuffer soundBuffer = IniWin32SoundBuffer();
 
-		Wind32InitializeXAudio(xAudio, &soundBuffer);
+		IXAudio2* xAudio = {};
+		Wind32InitializeXAudio(xAudio);
 
+		IXAudio2MasteringVoice* masterVoice = {};
+		Wind32InitializeMasterVoice(xAudio, masterVoice);
+
+		WAVEFORMATEX waveFormat = Wind32InitializeWaveFormat(xAudio, &soundBuffer);
+
+		// Init Resolution.
 		Win32ResizeDIBSection(&GlobalBitmapBuffer, 1280, 720);
 
 		// Uncomment when we have proper wave to play ...
@@ -215,7 +221,7 @@ internal void ProccessKeyboardKeys(MSG& message, GameControllerInput* controller
 		}
 }
 
-void Win32ProccessKeyboardMessage(GameButtonState& state, bool isPressed)
+internal void Win32ProccessKeyboardMessage(GameButtonState& state, bool isPressed)
 {
 	state.EndedDown = isPressed;
 	++state.HalfTransitionCount;
@@ -436,7 +442,7 @@ internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, 
 	bitmapBuffer->Memory = VirtualAlloc(0, bitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
 }
 
-internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, Wind32SoundBuffer* soundBuffer)
+internal HRESULT Wind32InitializeXAudio(IXAudio2*& xAudio)
 {
 	// TODO: UncoInitialize on error.
 	HRESULT result;
@@ -447,12 +453,24 @@ internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, Wind32SoundBuffer* sou
 	if (FAILED(result = XAudio2Create(&xAudio)))
 		return result;
 
-	IXAudio2MasteringVoice* masteringVoice;
+	return result;
+}
+
+internal HRESULT Wind32InitializeMasterVoice(IXAudio2* xAudio, IXAudio2MasteringVoice*& masteringVoice)
+{
+	HRESULT result;
 
 	if (FAILED(result = xAudio->CreateMasteringVoice(&masteringVoice)))
 		return result;
 
-	WAVEFORMATEX waveFormat = { 0 };
+	return result;
+}
+
+internal WAVEFORMATEX Wind32InitializeWaveFormat(IXAudio2* xAudio, Wind32SoundBuffer* soundBuffer)
+{
+	HRESULT result;
+
+	WAVEFORMATEX waveFormat;
 
 	waveFormat.wBitsPerSample = static_cast<WORD>(soundBuffer->SampleBits);
 	waveFormat.nSamplesPerSec = soundBuffer->SamplesPerSecond;
@@ -461,10 +479,10 @@ internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, Wind32SoundBuffer* sou
 	waveFormat.nAvgBytesPerSec = waveFormat.nBlockAlign * waveFormat.nSamplesPerSec;
 	waveFormat.wFormatTag = WAVE_FORMAT_PCM;
 
-	if (FAILED(result = xAudio->CreateSourceVoice(&soundBuffer->SourceVoice, &waveFormat)))
-		return result;
+	// What to do if fails?
+	if (FAILED(result = xAudio->CreateSourceVoice(&soundBuffer->SourceVoice, &waveFormat)));
 
-	return result;
+	return waveFormat;
 }
 
 internal void Win32PlaySound(IXAudio2SourceVoice* sourceVoice)
