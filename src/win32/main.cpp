@@ -117,14 +117,16 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			// Make sure we stay at the target time for each frame.
 			if (timeTakenOnFrame < targetSecondsPerFrams)
 			{
+				if (isSleepGranular)
+				{
+					DWORD sleepMs = (DWORD)(1000.f * (targetSecondsPerFrams - timeTakenOnFrame));
+
+					if (sleepMs > 0)
+						Sleep(sleepMs);
+				}
+
 				while (timeTakenOnFrame < targetSecondsPerFrams)
 				{
-					if (isSleepGranular)
-					{
-						DWORD sleepMs = (DWORD)(1000.f * (targetSecondsPerFrams - timeTakenOnFrame));
-						Sleep(sleepMs);
-					}
-
 					timeTakenOnFrame = GetSecondsElapsed(endCounter, Win32GetPerformanceFrequence(), programState.PerformanceFrequence);
 				}
 			}
@@ -156,11 +158,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 			lastCycleCount = endCycleCount;
 			lastCounter = endCounter;
-			}
 		}
+	}
 
 	return 0;
-	}
+}
 
 internal void ProccessKeyboardKeys(MSG& message, GameControllerInput* controller)
 {
