@@ -43,7 +43,7 @@ internal HWND Win32InitWindow(const HINSTANCE& instance, ProgramState* state);
 internal MSG Win32ProcessMessage();
 internal GameMemory InitGameMemory();
 internal inline int64 Win32GetPerformanceFrequence();
-internal inline int64 Win32QueryPerformance();
+internal inline int64 Win32GetWallClock();
 internal real32 GetSecondsElapsed(uint64 start, uint64 end, uint64 frequency);
 
 // Audio

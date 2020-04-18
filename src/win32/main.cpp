@@ -17,7 +17,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		// Get how many cycle the cpu went through
 		uint64 lastCycleCount = __rdtsc();
 
-		int64 lastCounter = Win32QueryPerformance();
+		int64 lastCounter = Win32GetWallClock();
 
 		UINT desiredSchedularTimeInMs = 1;
 
@@ -109,7 +109,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			// Display performance counter
 			uint64 endCycleCount = __rdtsc();
 
-			int64 endCounter = Win32QueryPerformance();
+			int64 endCounter = Win32GetWallClock();
 
 			real32 timeTakenOnWork = GetSecondsElapsed(lastCounter, endCounter, programState.PerformanceFrequence);
 			real32 timeTakenOnFrame = timeTakenOnWork;
@@ -125,9 +125,13 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 						Sleep(sleepMs);
 				}
 
+				auto testTimeTakenOnFrame = GetSecondsElapsed(endCounter, Win32GetWallClock(), programState.PerformanceFrequence);
+
+				Assert(testTimeTakenOnFrame < targetSecondsPerFrams);
+
 				while (timeTakenOnFrame < targetSecondsPerFrams)
 				{
-					timeTakenOnFrame = GetSecondsElapsed(endCounter, Win32GetPerformanceFrequence(), programState.PerformanceFrequence);
+					timeTakenOnFrame = GetSecondsElapsed(endCounter, Win32GetWallClock(), programState.PerformanceFrequence);
 				}
 			}
 			else
@@ -508,7 +512,7 @@ internal inline int64 Win32GetPerformanceFrequence()
 	return performanceFrequenceResult.QuadPart;
 }
 
-internal inline int64 Win32QueryPerformance()
+internal inline int64 Win32GetWallClock()
 {
 	LARGE_INTEGER counter;
 	QueryPerformanceCounter(&counter);
