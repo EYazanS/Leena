@@ -10,6 +10,7 @@
 struct ProgramState
 {
 	bool IsRunning;
+	int64 PerformanceFrequence;
 };
 
 struct Win32BitmapBuffer
@@ -40,9 +41,10 @@ LRESULT CALLBACK Win32WindowCallback(HWND, UINT, WPARAM, LPARAM);
 internal inline ProgramState* GetAppState(HWND handle);
 internal HWND Win32InitWindow(const HINSTANCE& instance, ProgramState* state);
 internal MSG Win32ProcessMessage();
-internal int64 Win32GetPerformanceFrequence();
-internal int64 Win32QueryPerformance();
 internal GameMemory InitGameMemory();
+internal inline int64 Win32GetPerformanceFrequence();
+internal inline int64 Win32QueryPerformance();
+internal real32 GetSecondsElapsed(uint64 start, uint64 end, uint64 frequency);
 
 // Audio
 internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, Wind32SoundBuffer* soundBuffer);

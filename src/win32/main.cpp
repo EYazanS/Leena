@@ -1,4 +1,5 @@
 #include "main.h"
+#include <stdio.h>
 
 GlobalVariable Win32BitmapBuffer GlobalBitmapBuffer;
 
@@ -11,16 +12,21 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 	if (windowHandle)
 	{
 		// Get the performance frequence
-		int64 performanceFrequence = Win32GetPerformanceFrequence();
+		programState.PerformanceFrequence = Win32GetPerformanceFrequence();
 
 		// Get how many cycle the cpu went through
 		uint64 lastCycleCount = __rdtsc();
 
 		int64 lastCounter = Win32QueryPerformance();
 
+		UINT desiredSchedularTimeInMs = 1;
+
+		// Set the windows schedueler granularity to 1ms
+		bool32 isSleepGranular = timeBeginPeriod(desiredSchedularTimeInMs) == TIMERR_NOERROR;
+
 		uint8 monitorRefreshRate = 60; // In HZ
 		uint8 gameUpdateInHz = monitorRefreshRate / 2; // In HZ
-		real32 TargetSecondsPerFrams = 1.f / monitorRefreshRate;
+		real32 targetSecondsPerFrams = 1.f / monitorRefreshRate;
 
 		programState.IsRunning = true;
 
@@ -47,6 +53,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		{
 			MSG message = Win32ProcessMessage();
 
+			// Process the keyboard input.
 			GameControllerInput* oldKeyboardInput = GetController(oldInput, 0);
 			GameControllerInput* newKeyboardInput = GetController(newInput, 0);
 
@@ -77,6 +84,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 					break;
 			}
 
+			// Process the controller input
 			ProccessControllerInput(newInput, oldInput);
 
 			GameScreenBuffer screenBuffer =
@@ -87,51 +95,72 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 				GlobalBitmapBuffer.Pitch,
 			};
 
-			GameSoundBuffer gameSoundBuffer = {};
+			GameSoundBuffer gameSoundBuffer =
+			{
+				1.f,		// Time in Seconds
+				44.1f,		// Sample Rate in HZ
+				0.3f,		// Period in seconds, we want it to be one third of a second
+				48000		// Samples Per Second
+			};
 
-			gameSoundBuffer.SamplesPerSecond = 48000;
-			gameSoundBuffer.SampleRate = 44.1f; // in HZ
-			gameSoundBuffer.Time = 1.f;; // in Seconds
-			gameSoundBuffer.Period = 0.3f; // in Seconds, 1/3 of a second
-
+			// Process game update. the game returns both a sound and draw buffer so we can use.
 			GameUpdate(&gameMemory, &screenBuffer, &gameSoundBuffer, newInput);
-
-			Win32FillSoundBuffer(soundBuffer.SourceVoice, &gameSoundBuffer);
-			Win32DrawBuffer(windowHandle);
 
 			// Display performance counter
 			uint64 endCycleCount = __rdtsc();
 
 			int64 endCounter = Win32QueryPerformance();
 
-			int64 counterElapsed = endCounter - lastCounter;
-			int64 cyclesElapsed = endCycleCount - lastCycleCount;
+			real32 timeTakenOnWork = GetSecondsElapsed(lastCounter, endCounter, programState.PerformanceFrequence);
+			real32 timeTakenOnFrame = timeTakenOnWork;
 
+			// Make sure we stay at the target time for each frame.
+			if (timeTakenOnFrame < targetSecondsPerFrams)
+			{
+				while (timeTakenOnFrame < targetSecondsPerFrams)
+				{
+					if (isSleepGranular)
+					{
+						DWORD sleepMs = (DWORD)(1000.f * (targetSecondsPerFrams - timeTakenOnFrame));
+						Sleep(sleepMs);
+					}
+
+					timeTakenOnFrame = GetSecondsElapsed(endCounter, Win32GetPerformanceFrequence(), programState.PerformanceFrequence);
+				}
+			}
+			else
+			{
+				// missed a frame
+			}
+
+			// We fille the sound and draw buffers we got from the game.
+			Win32FillSoundBuffer(soundBuffer.SourceVoice, &gameSoundBuffer);
+			Win32DrawBuffer(windowHandle);
+
+			// Register last counter we got
+			#if 0
+			int64 cyclesElapsed = endCycleCount - lastCycleCount;
 			// how many cycles the cpu went throught a single frame
 			int64 megaCyclesPerframe = cyclesElapsed / (1000 * 1000);
-
-			int64 msPerFrame = 1000 * counterElapsed / performanceFrequence;
-			int64 fps = performanceFrequence / counterElapsed;
-
-			real32 timeTakenOnWork = (real32)counterElapsed / (real32)performanceFrequence;
-			real32 timeTakenOnFrame = timeTakenOnWork;
-			
-			// Register last counter we got
+			real32 msPerFrame = (1000.f * (real32)endCounter) / (real32)programState.PerformanceFrequence;
+			real32 fps = programState.PerformanceFrequence / (real32)(endCounter - lastCounter);
 			char formatBuffer[256];
-			wsprintfA(formatBuffer, "%I64ums/f - %I64ufps - %I64uc/f\n", msPerFrame, fps, megaCyclesPerframe);
+			sprintf_s(formatBuffer, "%.02fms/f - %.02ffps - %I64uc/f\n", msPerFrame, fps, megaCyclesPerframe);
 			OutputDebugStringA(formatBuffer);
+			#endif // 0
 
-			lastCycleCount = endCycleCount;
-			lastCounter = endCounter;
-
+			// Swap the states of the input so they persist through frames
 			GameInput* temp = newInput;
 			newInput = oldInput;
 			oldInput = temp;
+
+			lastCycleCount = endCycleCount;
+			lastCounter = endCounter;
+			}
 		}
-	}
 
 	return 0;
-}
+	}
 
 internal void ProccessKeyboardKeys(MSG& message, GameControllerInput* controller)
 {
@@ -470,14 +499,14 @@ internal inline ProgramState* GetAppState(HWND handle)
 	return reinterpret_cast<ProgramState*>(GetWindowLongPtr(handle, GWLP_USERDATA));
 }
 
-internal int64 Win32GetPerformanceFrequence()
+internal inline int64 Win32GetPerformanceFrequence()
 {
 	LARGE_INTEGER performanceFrequenceResult;
 	QueryPerformanceFrequency(&performanceFrequenceResult);
 	return performanceFrequenceResult.QuadPart;
 }
 
-internal int64 Win32QueryPerformance()
+internal inline int64 Win32QueryPerformance()
 {
 	LARGE_INTEGER counter;
 	QueryPerformanceCounter(&counter);
@@ -488,6 +517,11 @@ internal void Win32ProcessDigitalButton(DWORD button, DWORD buttonBit, GameButto
 {
 	newState->HalfTransitionCount = newState->HalfTransitionCount != oldState->HalfTransitionCount ? 1 : 0;
 	newState->EndedDown = (button & buttonBit) == buttonBit;
+}
+
+internal real32 GetSecondsElapsed(uint64 start, uint64 end, uint64 performanceFrequence)
+{
+	return (real32)(end - start) / (real32)performanceFrequence;
 }
 
 LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wParam, LPARAM lParam)
