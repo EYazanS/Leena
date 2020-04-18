@@ -58,7 +58,7 @@ internal void Win32PlaySound(IXAudio2SourceVoice* sourceVoice);
 internal Wind32SoundBuffer IniWin32SoundBuffer(GameSoundBuffer* gameSoundBuffer);
 internal HRESULT FindChunk(HANDLE hFile, DWORD fourcc, DWORD& dwChunkSize, DWORD& dwChunkDataPosition);
 internal HRESULT ReadChunkData(HANDLE hFile, void* buffer, DWORD buffersize, DWORD bufferoffset);
-internal XAUDIO2_BUFFER DebugGetBuffer(WAVEFORMATEXTENSIBLE* wfx);
+internal XAUDIO2_BUFFER DebugGetBuffer(WAVEFORMATEXTENSIBLE &wfx);
 
 // Input
 internal void Win32ProcessDigitalButton(DWORD button, DWORD buttonBit, GameButtonState* oldState, GameButtonState* newState);

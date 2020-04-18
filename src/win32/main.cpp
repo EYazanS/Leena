@@ -50,53 +50,16 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		GameSoundBuffer gameSoundBuffer = { };
 
+
 		IXAudio2SourceVoice* sourceVoice;
 
-		WAVEFORMATEXTENSIBLE wfx = { 0 };
-		XAUDIO2_BUFFER buffer = { 0 };
+		WAVEFORMATEXTENSIBLE wfx;
 
-		TCHAR* strFileName = L"src/resources/Water_Splash_SeaLion_Fienup_001.wav";
-
-		// Open the file
-		HANDLE hFile = CreateFile(
-			strFileName,
-			GENERIC_READ,
-			FILE_SHARE_READ,
-			NULL,
-			OPEN_EXISTING,
-			0,
-			NULL);
-
-		if (INVALID_HANDLE_VALUE == hFile)
-			return HRESULT_FROM_WIN32(GetLastError());
-
-		if (INVALID_SET_FILE_POINTER == SetFilePointer(hFile, 0, NULL, FILE_BEGIN))
-			return HRESULT_FROM_WIN32(GetLastError());
-
-		DWORD dwChunkSize;
-		DWORD dwChunkPosition;
-		//check the file type, should be fourccWAVE or 'XWMA'
-		FindChunk(hFile, fourccRIFF, dwChunkSize, dwChunkPosition);
-		DWORD filetype;
-		ReadChunkData(hFile, &filetype, sizeof(DWORD), dwChunkPosition);
-		if (filetype != fourccWAVE)
-			return S_FALSE;
-
-		FindChunk(hFile, fourccFMT, dwChunkSize, dwChunkPosition);
-		ReadChunkData(hFile, &wfx, dwChunkSize, dwChunkPosition);
-
-		//fill out the audio data buffer with the contents of the fourccDATA chunk
-		FindChunk(hFile, fourccDATA, dwChunkSize, dwChunkPosition);
-		BYTE* pDataBuffer = new BYTE[dwChunkSize];
-		ReadChunkData(hFile, pDataBuffer, dwChunkSize, dwChunkPosition);
-
-		buffer.AudioBytes = dwChunkSize;  //buffer containing audio data
-		buffer.pAudioData = pDataBuffer;  //size of the audio buffer in bytes
-		buffer.Flags = XAUDIO2_END_OF_STREAM; // tell the source voice not to expect any data after this buffer
+		XAUDIO2_BUFFER audioBuffer = DebugGetBuffer(wfx);
 
 		xAudio->CreateSourceVoice(&sourceVoice, (WAVEFORMATEX*)&wfx);
 
-		sourceVoice->SubmitSourceBuffer(&buffer);
+		sourceVoice->SubmitSourceBuffer(&audioBuffer);
 		
 		sourceVoice->Start(0);
 		
@@ -663,44 +626,45 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 
 }
 
-//internal XAUDIO2_BUFFER DebugGetBuffer(WAVEFORMATEXTENSIBLE* wfx)
-//{
-//	XAUDIO2_BUFFER buffer = { 0 };
-//
-//	// DebugFileResult fileData = DebugPlatformReadEntireFile("src/resources/Water_Splash_SeaLion_Fienup_001.wav");
-//
-//	HANDLE hFile = CreateFileA(
-//		"src/resources/Water_Splash_SeaLion_Fienup_001.wav",
-//		GENERIC_READ,
-//		FILE_SHARE_READ,
-//		NULL,
-//		OPEN_EXISTING,
-//		0,
-//		NULL);
-//
-//	DWORD dwChunkSize;
-//	DWORD dwChunkPosition;
-//
-//	// Check the file type, should be fourccWAVE or 'XWMA'
-//	FindChunk(hFile, fourccRIFF, dwChunkSize, dwChunkPosition);
-//	DWORD filetype;
-//	ReadChunkData(hFile, &filetype, sizeof(DWORD), dwChunkPosition);
-//
-//	// Locate the 'fmt ' chunk, and copy its contents into a WAVEFORMATEXTENSIBLE structure.
-//	FindChunk(hFile, fourccFMT, dwChunkSize, dwChunkPosition);
-//	ReadChunkData(hFile, &wfx, dwChunkSize, dwChunkPosition);
-//
-//	// Fill out the audio data buffer with the contents of the fourccDATA chunk
-//	FindChunk(hFile, fourccDATA, dwChunkSize, dwChunkPosition);
-//	BYTE* pDataBuffer = new BYTE[dwChunkSize];
-//	ReadChunkData(hFile, pDataBuffer, dwChunkSize, dwChunkPosition);
-//
-//	buffer.AudioBytes = dwChunkSize;  //buffer containing audio data
-//	buffer.pAudioData = pDataBuffer;  //size of the audio buffer in bytes
-//	buffer.Flags = XAUDIO2_END_OF_STREAM; // tell the source voice not to expect any data after this
-//
-//	return buffer;
-//}
+internal XAUDIO2_BUFFER DebugGetBuffer(WAVEFORMATEXTENSIBLE &wfx)
+{
+	XAUDIO2_BUFFER buffer = { 0 };
+
+	// DebugFileResult fileData = DebugPlatformReadEntireFile("src/resources/Water_Splash_SeaLion_Fienup_001.wav");
+
+	HANDLE hFile = CreateFileA(
+		"src/resources/Water_Splash_SeaLion_Fienup_001.wav",
+		GENERIC_READ,
+		FILE_SHARE_READ,
+		NULL,
+		OPEN_EXISTING,
+		0,
+		NULL);
+
+	DWORD dwChunkSize;
+	DWORD dwChunkPosition;
+
+	// Check the file type, should be fourccWAVE or 'XWMA'
+	FindChunk(hFile, fourccRIFF, dwChunkSize, dwChunkPosition);
+	DWORD filetype;
+	ReadChunkData(hFile, &filetype, sizeof(DWORD), dwChunkPosition);
+
+	// Locate the 'fmt ' chunk, and copy its contents into a WAVEFORMATEXTENSIBLE structure.
+	FindChunk(hFile, fourccFMT, dwChunkSize, dwChunkPosition);
+	ReadChunkData(hFile, &wfx, dwChunkSize, dwChunkPosition);
+
+	// Fill out the audio data buffer with the contents of the fourccDATA chunk
+	FindChunk(hFile, fourccDATA, dwChunkSize, dwChunkPosition);
+	BYTE* pDataBuffer = new BYTE[dwChunkSize];
+	ReadChunkData(hFile, pDataBuffer, dwChunkSize, dwChunkPosition);
+
+	buffer.AudioBytes = dwChunkSize;  //buffer containing audio data
+	buffer.pAudioData = pDataBuffer;  //size of the audio buffer in bytes
+	buffer.Flags = XAUDIO2_END_OF_STREAM; // tell the source voice not to expect any data after this
+
+	return buffer;
+}
+
 
 HRESULT FindChunk(HANDLE hFile, DWORD fourcc, DWORD& dwChunkSize, DWORD& dwChunkDataPosition)
 {
