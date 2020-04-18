@@ -25,6 +25,26 @@ struct DebugFileResult
 	uint32 FileSize;
 };
 
+struct RIFFData
+{
+	uint32 ChunkId;
+	uint32 ChunkSize;
+	uint32 Format;
+};
+
+struct MTData
+{
+	uint32 SubChunkId;
+	uint32 SubChunkSize;
+	uint16 AudioFormat;
+	uint16 Channels;
+	uint32 SampleRate;
+	uint32 ByteRate;
+	uint16 BlockAlign;
+	uint16 BitsPerSample;
+	uint32 FormatTag;
+};
+
 void DebugPlatformFreeFileMemory(void* memory);
 DebugFileResult DebugPlatformReadEntireFile(const char* fileName);
 bool32 DebugPlatformWriteEntireFile(const char* fileName, uint32 memorySize, void* memory);

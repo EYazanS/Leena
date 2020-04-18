@@ -22,11 +22,14 @@ enum class Key
 
 struct GameSoundBuffer
 {
-	real32 Time; // In Seconds
-	real32 SampleRate; // In HZ
-	real32 Period; // In Seconds
+	int32 SampleBits;
+	int32 BitsPerSample;
 	int32 SamplesPerSecond;
-	uint32 SampleCount;
+	uint32 BufferSize;
+	uint16 Channels;
+	uint16 BlockAlign;
+	uint32 FormatTag;
+	uint32 AvgBytesPerSec;
 	void* BufferData;
 };
 

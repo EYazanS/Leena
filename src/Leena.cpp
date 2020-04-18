@@ -1,7 +1,11 @@
 #include "Leena.h"
+#include <Windows.h>
+#include <xaudio2.h>
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset);
 void Win32FillSoundBuffer(GameSoundBuffer* soundBuffer);
+RIFFData ReadRIFF(void* memory);
+MTData ReadMT(void* memory);
 
 struct GameState
 {
@@ -73,22 +77,66 @@ void Win32FillSoundBuffer(GameSoundBuffer* soundBuffer)
 {
 	if (!soundBuffer->BufferData)
 	{
-		const float Pi = 3.1415f;
 
-		soundBuffer->SampleCount = soundBuffer->SamplesPerSecond * 2;
-
-		float* bufferData = new float[soundBuffer->SampleCount];
-
-		for (uint32 i = 0; i < soundBuffer->SampleCount; i += 2)
-		{
-			*(bufferData + i) = sinf((soundBuffer->Time * 2 * Pi) / soundBuffer->Period);
-
-			soundBuffer->Time += (1.0f / soundBuffer->SampleRate);             // move time forward one sample-tick
-
-			if (soundBuffer->Time > soundBuffer->Period)
-				soundBuffer->Time -= soundBuffer->Period;
-		}
-
-		soundBuffer->BufferData = bufferData;
 	}
+}
+
+RIFFData ReadRIFF(void* memory)
+{
+	int8* bytes4 = (int8*)memory;
+
+	int8* subChunkId = bytes4++;
+	int8* subChunkSize = bytes4++;
+	int8* format = bytes4++;
+
+	uint32* bytes = (uint32*)memory; // Get the firs 4 bytes of the memory
+
+	RIFFData data
+	{
+		*bytes++,
+		*bytes++,
+		*bytes
+	};
+
+	return data;
+}
+
+MTData ReadMT(void* memory)
+{
+	uint32* bytes4 = (uint32*)memory; // Get the firs 4 bytes of the memory
+
+	// Skip the RIFF data
+	bytes4 += 4;
+
+	uint32* subChunkId = bytes4++;
+	uint32* subChunkSize = bytes4++;
+
+	uint16* bytes2 = (uint16*)bytes4;
+
+	uint16* audioFormat = bytes2++;
+	uint16* channels = bytes2++;
+
+	bytes4 = (uint32*)bytes2;
+
+	uint32* sampleRate = bytes4++;
+	uint32* byteRate = bytes4++;
+
+	bytes2 = (uint16*)bytes4;
+
+	uint16* blockAlign = bytes2++;
+	uint16* bitsPerSample = bytes2++;
+
+	MTData data
+	{
+		*subChunkId,
+		*subChunkSize,
+		*audioFormat,
+		*channels,
+		*sampleRate,
+		*byteRate,
+		*blockAlign,
+		*bitsPerSample
+	};
+
+	return data;
 }

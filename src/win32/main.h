@@ -25,9 +25,12 @@ struct Win32BitmapBuffer
 
 struct Wind32SoundBuffer
 {
-	int32 SampleBits;
+	int32 BitsPerSample;
 	int32 SamplesPerSecond;
-	uint8 Channels;
+	uint16 Channels;
+	uint16 BlockAlign;
+	uint32 FormatTag;
+	uint32 AvgBytesPerSec;
 	IXAudio2SourceVoice* SourceVoice;
 };
 
@@ -50,9 +53,12 @@ internal real32 GetSecondsElapsed(uint64 start, uint64 end, uint64 frequency);
 internal HRESULT Wind32InitializeXAudio(IXAudio2* &xAudio);
 internal HRESULT Wind32InitializeMasterVoice(IXAudio2* xAudio, IXAudio2MasteringVoice* &masteringVoice);
 internal WAVEFORMATEX Wind32InitializeWaveFormat(IXAudio2* xAudio, Wind32SoundBuffer* soundBuffer);
-internal HRESULT Win32FillSoundBuffer(IXAudio2SourceVoice* sourceVoice, GameSoundBuffer* soundBuffer);
+internal HRESULT Win32FillSoundBuffer(IXAudio2SourceVoice* sourceVoice, XAUDIO2_BUFFER* soundBuffer);
 internal void Win32PlaySound(IXAudio2SourceVoice* sourceVoice);
-internal Wind32SoundBuffer IniWin32SoundBuffer();
+internal Wind32SoundBuffer IniWin32SoundBuffer(GameSoundBuffer* gameSoundBuffer);
+internal HRESULT FindChunk(HANDLE hFile, DWORD fourcc, DWORD& dwChunkSize, DWORD& dwChunkDataPosition);
+internal HRESULT ReadChunkData(HANDLE hFile, void* buffer, DWORD buffersize, DWORD bufferoffset);
+internal XAUDIO2_BUFFER DebugGetBuffer(WAVEFORMATEXTENSIBLE* wfx);
 
 // Input
 internal void Win32ProcessDigitalButton(DWORD button, DWORD buttonBit, GameButtonState* oldState, GameButtonState* newState);
@@ -67,3 +73,13 @@ internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
 internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height);
 internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height);
 internal void Win32DrawBuffer(const HWND& windowHandle);
+
+
+#ifndef _XBOX //Little-Endian
+#define fourccRIFF 'FFIR'
+#define fourccDATA 'atad'
+#define fourccFMT ' tmf'
+#define fourccWAVE 'EVAW'
+#define fourccXWMA 'AMWX'
+#define fourccDPDS 'sdpd'
+#endif
