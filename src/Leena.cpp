@@ -3,7 +3,7 @@
 #include <xaudio2.h>
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset);
-void FillSoundBuffer(GameAudioBuffer& soundBuffer);
+void FillAudioBuffer(GameAudioBuffer& soundBuffer);
 GameAudioBuffer ReadAudioBufferData(void* memory);
 
 struct GameState
@@ -22,7 +22,7 @@ void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudi
 	}
 
 	RenderWirdGradiend(screenBuffer, gameState->XOffset, gameState->YOffset);
-	FillSoundBuffer(soundBuffer);
+	FillAudioBuffer(soundBuffer);
 
 	for each (GameControllerInput controller in input->Controllers)
 	{
@@ -72,7 +72,7 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOf
 	}
 }
 
-void FillSoundBuffer(GameAudioBuffer& soundBuffer)
+void FillAudioBuffer(GameAudioBuffer& soundBuffer)
 {
 	if (!soundBuffer.BufferData)
 	{

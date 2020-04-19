@@ -1,5 +1,4 @@
 #include "main.h"
-#include <stdio.h>
 
 GlobalVariable Win32BitmapBuffer GlobalBitmapBuffer;
 
@@ -50,7 +49,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		GameAudioBuffer gameaudioBuffer = { };
 
-		bool playingSound = false;
+		bool playingAudio = false;
 
 		while (programState.IsRunning)
 		{
@@ -137,7 +136,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			// We fille the sound and draw buffers we got from the game.
 			Win32DrawBuffer(windowHandle);
 
-			if (!playingSound)
+			if (!playingAudio)
 			{
 				IXAudio2SourceVoice* gameSourceVoice = {};
 
@@ -147,9 +146,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 				Win32FillaudioBuffer(gameSourceVoice, &gameaudioBuffer, audioBuffer2);
 
-				Win32PlaySound(gameSourceVoice);
+				Win32PlayAudio(gameSourceVoice);
 
-				playingSound = true;
+				playingAudio = true;
 			}
 
 			// Register last counter we got
@@ -478,7 +477,7 @@ internal WAVEFORMATEX Wind32InitializeWaveFormat(IXAudio2* xAudio, IXAudio2Sourc
 	return waveFormat;
 }
 
-internal void Win32PlaySound(IXAudio2SourceVoice* sourceVoice)
+internal void Win32PlayAudio(IXAudio2SourceVoice* sourceVoice)
 {
 	sourceVoice->Start(0);
 }
