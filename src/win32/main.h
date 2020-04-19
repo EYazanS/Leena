@@ -23,14 +23,6 @@ struct Win32BitmapBuffer
 	int Pitch;
 };
 
-struct Wind32SoundBuffer
-{
-	int32 SampleBits;
-	int32 SamplesPerSecond;
-	uint8 Channels;
-	IXAudio2SourceVoice* SourceVoice;
-};
-
 #define LocalPersist static
 #define GlobalVariable static
 #define internal static
@@ -47,10 +39,11 @@ internal inline int64 Win32GetWallClock();
 internal real32 GetSecondsElapsed(uint64 start, uint64 end, uint64 frequency);
 
 // Audio
-internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, Wind32SoundBuffer* soundBuffer);
-internal HRESULT Win32FillSoundBuffer(IXAudio2SourceVoice* sourceVoice, GameSoundBuffer* soundBuffer);
-internal void Win32PlaySound(IXAudio2SourceVoice* sourceVoice);
-internal Wind32SoundBuffer IniWin32SoundBuffer();
+internal HRESULT Wind32InitializeXAudio(IXAudio2*& xAudio);
+internal HRESULT Wind32InitializeMasterVoice(IXAudio2* xAudio, IXAudio2MasteringVoice*& masteringVoice);
+internal WAVEFORMATEX Wind32InitializeWaveFormat(IXAudio2* xAudio, IXAudio2SourceVoice* &sourceVoice, GameAudioBuffer* audioBuffer);
+internal void Win32PlayAudio(IXAudio2SourceVoice* sourceVoice);
+internal HRESULT Win32FillaudioBuffer(IXAudio2SourceVoice* sourceVoice, GameAudioBuffer* gameAudioBuffer, XAUDIO2_BUFFER& audioBuffer);
 
 // Input
 internal void Win32ProcessDigitalButton(DWORD button, DWORD buttonBit, GameButtonState* oldState, GameButtonState* newState);

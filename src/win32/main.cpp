@@ -1,5 +1,4 @@
 #include "main.h"
-#include <stdio.h>
 
 GlobalVariable Win32BitmapBuffer GlobalBitmapBuffer;
 
@@ -33,21 +32,24 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		GameMemory gameMemory = InitGameMemory();
 
 		IXAudio2* xAudio = {};
+		Wind32InitializeXAudio(xAudio);
 
-		Wind32SoundBuffer soundBuffer = IniWin32SoundBuffer();
+		IXAudio2MasteringVoice* masterVoice = {};
+		Wind32InitializeMasterVoice(xAudio, masterVoice);
 
-		Wind32InitializeXAudio(xAudio, &soundBuffer);
-
+		// Init Resolution.
 		Win32ResizeDIBSection(&GlobalBitmapBuffer, 1280, 720);
 
-		// Uncomment when we have proper wave to play ...
-		Win32PlaySound(soundBuffer.SourceVoice);
-		soundBuffer.SourceVoice->Stop();
+		// audioBuffer.SourceVoice->Stop();
 
 		GameInput Input[2] = { };
 
 		GameInput* oldInput = &Input[0];
 		GameInput* newInput = &Input[1];
+
+		GameAudioBuffer gameaudioBuffer = { };
+
+		bool playingAudio = false;
 
 		while (programState.IsRunning)
 		{
@@ -95,16 +97,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 				GlobalBitmapBuffer.Pitch,
 			};
 
-			GameSoundBuffer gameSoundBuffer =
-			{
-				1.f,		// Time in Seconds
-				44.1f,		// Sample Rate in HZ
-				0.3f,		// Period in seconds, we want it to be one third of a second
-				48000		// Samples Per Second
-			};
-
 			// Process game update. the game returns both a sound and draw buffer so we can use.
-			GameUpdate(&gameMemory, &screenBuffer, &gameSoundBuffer, newInput);
+			GameUpdate(&gameMemory, &screenBuffer, gameaudioBuffer, newInput);
 
 			// Display performance counter
 			uint64 endCycleCount = __rdtsc();
@@ -140,8 +134,22 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			}
 
 			// We fille the sound and draw buffers we got from the game.
-			Win32FillSoundBuffer(soundBuffer.SourceVoice, &gameSoundBuffer);
 			Win32DrawBuffer(windowHandle);
+
+			if (!playingAudio)
+			{
+				IXAudio2SourceVoice* gameSourceVoice = {};
+
+				auto wave = Wind32InitializeWaveFormat(xAudio, gameSourceVoice, &gameaudioBuffer);
+
+				XAUDIO2_BUFFER audioBuffer2 = {};
+
+				Win32FillaudioBuffer(gameSourceVoice, &gameaudioBuffer, audioBuffer2);
+
+				Win32PlayAudio(gameSourceVoice);
+
+				playingAudio = true;
+			}
 
 			// Register last counter we got
 			#if 0
@@ -215,7 +223,7 @@ internal void ProccessKeyboardKeys(MSG& message, GameControllerInput* controller
 		}
 }
 
-void Win32ProccessKeyboardMessage(GameButtonState& state, bool isPressed)
+internal void Win32ProccessKeyboardMessage(GameButtonState& state, bool isPressed)
 {
 	state.EndedDown = isPressed;
 	++state.HalfTransitionCount;
@@ -300,17 +308,6 @@ internal void ProccessControllerInput(GameInput* newInput, GameInput* oldInput)
 internal real32 Win32CalculateTriggerValue(real32 triggerValue)
 {
 	return triggerValue > XINPUT_GAMEPAD_TRIGGER_THRESHOLD ? triggerValue / 255 : 0;
-}
-
-internal Wind32SoundBuffer IniWin32SoundBuffer()
-{
-	Wind32SoundBuffer soundBuffer;
-
-	soundBuffer.SamplesPerSecond = 44100; // Equals 44.1 kHz for pcm 
-	soundBuffer.Channels = 2;
-	soundBuffer.SampleBits = 16;
-
-	return soundBuffer;
 }
 
 internal GameMemory InitGameMemory()
@@ -436,7 +433,7 @@ internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, 
 	bitmapBuffer->Memory = VirtualAlloc(0, bitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
 }
 
-internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, Wind32SoundBuffer* soundBuffer)
+internal HRESULT Wind32InitializeXAudio(IXAudio2*& xAudio)
 {
 	// TODO: UncoInitialize on error.
 	HRESULT result;
@@ -447,42 +444,53 @@ internal HRESULT Wind32InitializeXAudio(IXAudio2* xAudio, Wind32SoundBuffer* sou
 	if (FAILED(result = XAudio2Create(&xAudio)))
 		return result;
 
-	IXAudio2MasteringVoice* masteringVoice;
+	return result;
+}
+
+internal HRESULT Wind32InitializeMasterVoice(IXAudio2* xAudio, IXAudio2MasteringVoice*& masteringVoice)
+{
+	HRESULT result;
 
 	if (FAILED(result = xAudio->CreateMasteringVoice(&masteringVoice)))
-		return result;
-
-	WAVEFORMATEX waveFormat = { 0 };
-
-	waveFormat.wBitsPerSample = static_cast<WORD>(soundBuffer->SampleBits);
-	waveFormat.nSamplesPerSec = soundBuffer->SamplesPerSecond;
-	waveFormat.nChannels = soundBuffer->Channels;
-	waveFormat.nBlockAlign = waveFormat.nChannels * waveFormat.wBitsPerSample / 8;
-	waveFormat.nAvgBytesPerSec = waveFormat.nBlockAlign * waveFormat.nSamplesPerSec;
-	waveFormat.wFormatTag = WAVE_FORMAT_PCM;
-
-	if (FAILED(result = xAudio->CreateSourceVoice(&soundBuffer->SourceVoice, &waveFormat)))
 		return result;
 
 	return result;
 }
 
-internal void Win32PlaySound(IXAudio2SourceVoice* sourceVoice)
+internal WAVEFORMATEX Wind32InitializeWaveFormat(IXAudio2* xAudio, IXAudio2SourceVoice*& sourceVoice, GameAudioBuffer* audioBuffer)
 {
-	sourceVoice->Start();
+	HRESULT result;
+
+	WAVEFORMATEX waveFormat;
+
+	waveFormat.wBitsPerSample = audioBuffer->BitsPerSample;
+	waveFormat.nSamplesPerSec = audioBuffer->SamplesPerSec;
+	waveFormat.nChannels = audioBuffer->Channels;
+	waveFormat.nAvgBytesPerSec = audioBuffer->AvgBytesPerSec;
+	waveFormat.wFormatTag = audioBuffer->FormatTag;
+	waveFormat.nBlockAlign = audioBuffer->BlockAlign;
+
+	// What to do if fails?
+	// if (FAILED());
+	result = xAudio->CreateSourceVoice(&sourceVoice, &waveFormat);
+
+	return waveFormat;
 }
 
-internal HRESULT Win32FillSoundBuffer(IXAudio2SourceVoice* sourceVoice, GameSoundBuffer* soundBuffer)
+internal void Win32PlayAudio(IXAudio2SourceVoice* sourceVoice)
+{
+	sourceVoice->Start(0);
+}
+
+internal HRESULT Win32FillaudioBuffer(IXAudio2SourceVoice* sourceVoice, GameAudioBuffer* gameAudioBuffer, XAUDIO2_BUFFER& audioBuffer)
 {
 	HRESULT result = {};
 
-	XAUDIO2_BUFFER buffer = { 0 };
+	audioBuffer.AudioBytes = gameAudioBuffer->BufferSize;  //buffer containing audio data
+	audioBuffer.pAudioData = (BYTE*)gameAudioBuffer->BufferData;  //size of the audio buffer in bytes
+	audioBuffer.Flags = XAUDIO2_END_OF_STREAM;
 
-	buffer.pAudioData = (BYTE*)soundBuffer->BufferData;
-	buffer.AudioBytes = soundBuffer->SampleCount;
-	buffer.LoopCount = XAUDIO2_LOOP_INFINITE;
-
-	if (FAILED(sourceVoice->SubmitSourceBuffer(&buffer)))
+	if (FAILED(sourceVoice->SubmitSourceBuffer(&audioBuffer)))
 		return result;
 
 	return result;
@@ -605,4 +613,5 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 	}
 
 	return result;
+
 }

@@ -1,7 +1,10 @@
 #include "Leena.h"
+#include <Windows.h>
+#include <xaudio2.h>
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset);
-void Win32FillSoundBuffer(GameSoundBuffer* soundBuffer);
+void FillAudioBuffer(GameAudioBuffer& soundBuffer);
+GameAudioBuffer ReadAudioBufferData(void* memory);
 
 struct GameState
 {
@@ -9,7 +12,7 @@ struct GameState
 	int YOffset;
 };
 
-void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameSoundBuffer* soundBuffer, GameInput* input)
+void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer& soundBuffer, GameInput* input)
 {
 	GameState* gameState = (GameState*)gameMemory->PermenantStorage;
 
@@ -19,14 +22,14 @@ void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameSoun
 	}
 
 	RenderWirdGradiend(screenBuffer, gameState->XOffset, gameState->YOffset);
-	Win32FillSoundBuffer(soundBuffer);
+	FillAudioBuffer(soundBuffer);
 
 	for each (GameControllerInput controller in input->Controllers)
 	{
 		if (controller.IsAnalog)
 		{
-			// gameState->XOffset += static_cast<int>(5 * controller.LeftStickAverageX);
-			// gameState->YOffset += static_cast<int>(5 * controller.LeftStickAverageY);
+			gameState->XOffset += static_cast<int>(5 * controller.LeftStickAverageX);
+			gameState->YOffset += static_cast<int>(5 * controller.LeftStickAverageY);
 		}
 
 		if (controller.MoveLeft.EndedDown)
@@ -69,26 +72,67 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOf
 	}
 }
 
-void Win32FillSoundBuffer(GameSoundBuffer* soundBuffer)
+void FillAudioBuffer(GameAudioBuffer& soundBuffer)
 {
-	if (!soundBuffer->BufferData)
+	if (!soundBuffer.BufferData)
 	{
-		const float Pi = 3.1415f;
+		DebugFileResult file = DebugPlatformReadEntireFile("src/resources/Water_Splash_SeaLion_Fienup_001.wav");
 
-		soundBuffer->SampleCount = soundBuffer->SamplesPerSecond * 2;
+		auto result = ReadAudioBufferData(file.Memory);
 
-		float* bufferData = new float[soundBuffer->SampleCount];
-
-		for (uint32 i = 0; i < soundBuffer->SampleCount; i += 2)
-		{
-			*(bufferData + i) = sinf((soundBuffer->Time * 2 * Pi) / soundBuffer->Period);
-
-			soundBuffer->Time += (1.0f / soundBuffer->SampleRate);             // move time forward one sample-tick
-
-			if (soundBuffer->Time > soundBuffer->Period)
-				soundBuffer->Time -= soundBuffer->Period;
-		}
-
-		soundBuffer->BufferData = bufferData;
+		soundBuffer = result;
 	}
+}
+
+GameAudioBuffer ReadAudioBufferData(void* memory)
+{
+	uint8* byte = (uint8*)memory; // Get the firs 4 bytes of the memory
+
+	// Move to position 21
+	byte += 20;
+
+	uint16 formatTag = *((uint16*)byte);
+
+	// Move to position 23
+	byte += 2;
+
+	uint16 channels = *((uint16*)byte);
+
+	// Move to position 25
+	byte += 2;
+
+	uint32 samplesPerSec = *((uint32*)byte);
+
+	// Move to position 29
+	byte += 4;
+	uint32 avgBytesPerSec = *((uint32*)byte);
+
+	// Move to position 33
+	byte += 4;
+	uint16 blockAlign = *((uint16*)byte);
+
+	// Move to position 35
+	byte += 2;
+	uint16 bitsPerSample = *((uint16*)byte);
+
+	// Move to Data chunk
+
+	char* characterToRead = ((char*)byte);
+
+	while (*characterToRead != 'd' || *(characterToRead + 1) != 'a' || *(characterToRead + 2) != 't' || *(characterToRead + 3) != 'a')
+	{
+		characterToRead++;
+	}
+	
+	characterToRead += 4;
+
+	byte = (uint8*)(characterToRead);
+
+	uint32 bufferSize = *((uint32*)byte);
+	
+	byte += 4;
+
+	GameAudioBuffer result = { formatTag, channels, samplesPerSec, avgBytesPerSec, blockAlign, bitsPerSample, bufferSize, byte };
+
+	return result;
 }
