@@ -23,17 +23,6 @@ struct Win32BitmapBuffer
 	int Pitch;
 };
 
-struct Wind32SoundBuffer
-{
-	int32 BitsPerSample;
-	int32 SamplesPerSecond;
-	uint16 Channels;
-	uint16 BlockAlign;
-	uint32 FormatTag;
-	uint32 AvgBytesPerSec;
-	IXAudio2SourceVoice* SourceVoice;
-};
-
 #define LocalPersist static
 #define GlobalVariable static
 #define internal static
@@ -50,15 +39,11 @@ internal inline int64 Win32GetWallClock();
 internal real32 GetSecondsElapsed(uint64 start, uint64 end, uint64 frequency);
 
 // Audio
-internal HRESULT Wind32InitializeXAudio(IXAudio2* &xAudio);
-internal HRESULT Wind32InitializeMasterVoice(IXAudio2* xAudio, IXAudio2MasteringVoice* &masteringVoice);
-internal WAVEFORMATEX Wind32InitializeWaveFormat(IXAudio2* xAudio, Wind32SoundBuffer* soundBuffer);
-internal HRESULT Win32FillSoundBuffer(IXAudio2SourceVoice* sourceVoice, XAUDIO2_BUFFER* soundBuffer);
+internal HRESULT Wind32InitializeXAudio(IXAudio2*& xAudio);
+internal HRESULT Wind32InitializeMasterVoice(IXAudio2* xAudio, IXAudio2MasteringVoice*& masteringVoice);
+internal WAVEFORMATEX Wind32InitializeWaveFormat(IXAudio2* xAudio, IXAudio2SourceVoice* &sourceVoice, GameAudioBuffer* audioBuffer);
 internal void Win32PlaySound(IXAudio2SourceVoice* sourceVoice);
-internal Wind32SoundBuffer IniWin32SoundBuffer(GameSoundBuffer* gameSoundBuffer);
-internal HRESULT FindChunk(HANDLE hFile, DWORD fourcc, DWORD& dwChunkSize, DWORD& dwChunkDataPosition);
-internal HRESULT ReadChunkData(HANDLE hFile, void* buffer, DWORD buffersize, DWORD bufferoffset);
-internal XAUDIO2_BUFFER DebugGetBuffer(WAVEFORMATEXTENSIBLE &wfx);
+internal HRESULT Win32FillaudioBuffer(IXAudio2SourceVoice* sourceVoice, GameAudioBuffer* gameAudioBuffer, XAUDIO2_BUFFER& audioBuffer);
 
 // Input
 internal void Win32ProcessDigitalButton(DWORD button, DWORD buttonBit, GameButtonState* oldState, GameButtonState* newState);
@@ -73,13 +58,3 @@ internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
 internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height);
 internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height);
 internal void Win32DrawBuffer(const HWND& windowHandle);
-
-
-#ifndef _XBOX //Little-Endian
-#define fourccRIFF 'FFIR'
-#define fourccDATA 'atad'
-#define fourccFMT ' tmf'
-#define fourccWAVE 'EVAW'
-#define fourccXWMA 'AMWX'
-#define fourccDPDS 'sdpd'
-#endif

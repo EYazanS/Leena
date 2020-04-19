@@ -20,16 +20,15 @@ enum class Key
 	MoveLeft
 };
 
-struct GameSoundBuffer
+struct GameAudioBuffer
 {
-	int32 SampleBits;
-	int32 BitsPerSample;
-	int32 SamplesPerSecond;
-	uint32 BufferSize;
+	uint16 FormatTag;
 	uint16 Channels;
-	uint16 BlockAlign;
-	uint32 FormatTag;
+	uint32 SamplesPerSec;
 	uint32 AvgBytesPerSec;
+	uint16 BlockAlign;
+	uint16 BitsPerSample;
+	uint32 BufferSize;
 	void* BufferData;
 };
 

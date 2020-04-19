@@ -3,9 +3,8 @@
 #include <xaudio2.h>
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset);
-void Win32FillSoundBuffer(GameSoundBuffer* soundBuffer);
-RIFFData ReadRIFF(void* memory);
-MTData ReadMT(void* memory);
+void FillSoundBuffer(GameAudioBuffer& soundBuffer);
+GameAudioBuffer ReadAudioBufferData(void* memory);
 
 struct GameState
 {
@@ -13,7 +12,7 @@ struct GameState
 	int YOffset;
 };
 
-void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameSoundBuffer* soundBuffer, GameInput* input)
+void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer& soundBuffer, GameInput* input)
 {
 	GameState* gameState = (GameState*)gameMemory->PermenantStorage;
 
@@ -23,7 +22,7 @@ void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameSoun
 	}
 
 	RenderWirdGradiend(screenBuffer, gameState->XOffset, gameState->YOffset);
-	Win32FillSoundBuffer(soundBuffer);
+	FillSoundBuffer(soundBuffer);
 
 	for each (GameControllerInput controller in input->Controllers)
 	{
@@ -73,70 +72,67 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOf
 	}
 }
 
-void Win32FillSoundBuffer(GameSoundBuffer* soundBuffer)
+void FillSoundBuffer(GameAudioBuffer& soundBuffer)
 {
-	if (!soundBuffer->BufferData)
+	if (!soundBuffer.BufferData)
 	{
+		DebugFileResult file = DebugPlatformReadEntireFile("src/resources/Water_Splash_SeaLion_Fienup_001.wav");
 
+		auto result = ReadAudioBufferData(file.Memory);
+
+		soundBuffer = result;
 	}
 }
 
-RIFFData ReadRIFF(void* memory)
+GameAudioBuffer ReadAudioBufferData(void* memory)
 {
-	int8* bytes4 = (int8*)memory;
+	uint8* byte = (uint8*)memory; // Get the firs 4 bytes of the memory
 
-	int8* subChunkId = bytes4++;
-	int8* subChunkSize = bytes4++;
-	int8* format = bytes4++;
+	// Move to position 21
+	byte += 20;
 
-	uint32* bytes = (uint32*)memory; // Get the firs 4 bytes of the memory
+	uint16 formatTag = *((uint16*)byte);
 
-	RIFFData data
+	// Move to position 23
+	byte += 2;
+
+	uint16 channels = *((uint16*)byte);
+
+	// Move to position 25
+	byte += 2;
+
+	uint32 samplesPerSec = *((uint32*)byte);
+
+	// Move to position 29
+	byte += 4;
+	uint32 avgBytesPerSec = *((uint32*)byte);
+
+	// Move to position 33
+	byte += 4;
+	uint16 blockAlign = *((uint16*)byte);
+
+	// Move to position 35
+	byte += 2;
+	uint16 bitsPerSample = *((uint16*)byte);
+
+	// Move to Data chunk
+
+	char* characterToRead = ((char*)byte);
+
+	while (*characterToRead != 'd' || *(characterToRead + 1) != 'a' || *(characterToRead + 2) != 't' || *(characterToRead + 3) != 'a')
 	{
-		*bytes++,
-		*bytes++,
-		*bytes
-	};
+		characterToRead++;
+	}
+	
+	characterToRead += 4;
 
-	return data;
-}
+	byte = (uint8*)(characterToRead);
 
-MTData ReadMT(void* memory)
-{
-	uint32* bytes4 = (uint32*)memory; // Get the firs 4 bytes of the memory
+	uint32 bufferSize = *((uint32*)byte);
+	
+	byte += 4;
 
-	// Skip the RIFF data
-	bytes4 += 4;
+	GameAudioBuffer result = { formatTag, channels, samplesPerSec, avgBytesPerSec, blockAlign, bitsPerSample, bufferSize, byte };
 
-	uint32* subChunkId = bytes4++;
-	uint32* subChunkSize = bytes4++;
-
-	uint16* bytes2 = (uint16*)bytes4;
-
-	uint16* audioFormat = bytes2++;
-	uint16* channels = bytes2++;
-
-	bytes4 = (uint32*)bytes2;
-
-	uint32* sampleRate = bytes4++;
-	uint32* byteRate = bytes4++;
-
-	bytes2 = (uint16*)bytes4;
-
-	uint16* blockAlign = bytes2++;
-	uint16* bitsPerSample = bytes2++;
-
-	MTData data
-	{
-		*subChunkId,
-		*subChunkSize,
-		*audioFormat,
-		*channels,
-		*sampleRate,
-		*byteRate,
-		*blockAlign,
-		*bitsPerSample
-	};
-
-	return data;
+	return result;
 }

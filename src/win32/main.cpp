@@ -41,28 +41,17 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		// Init Resolution.
 		Win32ResizeDIBSection(&GlobalBitmapBuffer, 1280, 720);
 
-		// soundBuffer.SourceVoice->Stop();
+		// audioBuffer.SourceVoice->Stop();
 
 		GameInput Input[2] = { };
 
 		GameInput* oldInput = &Input[0];
 		GameInput* newInput = &Input[1];
 
-		GameSoundBuffer gameSoundBuffer = { };
+		GameAudioBuffer gameaudioBuffer = { };
 
+		bool playingSound = false;
 
-		IXAudio2SourceVoice* sourceVoice;
-
-		WAVEFORMATEXTENSIBLE wfx;
-
-		XAUDIO2_BUFFER audioBuffer = DebugGetBuffer(wfx);
-
-		xAudio->CreateSourceVoice(&sourceVoice, (WAVEFORMATEX*)&wfx);
-
-		sourceVoice->SubmitSourceBuffer(&audioBuffer);
-		
-		sourceVoice->Start(0);
-		
 		while (programState.IsRunning)
 		{
 			MSG message = Win32ProcessMessage();
@@ -110,7 +99,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			};
 
 			// Process game update. the game returns both a sound and draw buffer so we can use.
-			GameUpdate(&gameMemory, &screenBuffer, &gameSoundBuffer, newInput);
+			GameUpdate(&gameMemory, &screenBuffer, gameaudioBuffer, newInput);
 
 			// Display performance counter
 			uint64 endCycleCount = __rdtsc();
@@ -147,6 +136,21 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 			// We fille the sound and draw buffers we got from the game.
 			Win32DrawBuffer(windowHandle);
+
+			if (!playingSound)
+			{
+				IXAudio2SourceVoice* gameSourceVoice = {};
+
+				auto wave = Wind32InitializeWaveFormat(xAudio, gameSourceVoice, &gameaudioBuffer);
+
+				XAUDIO2_BUFFER audioBuffer2 = {};
+
+				Win32FillaudioBuffer(gameSourceVoice, &gameaudioBuffer, audioBuffer2);
+
+				Win32PlaySound(gameSourceVoice);
+
+				playingSound = true;
+			}
 
 			// Register last counter we got
 			#if 0
@@ -454,58 +458,45 @@ internal HRESULT Wind32InitializeMasterVoice(IXAudio2* xAudio, IXAudio2Mastering
 	return result;
 }
 
-//internal WAVEFORMATEX Wind32InitializeWaveFormat(IXAudio2* xAudio, Wind32SoundBuffer* soundBuffer)
-//{
-//	HRESULT result;
-//
-//	WAVEFORMATEX waveFormat;
-//
-//	waveFormat.wBitsPerSample = static_cast<WORD>(soundBuffer->BitsPerSample);
-//	waveFormat.nSamplesPerSec = soundBuffer->SamplesPerSecond;
-//	waveFormat.nChannels = soundBuffer->Channels;
-//	waveFormat.nAvgBytesPerSec = soundBuffer->AvgBytesPerSec;
-//	waveFormat.wFormatTag = (WORD)soundBuffer->FormatTag;
-//	waveFormat.nBlockAlign = waveFormat.nChannels * (waveFormat.wBitsPerSample / 8);
-//
-//	// What to do if fails?
-//	// if (FAILED());
-//	result = xAudio->CreateSourceVoice(&soundBuffer->SourceVoice, &waveFormat);
-//
-//	return waveFormat;
-//}
+internal WAVEFORMATEX Wind32InitializeWaveFormat(IXAudio2* xAudio, IXAudio2SourceVoice*& sourceVoice, GameAudioBuffer* audioBuffer)
+{
+	HRESULT result;
 
-//internal void Win32PlaySound(IXAudio2SourceVoice* sourceVoice)
-//{
-//	sourceVoice->Start();
-//}
+	WAVEFORMATEX waveFormat;
 
-//internal Wind32SoundBuffer IniWin32SoundBuffer(GameSoundBuffer* gameSoundBuffer)
-//{
-//	Wind32SoundBuffer soundBuffer;
-//
-//	soundBuffer.SamplesPerSecond = gameSoundBuffer->SamplesPerSecond; // Equals 44.1 kHz for pcm 
-//	soundBuffer.Channels = gameSoundBuffer->Channels;
-//	soundBuffer.BitsPerSample = gameSoundBuffer->BitsPerSample;
-//	soundBuffer.BlockAlign = gameSoundBuffer->BlockAlign;
-//	soundBuffer.AvgBytesPerSec = gameSoundBuffer->AvgBytesPerSec;
-//	soundBuffer.BlockAlign = gameSoundBuffer->BlockAlign;
-//	soundBuffer.FormatTag = gameSoundBuffer->FormatTag;
-//
-//	return soundBuffer;
-//}
+	waveFormat.wBitsPerSample = audioBuffer->BitsPerSample;
+	waveFormat.nSamplesPerSec = audioBuffer->SamplesPerSec;
+	waveFormat.nChannels = audioBuffer->Channels;
+	waveFormat.nAvgBytesPerSec = audioBuffer->AvgBytesPerSec;
+	waveFormat.wFormatTag = audioBuffer->FormatTag;
+	waveFormat.nBlockAlign = audioBuffer->BlockAlign;
 
-//internal HRESULT Win32FillSoundBuffer(IXAudio2SourceVoice* sourceVoice, XAUDIO2_BUFFER* soundBuffer)
-//{
-//	HRESULT result = {};
-//
-//	XAUDIO2_BUFFER buffer = { 0 };
-//
-//	if (FAILED(sourceVoice->SubmitSourceBuffer(soundBuffer)))
-//		return result;
-//
-//	return result;
-//}
-//
+	// What to do if fails?
+	// if (FAILED());
+	result = xAudio->CreateSourceVoice(&sourceVoice, &waveFormat);
+
+	return waveFormat;
+}
+
+internal void Win32PlaySound(IXAudio2SourceVoice* sourceVoice)
+{
+	sourceVoice->Start(0);
+}
+
+internal HRESULT Win32FillaudioBuffer(IXAudio2SourceVoice* sourceVoice, GameAudioBuffer* gameAudioBuffer, XAUDIO2_BUFFER& audioBuffer)
+{
+	HRESULT result = {};
+
+	audioBuffer.AudioBytes = gameAudioBuffer->BufferSize;  //buffer containing audio data
+	audioBuffer.pAudioData = (BYTE*)gameAudioBuffer->BufferData;  //size of the audio buffer in bytes
+	audioBuffer.Flags = XAUDIO2_END_OF_STREAM;
+
+	if (FAILED(sourceVoice->SubmitSourceBuffer(&audioBuffer)))
+		return result;
+
+	return result;
+}
+
 internal real32 Win32ProcessXInputStickValues(real32 value, int16 deadZoneThreshold)
 {
 	real32 result = 0.f;
@@ -624,109 +615,4 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 
 	return result;
 
-}
-
-internal XAUDIO2_BUFFER DebugGetBuffer(WAVEFORMATEXTENSIBLE &wfx)
-{
-	XAUDIO2_BUFFER buffer = { 0 };
-
-	// DebugFileResult fileData = DebugPlatformReadEntireFile("src/resources/Water_Splash_SeaLion_Fienup_001.wav");
-
-	HANDLE hFile = CreateFileA(
-		"src/resources/Water_Splash_SeaLion_Fienup_001.wav",
-		GENERIC_READ,
-		FILE_SHARE_READ,
-		NULL,
-		OPEN_EXISTING,
-		0,
-		NULL);
-
-	DWORD dwChunkSize;
-	DWORD dwChunkPosition;
-
-	// Check the file type, should be fourccWAVE or 'XWMA'
-	FindChunk(hFile, fourccRIFF, dwChunkSize, dwChunkPosition);
-	DWORD filetype;
-	ReadChunkData(hFile, &filetype, sizeof(DWORD), dwChunkPosition);
-
-	// Locate the 'fmt ' chunk, and copy its contents into a WAVEFORMATEXTENSIBLE structure.
-	FindChunk(hFile, fourccFMT, dwChunkSize, dwChunkPosition);
-	ReadChunkData(hFile, &wfx, dwChunkSize, dwChunkPosition);
-
-	// Fill out the audio data buffer with the contents of the fourccDATA chunk
-	FindChunk(hFile, fourccDATA, dwChunkSize, dwChunkPosition);
-	BYTE* pDataBuffer = new BYTE[dwChunkSize];
-	ReadChunkData(hFile, pDataBuffer, dwChunkSize, dwChunkPosition);
-
-	buffer.AudioBytes = dwChunkSize;  //buffer containing audio data
-	buffer.pAudioData = pDataBuffer;  //size of the audio buffer in bytes
-	buffer.Flags = XAUDIO2_END_OF_STREAM; // tell the source voice not to expect any data after this
-
-	return buffer;
-}
-
-
-HRESULT FindChunk(HANDLE hFile, DWORD fourcc, DWORD& dwChunkSize, DWORD& dwChunkDataPosition)
-{
-	HRESULT hr = S_OK;
-	if (INVALID_SET_FILE_POINTER == SetFilePointer(hFile, 0, NULL, FILE_BEGIN))
-		return HRESULT_FROM_WIN32(GetLastError());
-
-	DWORD dwChunkType;
-	DWORD dwChunkDataSize;
-	DWORD dwRIFFDataSize = 0;
-	DWORD dwFileType;
-	DWORD bytesRead = 0;
-	DWORD dwOffset = 0;
-
-	while (hr == S_OK)
-	{
-		DWORD dwRead;
-		if (0 == ReadFile(hFile, &dwChunkType, sizeof(DWORD), &dwRead, NULL))
-			hr = HRESULT_FROM_WIN32(GetLastError());
-
-		if (0 == ReadFile(hFile, &dwChunkDataSize, sizeof(DWORD), &dwRead, NULL))
-			hr = HRESULT_FROM_WIN32(GetLastError());
-
-		switch (dwChunkType)
-		{
-			case fourccRIFF:
-				dwRIFFDataSize = dwChunkDataSize;
-				dwChunkDataSize = 4;
-				if (0 == ReadFile(hFile, &dwFileType, sizeof(DWORD), &dwRead, NULL))
-					hr = HRESULT_FROM_WIN32(GetLastError());
-				break;
-
-			default:
-				if (INVALID_SET_FILE_POINTER == SetFilePointer(hFile, dwChunkDataSize, NULL, FILE_CURRENT))
-					return HRESULT_FROM_WIN32(GetLastError());
-		}
-
-		dwOffset += sizeof(DWORD) * 2;
-
-		if (dwChunkType == fourcc)
-		{
-			dwChunkSize = dwChunkDataSize;
-			dwChunkDataPosition = dwOffset;
-			return S_OK;
-		}
-
-		dwOffset += dwChunkDataSize;
-
-		if (bytesRead >= dwRIFFDataSize) return S_FALSE;
-
-	}
-
-	return S_OK;
-}
-
-HRESULT ReadChunkData(HANDLE hFile, void* buffer, DWORD buffersize, DWORD bufferoffset)
-{
-	HRESULT hr = S_OK;
-	if (INVALID_SET_FILE_POINTER == SetFilePointer(hFile, bufferoffset, NULL, FILE_BEGIN))
-		return HRESULT_FROM_WIN32(GetLastError());
-	DWORD dwRead;
-	if (0 == ReadFile(hFile, buffer, buffersize, &dwRead, NULL))
-		hr = HRESULT_FROM_WIN32(GetLastError());
-	return hr;
 }
