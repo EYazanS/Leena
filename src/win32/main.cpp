@@ -1,4 +1,5 @@
 #include "main.h"
+#include <stdio.h>
 
 GlobalVariable Win32BitmapBuffer GlobalBitmapBuffer;
 
@@ -12,10 +13,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 	{
 		// Get the performance frequence
 		programState.PerformanceFrequence = Win32GetPerformanceFrequence();
-
 		// Get how many cycle the cpu went through
 		uint64 lastCycleCount = __rdtsc();
-
+		// Get current cpu time
 		int64 lastCounter = Win32GetWallClock();
 
 		UINT desiredSchedularTimeInMs = 1;
@@ -25,7 +25,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		uint8 monitorRefreshRate = 60; // In HZ
 		uint8 gameUpdateInHz = monitorRefreshRate / 2; // In HZ
-		real32 targetSecondsPerFrams = 1.f / monitorRefreshRate;
+		real32 targetSecondsPerFrams = 1.f / gameUpdateInHz;
 
 		programState.IsRunning = true;
 
@@ -100,13 +100,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			// Process game update. the game returns both a sound and draw buffer so we can use.
 			GameUpdate(&gameMemory, &screenBuffer, gameaudioBuffer, newInput);
 
-			// Display performance counter
-			uint64 endCycleCount = __rdtsc();
-
-			int64 endCounter = Win32GetWallClock();
-
-			real32 timeTakenOnWork = GetSecondsElapsed(lastCounter, endCounter, programState.PerformanceFrequence);
-			real32 timeTakenOnFrame = timeTakenOnWork;
+			int64 workCounter = Win32GetWallClock();
+			real64 workSecondsElapsed = GetSecondsElapsed(lastCounter, workCounter, programState.PerformanceFrequence);
+			real64 timeTakenOnFrame = workSecondsElapsed;
 
 			// Make sure we stay at the target time for each frame.
 			if (timeTakenOnFrame < targetSecondsPerFrams)
@@ -119,19 +115,24 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 						Sleep(sleepMs);
 				}
 
-				auto testTimeTakenOnFrame = GetSecondsElapsed(endCounter, Win32GetWallClock(), programState.PerformanceFrequence);
+				auto testTimeTakenOnFrame = GetSecondsElapsed(lastCounter, Win32GetWallClock(), programState.PerformanceFrequence);
 
-				Assert(testTimeTakenOnFrame < targetSecondsPerFrams);
+				// Assert(testTimeTakenOnFrame < targetSecondsPerFrams);
 
 				while (timeTakenOnFrame < targetSecondsPerFrams)
 				{
-					timeTakenOnFrame = GetSecondsElapsed(endCounter, Win32GetWallClock(), programState.PerformanceFrequence);
+					timeTakenOnFrame = GetSecondsElapsed(lastCounter, Win32GetWallClock(), programState.PerformanceFrequence);
 				}
 			}
 			else
 			{
 				// missed a frame
 			}
+
+			// Display performance counter
+			int64 endCounter = Win32GetWallClock();
+			real32 msPerFrame = 1000.0f * GetSecondsElapsed(lastCounter, endCounter, programState.PerformanceFrequence);
+			lastCounter = endCounter;
 
 			// We fille the sound and draw buffers we got from the game.
 			Win32DrawBuffer(windowHandle);
@@ -152,24 +153,20 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			}
 
 			// Register last counter we got
-			#if 0
-			int64 cyclesElapsed = endCycleCount - lastCycleCount;
-			// how many cycles the cpu went throught a single frame
-			int64 megaCyclesPerframe = cyclesElapsed / (1000 * 1000);
-			real32 msPerFrame = (1000.f * (real32)endCounter) / (real32)programState.PerformanceFrequence;
-			real32 fps = programState.PerformanceFrequence / (real32)(endCounter - lastCounter);
+			real32 FPS = (1000.0f / msPerFrame);
+
 			char formatBuffer[256];
-			sprintf_s(formatBuffer, "%.02fms/f - %.02ffps - %I64uc/f\n", msPerFrame, fps, megaCyclesPerframe);
+			sprintf_s(formatBuffer, "%.02fms/f, %.02ff/s, (%.02fws/f)\n", msPerFrame, FPS, workSecondsElapsed * 1000.0f);
 			OutputDebugStringA(formatBuffer);
-			#endif // 0
 
 			// Swap the states of the input so they persist through frames
 			GameInput* temp = newInput;
 			newInput = oldInput;
 			oldInput = temp;
 
+			int64 endCycleCount = __rdtsc();
+			int64 cyclesElapsed = endCycleCount - lastCycleCount;
 			lastCycleCount = endCycleCount;
-			lastCounter = endCounter;
 		}
 	}
 
