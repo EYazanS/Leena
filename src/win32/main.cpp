@@ -109,7 +109,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			{
 				if (isSleepGranular)
 				{
-					DWORD sleepMs = (DWORD)(1000.f * (targetSecondsPerFrams - timeTakenOnFrame));
+					// We substract 2 ms from the sleep incase the os doesnt wake us on time
+					DWORD sleepMs = (DWORD)(1000.f * (targetSecondsPerFrams - timeTakenOnFrame)) - 2;
 
 					if (sleepMs > 0)
 						Sleep(sleepMs);
@@ -117,7 +118,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 				auto testTimeTakenOnFrame = GetSecondsElapsed(lastCounter, Win32GetWallClock(), programState.PerformanceFrequence);
 
-				// Assert(testTimeTakenOnFrame < targetSecondsPerFrams);
+				Assert(testTimeTakenOnFrame < targetSecondsPerFrams);
 
 				while (timeTakenOnFrame < targetSecondsPerFrams)
 				{
