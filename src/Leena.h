@@ -8,7 +8,7 @@
 #include "GameStructs.h"
 
 // Functions provided for the platform layer
-void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameAudioBuffer& soundBuffer, GameInput* input);
+void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameAudioBuffer* soundBuffer, GameInput* input);
 
 inline GameControllerInput* GetController(GameInput* input, uint8 index)
 {
@@ -23,26 +23,6 @@ struct DebugFileResult
 {
 	void* Memory;
 	uint32 FileSize;
-};
-
-struct RIFFData
-{
-	char* ChunkId;
-	uint32 ChunkSize;
-	uint32 Format;
-};
-
-struct MTData
-{
-	uint32 SubChunkId;
-	uint32 SubChunkSize;
-	uint16 AudioFormat;
-	uint16 Channels;
-	uint32 SampleRate;
-	uint32 ByteRate;
-	uint16 BlockAlign;
-	uint16 BitsPerSample;
-	uint32 FormatTag;
 };
 
 void DebugPlatformFreeFileMemory(void* memory);

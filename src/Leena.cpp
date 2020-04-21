@@ -3,8 +3,8 @@
 #include <xaudio2.h>
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset);
-void FillAudioBuffer(GameAudioBuffer& soundBuffer);
-GameAudioBuffer ReadAudioBufferData(void* memory);
+void FillAudioBuffer(GameAudioBuffer*& soundBuffer);
+GameAudioBuffer* ReadAudioBufferData(void* memory);
 
 struct GameState
 {
@@ -12,7 +12,7 @@ struct GameState
 	int YOffset;
 };
 
-void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer& soundBuffer, GameInput* input)
+void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
 {
 	GameState* gameState = (GameState*)gameMemory->PermenantStorage;
 
@@ -72,67 +72,51 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOf
 	}
 }
 
-void FillAudioBuffer(GameAudioBuffer& soundBuffer)
+void FillAudioBuffer(GameAudioBuffer*& soundBuffer)
 {
-	if (!soundBuffer.BufferData)
+	if (!soundBuffer->BufferData)
 	{
-		DebugFileResult file = DebugPlatformReadEntireFile("src/resources/Water_Splash_SeaLion_Fienup_001.wav");
+		DebugFileResult file = DebugPlatformReadEntireFile("src/resources/WaterPipe_Smoke_Fienup_003.wav");
 
 		auto result = ReadAudioBufferData(file.Memory);
 
-		soundBuffer = result;
+		*soundBuffer = *result;
 	}
 }
 
-GameAudioBuffer ReadAudioBufferData(void* memory)
+GameAudioBuffer* ReadAudioBufferData(void* memory)
 {
 	uint8* byte = (uint8*)memory; // Get the firs 4 bytes of the memory
 
 	// Move to position 21
 	byte += 20;
 
-	uint16 formatTag = *((uint16*)byte);
-
-	// Move to position 23
-	byte += 2;
-
-	uint16 channels = *((uint16*)byte);
-
-	// Move to position 25
-	byte += 2;
-
-	uint32 samplesPerSec = *((uint32*)byte);
-
-	// Move to position 29
-	byte += 4;
-	uint32 avgBytesPerSec = *((uint32*)byte);
-
-	// Move to position 33
-	byte += 4;
-	uint16 blockAlign = *((uint16*)byte);
-
-	// Move to position 35
-	byte += 2;
-	uint16 bitsPerSample = *((uint16*)byte);
+	GameAudioBuffer* result = (GameAudioBuffer*)byte;
 
 	// Move to Data chunk
 
 	char* characterToRead = ((char*)byte);
 
+	characterToRead += sizeof(GameAudioBuffer);
+
 	while (*characterToRead != 'd' || *(characterToRead + 1) != 'a' || *(characterToRead + 2) != 't' || *(characterToRead + 3) != 'a')
 	{
 		characterToRead++;
 	}
-	
+
 	characterToRead += 4;
 
 	byte = (uint8*)(characterToRead);
 
 	uint32 bufferSize = *((uint32*)byte);
-	
+
 	byte += 4;
 
-	GameAudioBuffer result = { formatTag, channels, samplesPerSec, avgBytesPerSec, blockAlign, bitsPerSample, bufferSize, byte };
+	// Get one third of a sec
+	uint32 totalBytesNeeded = (uint32)(result->SamplesPerSec * 0.3f);
+
+	result->BufferSize = totalBytesNeeded;
+	result->BufferData = byte;
 
 	return result;
 }

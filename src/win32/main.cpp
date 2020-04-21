@@ -98,7 +98,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			};
 
 			// Process game update. the game returns both a sound and draw buffer so we can use.
-			GameUpdate(&gameMemory, &screenBuffer, gameaudioBuffer, newInput);
+			GameUpdate(&gameMemory, &screenBuffer, &gameaudioBuffer, newInput);
 
 			int64 workCounter = Win32GetWallClock();
 			real64 workSecondsElapsed = GetSecondsElapsed(lastCounter, workCounter, programState.PerformanceFrequence);
@@ -139,7 +139,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			// We fille the sound and draw buffers we got from the game.
 			Win32DrawBuffer(windowHandle);
 
-			if (!playingAudio)
+			if (!playingAudio || newInput->Controllers[0].MoveUp.EndedDown)
 			{
 				IXAudio2SourceVoice* gameSourceVoice = {};
 
