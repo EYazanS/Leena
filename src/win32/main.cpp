@@ -137,8 +137,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			lastCounter = endCounter;
 
 			// We fille the sound and draw buffers we got from the game.
-			Win32DrawBuffer(windowHandle);
-
+			// This is temporarily
 			if (!playingAudio || newInput->Controllers[0].MoveUp.EndedDown)
 			{
 				IXAudio2SourceVoice* gameSourceVoice = {};
@@ -153,6 +152,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 				playingAudio = true;
 			}
+
+			Win32DrawBuffer(windowHandle);
 
 			// Register last counter we got
 			real32 FPS = (1000.0f / msPerFrame);

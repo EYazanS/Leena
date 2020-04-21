@@ -113,7 +113,7 @@ GameAudioBuffer* ReadAudioBufferData(void* memory)
 	byte += 4;
 
 	// Get one third of a sec
-	uint32 totalBytesNeeded = (uint32)(result->SamplesPerSec * 0.3f);
+	uint32 totalBytesNeeded = (uint32)(result->SamplesPerSec * 0.5f);
 
 	result->BufferSize = totalBytesNeeded;
 	result->BufferData = byte;
