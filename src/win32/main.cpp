@@ -128,6 +128,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			else
 			{
 				// missed a frame
+				OutputDebugStringA("Missed a frame");
 			}
 
 			// Display performance counter
