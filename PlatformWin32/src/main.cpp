@@ -1,5 +1,5 @@
+#include <filesystem>
 #include "main.h"
-
 #include "GameFunctions.h"
 #include <stdio.h>
 
@@ -186,7 +186,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 // Game
 internal GameCode Win32LoadGameCode()
 {
-	HMODULE gameCodeHandle = LoadLibraryA("Leena.dll");
+	CopyFileA("Leena.dll", "Tmp.dll", FALSE);
+
+	HMODULE gameCodeHandle = LoadLibraryA("Tmp.dll");
 
 	GameCode result = { gameCodeHandle, GameUpdateStub };
 
