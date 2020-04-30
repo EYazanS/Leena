@@ -9,6 +9,7 @@ struct GameCode
 	HMODULE LibraryHandle;
 	game_update* Update;
 	bool32 IsValid;
+	FILETIME LastWriteTime;
 };
 
 // Game

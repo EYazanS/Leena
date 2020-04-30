@@ -76,7 +76,7 @@ void FillAudioBuffer(GameMemory* gameMemory, GameAudioBuffer*& soundBuffer)
 {
 	if (!soundBuffer->BufferData)
 	{
-		DebugFileResult file = gameMemory->ReadFile("src/resources/WaterPipe_Smoke_Fienup_003.wav");
+		DebugFileResult file = gameMemory->ReadFile("resources/Water_Splash_SeaLion_Fienup_001.wav");
 
 		auto result = ReadAudioBufferData(file.Memory);
 

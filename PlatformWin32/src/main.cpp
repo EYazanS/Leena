@@ -57,8 +57,13 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		while (programState.IsRunning)
 		{
-			Win32UnloadGameCode(&game);
-			game = Win32LoadGameCode();
+			FILETIME newLastWriteTIme = GetFileLastWriteDate("Leena.dll");
+
+			if (CompareFileTime(&newLastWriteTIme, &game.LastWriteTime) != 0)
+			{
+				Win32UnloadGameCode(&game);
+				game = Win32LoadGameCode();
+			}
 
 			MSG message = Win32ProcessMessage();
 
@@ -125,7 +130,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 				auto testTimeTakenOnFrame = GetSecondsElapsed(lastCounter, Win32GetWallClock(), programState.PerformanceFrequence);
 
-				Assert(testTimeTakenOnFrame < targetSecondsPerFrams);
+				// Assert(testTimeTakenOnFrame < targetSecondsPerFrams);
 
 				while (timeTakenOnFrame < targetSecondsPerFrams)
 				{
@@ -190,11 +195,14 @@ internal GameCode Win32LoadGameCode()
 
 	HMODULE gameCodeHandle = LoadLibraryA("Tmp.dll");
 
+	FILETIME lastWriteTIme = GetFileLastWriteDate("Leena.dll");
+
 	GameCode result = { gameCodeHandle, GameUpdateStub };
 
 	if (gameCodeHandle)
 	{
 		result.Update = (game_update*)GetProcAddress(gameCodeHandle, "GameUpdate");
+		result.LastWriteTime = lastWriteTIme;
 
 		if (result.Update)
 			result.IsValid = true;
@@ -301,6 +309,20 @@ internal inline int64 Win32GetWallClock()
 internal real32 GetSecondsElapsed(uint64 start, uint64 end, uint64 performanceFrequence)
 {
 	return (real32)(end - start) / (real32)performanceFrequence;
+}
+internal FILETIME GetFileLastWriteDate(const char* fileName)
+{
+	FILETIME result = {};
+	WIN32_FIND_DATAA findFileData;
+
+	HANDLE fileHande = FindFirstFileA(fileName, &findFileData);
+
+	if (fileHande)
+	{
+		result = findFileData.ftLastWriteTime;
+	}
+
+	return result;
 }
 
 // Audio
