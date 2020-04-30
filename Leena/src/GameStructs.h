@@ -1,5 +1,23 @@
 #pragma once
 
+#if Leena_Internal
+struct DebugFileResult
+{
+	void* Memory;
+	uint32 FileSize;
+};
+
+#define Debug_Platform_Free_File_Memory(name) void name(void* memory)
+typedef Debug_Platform_Free_File_Memory(PlatformFreeFileMemory);
+
+#define Debug_Platform_Read_Entire_File(name) DebugFileResult name(const char* fileName)
+typedef Debug_Platform_Read_Entire_File(PlatformReadEntireFile);
+
+#define Debug_Platform_Write_Entire_File(name) bool32 name(const char* fileName, uint32 memorySize, void* memory)
+typedef Debug_Platform_Write_Entire_File(PlatformWriteEntireFile);
+
+#endif
+
 enum class Key
 {
 	A,
@@ -105,6 +123,10 @@ struct GameMemory
 	void* PermenantStorage;
 	void* TransiateStorage;
 	bool32 IsInitialized;
+
+	PlatformFreeFileMemory* FreeFile;
+	PlatformReadEntireFile* ReadFile;
+	PlatformWriteEntireFile* WriteFile;
 };
 
 struct GameClock

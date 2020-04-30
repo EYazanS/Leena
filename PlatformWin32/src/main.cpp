@@ -1,4 +1,6 @@
 #include "main.h"
+
+#include "GameFunctions.h"
 #include <stdio.h>
 
 GlobalVariable Win32BitmapBuffer GlobalBitmapBuffer;
@@ -29,6 +31,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		programState.IsRunning = true;
 
+		GameCode game = Win32LoadGameCode();
+
 		GameMemory gameMemory = InitGameMemory();
 
 		IXAudio2* xAudio = {};
@@ -53,6 +57,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 		while (programState.IsRunning)
 		{
+			Win32UnloadGameCode(&game);
+			game = Win32LoadGameCode();
+
 			MSG message = Win32ProcessMessage();
 
 			// Process the keyboard input.
@@ -98,7 +105,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			};
 
 			// Process game update. the game returns both a sound and draw buffer so we can use.
-			GameUpdate(&gameMemory, &screenBuffer, &gameaudioBuffer, newInput);
+			game.Update(&gameMemory, &screenBuffer, &gameaudioBuffer, newInput);
 
 			int64 workCounter = Win32GetWallClock();
 			real64 workSecondsElapsed = GetSecondsElapsed(lastCounter, workCounter, programState.PerformanceFrequence);
@@ -176,6 +183,34 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 	return 0;
 }
 
+// Game
+internal GameCode Win32LoadGameCode()
+{
+	HMODULE gameCodeHandle = LoadLibraryA("Leena.dll");
+
+	GameCode result = { gameCodeHandle, GameUpdateStub };
+
+	if (gameCodeHandle)
+	{
+		result.Update = (game_update*)GetProcAddress(gameCodeHandle, "GameUpdate");
+
+		if (result.Update)
+			result.IsValid = true;
+		else
+			result.IsValid = false;
+	}
+
+	return result;
+}
+internal void Win32UnloadGameCode(GameCode* gameCode)
+{
+	if (gameCode->LibraryHandle)
+		FreeLibrary(gameCode->LibraryHandle);
+
+	gameCode->IsValid = false;
+	gameCode->Update = GameUpdateStub;
+}
+
 // Windows
 internal inline ProgramState* GetAppState(HWND handle)
 {
@@ -242,6 +277,10 @@ internal GameMemory InitGameMemory()
 
 	gameMemory.PermenantStorage = VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	gameMemory.TransiateStorage = (uint8*)gameMemory.PermenantStorage + gameMemory.PermenantStorageSize;
+
+	gameMemory.FreeFile = DebugPlatformFreeFileMemory;
+	gameMemory.ReadFile = DebugPlatformReadEntireFile;
+	gameMemory.WriteFile = DebugPlatformWriteEntireFile;
 
 	return gameMemory;
 }

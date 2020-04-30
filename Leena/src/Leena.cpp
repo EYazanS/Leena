@@ -3,7 +3,7 @@
 #include <xaudio2.h>
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset);
-void FillAudioBuffer(GameAudioBuffer*& soundBuffer);
+void FillAudioBuffer(GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 
 struct GameState
@@ -22,7 +22,7 @@ void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudi
 	}
 
 	RenderWirdGradiend(screenBuffer, gameState->XOffset, gameState->YOffset);
-	FillAudioBuffer(soundBuffer);
+	FillAudioBuffer(gameMemory, soundBuffer);
 
 	for each (GameControllerInput controller in input->Controllers)
 	{
@@ -72,11 +72,11 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOf
 	}
 }
 
-void FillAudioBuffer(GameAudioBuffer*& soundBuffer)
+void FillAudioBuffer(GameMemory* gameMemory, GameAudioBuffer*& soundBuffer)
 {
 	if (!soundBuffer->BufferData)
 	{
-		DebugFileResult file = DebugPlatformReadEntireFile("src/resources/WaterPipe_Smoke_Fienup_003.wav");
+		DebugFileResult file = gameMemory->ReadFile("src/resources/WaterPipe_Smoke_Fienup_003.wav");
 
 		auto result = ReadAudioBufferData(file.Memory);
 
@@ -94,7 +94,6 @@ GameAudioBuffer* ReadAudioBufferData(void* memory)
 	GameAudioBuffer* result = (GameAudioBuffer*)byte;
 
 	// Move to Data chunk
-
 	char* characterToRead = ((char*)byte);
 
 	characterToRead += sizeof(GameAudioBuffer);

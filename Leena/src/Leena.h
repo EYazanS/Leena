@@ -7,8 +7,10 @@
 #include "GameTypes.h"
 #include "GameStructs.h"
 
+#define DllExport extern "C" __declspec(dllexport)
+
 // Functions provided for the platform layer
-void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameAudioBuffer* soundBuffer, GameInput* input);
+DllExport void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameAudioBuffer* soundBuffer, GameInput* input);
 
 inline GameControllerInput* GetController(GameInput* input, uint8 index)
 {
@@ -16,21 +18,6 @@ inline GameControllerInput* GetController(GameInput* input, uint8 index)
 	GameControllerInput* result = &input->Controllers[index];
 	return result;
 }
-
-// Functions provided for the game layer
-#if Leena_Internal
-struct DebugFileResult
-{
-	void* Memory;
-	uint32 FileSize;
-};
-
-void DebugPlatformFreeFileMemory(void* memory);
-DebugFileResult DebugPlatformReadEntireFile(const char* fileName);
-bool32 DebugPlatformWriteEntireFile(const char* fileName, uint32 memorySize, void* memory);
-
-#endif // Leena_Internal
-
 #define LeenaH
 
 #endif

@@ -58,3 +58,8 @@ internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
 internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height);
 internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height);
 internal void Win32DrawBuffer(const HWND& windowHandle);
+
+// File IO
+bool32 DebugPlatformWriteEntireFile(const char* fileName, uint32 memorySize, void* memory);
+void DebugPlatformFreeFileMemory(void* memory);
+DebugFileResult DebugPlatformReadEntireFile(const char* fileName);
