@@ -32,6 +32,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		programState.IsRunning = true;
 
 		GameCode game = Win32LoadGameCode();
+		game.LastWriteTime = GetFileLastWriteDate("Leena.dll");
 
 		GameMemory gameMemory = InitGameMemory();
 
@@ -63,6 +64,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 			{
 				Win32UnloadGameCode(&game);
 				game = Win32LoadGameCode();
+				game.LastWriteTime = newLastWriteTIme;
 			}
 
 			MSG message = Win32ProcessMessage();
@@ -195,14 +197,11 @@ internal GameCode Win32LoadGameCode()
 
 	HMODULE gameCodeHandle = LoadLibraryA("Tmp.dll");
 
-	FILETIME lastWriteTIme = GetFileLastWriteDate("Leena.dll");
-
 	GameCode result = { gameCodeHandle, GameUpdateStub };
 
 	if (gameCodeHandle)
 	{
 		result.Update = (game_update*)GetProcAddress(gameCodeHandle, "GameUpdate");
-		result.LastWriteTime = lastWriteTIme;
 
 		if (result.Update)
 			result.IsValid = true;
