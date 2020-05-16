@@ -30,7 +30,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		real32 targetSecondsPerFrams = 1.f / gameUpdateInHz;
 
 		programState.IsRunning = true;
-
+		Win32GetCurrentExcutableDirectory(&programState);
 		GameCode game = Win32LoadGameCode();
 		game.LastWriteTime = GetFileLastWriteDate("Leena.dll");
 
@@ -323,7 +323,20 @@ internal FILETIME GetFileLastWriteDate(const char* fileName)
 
 	return result;
 }
+internal void Win32GetCurrentExcutableDirectory(ProgramState* state)
+{
+	if (!state->CurrentExcutableDirectory)
+	{
+		char* exeFilePath = new char[MAX_PATH];
+		DWORD sizeOfFile = GetModuleFileNameA(NULL, exeFilePath, MAX_PATH);
+		state->CurrentExcutableDirectory = exeFilePath;
+		state->WriteToCurrentDir = exeFilePath;
 
+		for (char* scan = exeFilePath; *scan; scan++)
+			if (*scan == '\\')
+				state->WriteToCurrentDir = scan + 1;
+	}
+}
 // Audio
 internal HRESULT Wind32InitializeXAudio(IXAudio2*& xAudio)
 {
@@ -586,7 +599,6 @@ internal void Win32DrawBuffer(const HWND& windowHandle)
 	ReleaseDC(windowHandle, deviceContext);
 }
 
-
 LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	LRESULT result = 0;
@@ -662,5 +674,4 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 	}
 
 	return result;
-
 }

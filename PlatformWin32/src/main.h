@@ -11,6 +11,8 @@ struct ProgramState
 {
 	bool IsRunning;
 	int64 PerformanceFrequence;
+	char* CurrentExcutableDirectory;
+	char* WriteToCurrentDir;
 };
 
 struct Win32BitmapBuffer
@@ -38,6 +40,7 @@ internal inline int64 Win32GetPerformanceFrequence();
 internal inline int64 Win32GetWallClock();
 internal real32 GetSecondsElapsed(uint64 start, uint64 end, uint64 frequency);
 internal FILETIME GetFileLastWriteDate(const char* fileName);
+internal void Win32GetCurrentExcutableDirectory(ProgramState* state);
 
 // Audio
 internal HRESULT Wind32InitializeXAudio(IXAudio2*& xAudio);
