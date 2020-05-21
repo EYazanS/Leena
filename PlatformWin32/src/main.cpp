@@ -5,9 +5,14 @@
 
 GlobalVariable Win32BitmapBuffer GlobalBitmapBuffer;
 
-int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, int showCommand)
+int WINAPI wWinMain(
+	_In_ HINSTANCE instance,
+	_In_opt_ HINSTANCE prevInstance,
+	_In_ LPWSTR cmdLine,
+	_In_ int showCmd
+)
 {
-	ProgramState programState = { };
+	Win32ProgramState programState = { };
 
 	HWND windowHandle = Win32InitWindow(instance, &programState);
 
@@ -23,6 +28,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		UINT desiredSchedularTimeInMs = 1;
 
 		// Set the windows schedueler granularity to 1ms
+		// Which means can we sleep for exactly 1ms?
 		bool32 isSleepGranular = timeBeginPeriod(desiredSchedularTimeInMs) == TIMERR_NOERROR;
 
 		uint8 monitorRefreshRate = 60; // In HZ
@@ -30,11 +36,17 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		real32 targetSecondsPerFrams = 1.f / gameUpdateInHz;
 
 		programState.IsRunning = true;
+		programState.RecordingState.InputRecordingIndex = 0;
+		programState.RecordingState.InputPlayingIndex = 0;
+
 		Win32GetCurrentExcutableDirectory(&programState);
 		GameCode game = Win32LoadGameCode();
 		game.LastWriteTime = GetFileLastWriteDate("Leena.dll");
 
 		GameMemory gameMemory = InitGameMemory();
+
+		programState.RecordingState.TotalMemorySize = gameMemory.PermenantStorageSize + gameMemory.TransiateStorageSize;
+		programState.RecordingState.GameMemory = gameMemory.PermenantStorage;
 
 		IXAudio2* xAudio = {};
 		Wind32InitializeXAudio(xAudio);
@@ -53,8 +65,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 		GameInput* newInput = &Input[1];
 
 		GameAudioBuffer gameaudioBuffer = { };
-
-		bool playingAudio = false;
 
 		while (programState.IsRunning)
 		{
@@ -93,7 +103,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 				case WM_KEYDOWN:
 				case WM_KEYUP:
 				{
-					ProccessKeyboardKeys(message, newKeyboardInput);
+					ProccessKeyboardKeys(&programState, message, newKeyboardInput);
 				} break;
 
 				default:
@@ -110,6 +120,13 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 				GlobalBitmapBuffer.Height,
 				GlobalBitmapBuffer.Pitch,
 			};
+
+			// See if we need to record or playback recording
+			if (programState.RecordingState.InputRecordingIndex)
+				Win32RecordInput(&programState.RecordingState, newInput);
+
+			if (programState.RecordingState.InputPlayingIndex)
+				Win32PlaybackInput(&programState.RecordingState, newInput);
 
 			// Process game update. the game returns both a sound and draw buffer so we can use.
 			game.Update(&gameMemory, &screenBuffer, &gameaudioBuffer, newInput);
@@ -152,7 +169,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 
 			// We fille the sound and draw buffers we got from the game.
 			// This is temporarily
-			if (!playingAudio || newInput->Controllers[0].MoveUp.EndedDown)
+			if (newInput->Controllers[0].MoveUp.EndedDown)
 			{
 				IXAudio2SourceVoice* gameSourceVoice = {};
 
@@ -163,8 +180,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, PWSTR cmdLine, i
 				Win32FillaudioBuffer(gameSourceVoice, &gameaudioBuffer, audioBuffer2);
 
 				Win32PlayAudio(gameSourceVoice);
-
-				playingAudio = true;
 			}
 
 			Win32DrawBuffer(windowHandle);
@@ -221,11 +236,11 @@ internal void Win32UnloadGameCode(GameCode* gameCode)
 }
 
 // Windows
-internal inline ProgramState* GetAppState(HWND handle)
+internal inline Win32ProgramState* GetAppState(HWND handle)
 {
-	return reinterpret_cast<ProgramState*>(GetWindowLongPtr(handle, GWLP_USERDATA));
+	return reinterpret_cast<Win32ProgramState*>(GetWindowLongPtr(handle, GWLP_USERDATA));
 }
-internal HWND Win32InitWindow(const HINSTANCE& instance, ProgramState* state)
+internal HWND Win32InitWindow(const HINSTANCE& instance, Win32ProgramState* state)
 {
 	WNDCLASS window = {};
 
@@ -280,7 +295,7 @@ internal GameMemory InitGameMemory()
 	#endif
 
 	gameMemory.PermenantStorageSize = Megabytes(64);
-	gameMemory.TransiateStorageSize = Gigabytes(4);
+	gameMemory.TransiateStorageSize = Gigabytes(1);
 
 	uint64 totalSize = gameMemory.PermenantStorageSize + gameMemory.TransiateStorageSize;
 
@@ -323,7 +338,7 @@ internal FILETIME GetFileLastWriteDate(const char* fileName)
 
 	return result;
 }
-internal void Win32GetCurrentExcutableDirectory(ProgramState* state)
+internal void Win32GetCurrentExcutableDirectory(Win32ProgramState* state)
 {
 	if (!state->CurrentExcutableDirectory)
 	{
@@ -337,6 +352,7 @@ internal void Win32GetCurrentExcutableDirectory(ProgramState* state)
 				state->WriteToCurrentDir = scan + 1;
 	}
 }
+
 // Audio
 internal HRESULT Wind32InitializeXAudio(IXAudio2*& xAudio)
 {
@@ -467,11 +483,11 @@ internal void ProccessControllerInput(GameInput* newInput, GameInput* oldInput)
 			newController->RightStickAverageX = Win32ProcessXInputStickValues(pad->sThumbRX, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
 			newController->RightStickAverageY = Win32ProcessXInputStickValues(pad->sThumbRY, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
 
-			Win32ProcessDigitalButton(newController->LeftStickAverageX < -threshHold ? 1 : 0, 1, & oldController->MoveLeft, & newController->MoveLeft);
-			Win32ProcessDigitalButton(newController->LeftStickAverageX > threshHold ? 1 : 0, 1, &oldController->MoveRight, &newController->MoveRight);
+			Win32ProcessDigitalButton(newController->LeftStickAverageX < -threshHold ? 1 : 0, 1, &oldController->MoveLeft, &newController->MoveLeft);
+			Win32ProcessDigitalButton(newController->LeftStickAverageX > threshHold ? 1 : 0, 1, & oldController->MoveRight, & newController->MoveRight);
 
-			Win32ProcessDigitalButton(newController->LeftStickAverageY < -threshHold ? 1 : 0, 1, & oldController->MoveDown, & newController->MoveDown);
-			Win32ProcessDigitalButton(newController->LeftStickAverageY > threshHold ? 1 : 0, 1, &oldController->MoveUp, &newController->MoveUp);
+			Win32ProcessDigitalButton(newController->LeftStickAverageY < -threshHold ? 1 : 0, 1, &oldController->MoveDown, &newController->MoveDown);
+			Win32ProcessDigitalButton(newController->LeftStickAverageY > threshHold ? 1 : 0, 1, & oldController->MoveUp, & newController->MoveUp);
 
 			XINPUT_VIBRATION vibrations = {};
 
@@ -493,7 +509,7 @@ internal real32 Win32CalculateTriggerValue(real32 triggerValue)
 {
 	return triggerValue > XINPUT_GAMEPAD_TRIGGER_THRESHOLD ? triggerValue / 255 : 0;
 }
-internal void ProccessKeyboardKeys(MSG& message, GameControllerInput* controller)
+internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, GameControllerInput* controller)
 {
 	uint32 vkCode = static_cast<uint32>(message.wParam);
 
@@ -531,6 +547,39 @@ internal void ProccessKeyboardKeys(MSG& message, GameControllerInput* controller
 			case 'E':
 			{
 				Win32ProccessKeyboardMessage(controller->RightShoulder, isDown);
+			} break;
+
+			case 'L':
+			{
+				if (isDown)
+				{
+					if (state->RecordingState.InputRecordingIndex)
+					{
+						Win32EndRecordingInput(&state->RecordingState);
+						Win32BeginPlaybackInput(&state->RecordingState);
+					}
+					else
+					{
+						Win32BeginRecordingInput(&state->RecordingState);
+					}
+				}
+			} break;
+
+			case 'K':
+			{
+				if (isDown)
+				{
+					Win32EndPlaybackInput(&state->RecordingState);
+				}
+			} break;
+			
+
+			case 'P':
+			{
+				if (isDown && !state->RecordingState.InputRecordingIndex)
+				{
+					Win32BeginPlaybackInput(&state->RecordingState);
+				}
 			} break;
 
 			default:
@@ -599,18 +648,72 @@ internal void Win32DrawBuffer(const HWND& windowHandle)
 	ReleaseDC(windowHandle, deviceContext);
 }
 
+// Recording 
+internal void Win32BeginRecordingInput(Win32RecordState* state)
+{
+	state->InputRecordingIndex = 1;
+	const char* fileName = "recordingState.lrs";
+	state->RecordingFileHandle = CreateFileA(fileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
+	DWORD bytesToWrite = (DWORD)state->TotalMemorySize;
+	Assert(bytesToWrite == state->TotalMemorySize);
+	DWORD bytesWritten;
+	WriteFile(state->RecordingFileHandle, state->GameMemory, bytesToWrite, &bytesWritten, 0);
+}
+internal void Win32EndRecordingInput(Win32RecordState* state)
+{
+	state->InputRecordingIndex = 0;
+	CloseHandle(state->RecordingFileHandle);
+}
+internal BOOL Win32BeginPlaybackInput(Win32RecordState* state)
+{
+	state->InputPlayingIndex = 1;
+	const char* fileName = "recordingState.lrs";
+	state->PlaybackFileHandle = CreateFileA(fileName, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+	DWORD bytesToRead = (DWORD)state->TotalMemorySize;
+	Assert(bytesToRead == state->TotalMemorySize);
+	DWORD bytesRead;
+	return ReadFile(state->PlaybackFileHandle, state->GameMemory, bytesToRead, &bytesRead, 0);
+}
+internal void Win32EndPlaybackInput(Win32RecordState* state)
+{
+	state->InputPlayingIndex = 0;
+	CloseHandle(state->PlaybackFileHandle);
+}
+internal void Win32RecordInput(Win32RecordState* state, GameInput* input)
+{
+	DWORD bytesWritten;
+	WriteFile(state->RecordingFileHandle, input, sizeof(*input), &bytesWritten, 0);
+}
+internal BOOL Win32PlaybackInput(Win32RecordState* state, GameInput* input)
+{
+	DWORD bytesRead = 0;
+
+	if (ReadFile(state->PlaybackFileHandle, input, sizeof(*input), &bytesRead, 0))
+	{
+		if (bytesRead == 0)
+		{
+			Win32EndPlaybackInput(state);
+			Win32BeginPlaybackInput(state);
+			return ReadFile(state->PlaybackFileHandle, input, sizeof(*input), &bytesRead, 0);
+		}
+	}
+
+	return FALSE;
+}
+
+
 LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	LRESULT result = 0;
 
-	ProgramState* programState = GetAppState(windowHandle);
+	Win32ProgramState* programState = GetAppState(windowHandle);
 
 	switch (message)
 	{
 		case WM_CREATE:
 		{
 			CREATESTRUCT* pCreate = reinterpret_cast<CREATESTRUCT*>(lParam);
-			programState = reinterpret_cast<ProgramState*>(pCreate->lpCreateParams);
+			programState = reinterpret_cast<Win32ProgramState*>(pCreate->lpCreateParams);
 			SetWindowLongPtr(windowHandle, GWLP_USERDATA, (LONG_PTR)programState);
 		} break;
 

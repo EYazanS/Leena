@@ -7,9 +7,20 @@
 #include <xaudio2.h>
 #include <tuple>
 
-struct ProgramState
+struct Win32RecordState
 {
-	bool IsRunning;
+	HANDLE RecordingFileHandle;
+	bool32 InputRecordingIndex;
+	HANDLE PlaybackFileHandle;
+	bool32 InputPlayingIndex;
+	uint64 TotalMemorySize;
+	void* GameMemory;
+};
+
+struct Win32ProgramState
+{
+	bool32 IsRunning;
+	Win32RecordState RecordingState;
 	int64 PerformanceFrequence;
 	char* CurrentExcutableDirectory;
 	char* WriteToCurrentDir;
@@ -32,20 +43,20 @@ struct Win32BitmapBuffer
 LRESULT CALLBACK Win32WindowCallback(HWND, UINT, WPARAM, LPARAM);
 
 // Windows
-internal inline ProgramState* GetAppState(HWND handle);
-internal HWND Win32InitWindow(const HINSTANCE& instance, ProgramState* state);
+internal inline Win32ProgramState* GetAppState(HWND handle);
+internal HWND Win32InitWindow(const HINSTANCE& instance, Win32ProgramState* state);
 internal MSG Win32ProcessMessage();
 internal GameMemory InitGameMemory();
 internal inline int64 Win32GetPerformanceFrequence();
 internal inline int64 Win32GetWallClock();
 internal real32 GetSecondsElapsed(uint64 start, uint64 end, uint64 frequency);
 internal FILETIME GetFileLastWriteDate(const char* fileName);
-internal void Win32GetCurrentExcutableDirectory(ProgramState* state);
+internal void Win32GetCurrentExcutableDirectory(Win32ProgramState* state);
 
 // Audio
 internal HRESULT Wind32InitializeXAudio(IXAudio2*& xAudio);
 internal HRESULT Wind32InitializeMasterVoice(IXAudio2* xAudio, IXAudio2MasteringVoice*& masteringVoice);
-internal WAVEFORMATEX Wind32InitializeWaveFormat(IXAudio2* xAudio, IXAudio2SourceVoice* &sourceVoice, GameAudioBuffer* audioBuffer);
+internal WAVEFORMATEX Wind32InitializeWaveFormat(IXAudio2* xAudio, IXAudio2SourceVoice*& sourceVoice, GameAudioBuffer* audioBuffer);
 internal void Win32PlayAudio(IXAudio2SourceVoice* sourceVoice);
 internal HRESULT Win32FillaudioBuffer(IXAudio2SourceVoice* sourceVoice, GameAudioBuffer* gameAudioBuffer, XAUDIO2_BUFFER& audioBuffer);
 
@@ -54,7 +65,7 @@ internal void Win32ProcessDigitalButton(DWORD button, DWORD buttonBit, GameButto
 internal real32 Win32ProcessXInputStickValues(real32 value, int16 deadZoneThreshold);
 internal void ProccessControllerInput(GameInput* newInput, GameInput* oldInput);
 internal real32 Win32CalculateTriggerValue(real32 triggerValue);
-internal void ProccessKeyboardKeys(MSG& message, GameControllerInput* input);
+internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, GameControllerInput* input);
 internal void Win32ProccessKeyboardMessage(GameButtonState& state, bool isPressed);
 
 // Graphics
@@ -62,6 +73,14 @@ internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
 internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height);
 internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height);
 internal void Win32DrawBuffer(const HWND& windowHandle);
+
+// Recording 
+internal void Win32BeginRecordingInput(Win32RecordState* state);
+internal void Win32EndRecordingInput(Win32RecordState* state);
+internal BOOL Win32BeginPlaybackInput(Win32RecordState* state);
+internal void Win32EndPlaybackInput(Win32RecordState* state);
+internal void Win32RecordInput(Win32RecordState* state, GameInput* input);
+internal BOOL Win32PlaybackInput(Win32RecordState* state, GameInput* input);
 
 // File IO
 bool32 DebugPlatformWriteEntireFile(const char* fileName, uint32 memorySize, void* memory);
