@@ -38,23 +38,14 @@ void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudi
 
 	for each (GameControllerInput controller in input->Controllers)
 	{
-		if (controller.IsAnalog)
+		if (controller.IsConnected)
 		{
-			gameState->XOffset += static_cast<int>(5 * controller.LeftStickAverageX);
-			gameState->YOffset += static_cast<int>(5 * controller.LeftStickAverageY);
+			if (controller.IsAnalog)
+			{
+				gameState->XOffset += static_cast<int>(5 * controller.LeftStickAverageX);
+				gameState->YOffset += static_cast<int>(5 * controller.LeftStickAverageY);
+			}
 		}
-
-		if (controller.MoveLeft.EndedDown)
-			gameState->XOffset -= 5;
-
-		if (controller.MoveRight.EndedDown)
-			gameState->XOffset += 5;
-
-		if (controller.MoveUp.EndedDown)
-			gameState->YOffset += 5;
-
-		if (controller.MoveDown.EndedDown)
-			gameState->YOffset -= 5;
 	}
 }
 
