@@ -80,8 +80,8 @@ int WINAPI wWinMain(
 			MSG message = Win32ProcessMessage();
 
 			// Process the keyboard input.
-			GameControllerInput* oldKeyboardInput = GetController(oldInput, 0);
-			GameControllerInput* newKeyboardInput = GetController(newInput, 0);
+			KeyboardInput* oldKeyboardInput = &oldInput->Keyboard;
+			KeyboardInput* newKeyboardInput = &newInput->Keyboard;
 
 			*newKeyboardInput = {};
 
@@ -509,7 +509,7 @@ internal real32 Win32CalculateTriggerValue(real32 triggerValue)
 {
 	return triggerValue > XINPUT_GAMEPAD_TRIGGER_THRESHOLD ? triggerValue / 255 : 0;
 }
-internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, GameControllerInput* controller)
+internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, KeyboardInput* controller)
 {
 	uint32 vkCode = static_cast<uint32>(message.wParam);
 
@@ -521,32 +521,32 @@ internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, GameC
 		{
 			case 'W':
 			{
-				Win32ProccessKeyboardMessage(controller->MoveUp, isDown);
+				Win32ProccessKeyboardMessage(controller->W, isDown);
 			} break;
 
 			case 'A':
 			{
-				Win32ProccessKeyboardMessage(controller->MoveLeft, isDown);
+				Win32ProccessKeyboardMessage(controller->A, isDown);
 			} break;
 
 			case 'D':
 			{
-				Win32ProccessKeyboardMessage(controller->MoveRight, isDown);
+				Win32ProccessKeyboardMessage(controller->D, isDown);
 			} break;
 
 			case 'S':
 			{
-				Win32ProccessKeyboardMessage(controller->MoveDown, isDown);
+				Win32ProccessKeyboardMessage(controller->S, isDown);
 			} break;
 
 			case 'Q':
 			{
-				Win32ProccessKeyboardMessage(controller->LeftShoulder, isDown);
+				Win32ProccessKeyboardMessage(controller->Q, isDown);
 			} break;
 
 			case 'E':
 			{
-				Win32ProccessKeyboardMessage(controller->RightShoulder, isDown);
+				Win32ProccessKeyboardMessage(controller->E, isDown);
 			} break;
 
 			case 'L':

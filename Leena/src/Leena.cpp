@@ -24,6 +24,18 @@ void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudi
 	RenderWirdGradiend(screenBuffer, gameState->XOffset, gameState->YOffset);
 	FillAudioBuffer(gameMemory, soundBuffer);
 
+	if (input->Keyboard.A.EndedDown)
+		gameState->XOffset -= 5;
+
+	if (input->Keyboard.D.EndedDown)
+		gameState->XOffset += 5;
+
+	if (input->Keyboard.W.EndedDown)
+		gameState->YOffset += 5;
+
+	if (input->Keyboard.S.EndedDown)
+		gameState->YOffset -= 5;
+
 	for each (GameControllerInput controller in input->Controllers)
 	{
 		if (controller.IsAnalog)

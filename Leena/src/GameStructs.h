@@ -64,6 +64,52 @@ struct GameButtonState
 	int HalfTransitionCount;
 };
 
+struct MouseInput
+{
+	bool32 IsConnected;
+
+	real32 XAverage;
+	real32 YAverage;
+
+	union
+	{
+		GameButtonState Buttons[2];
+
+		struct
+		{
+			GameButtonState RightButton;
+			GameButtonState LeftButton;
+			
+			// Add button before this line so the assertion about the buttons array == the struct can hit properly 
+			GameButtonState Terminator;
+		};
+	};
+};
+
+struct KeyboardInput
+{
+	bool32 IsConnected;
+
+	union
+	{
+		GameButtonState Buttons[6];
+
+		struct
+		{
+			GameButtonState W;
+			GameButtonState A;
+			GameButtonState S;
+			GameButtonState D;
+
+			GameButtonState E;
+			GameButtonState Q;
+			
+			// Add button before this line so the assertion about the buttons array == the struct can hit properly 
+			GameButtonState Terminator;
+		};
+	};
+};
+
 struct GameControllerInput
 {
 	bool32 IsConnected;
@@ -113,7 +159,9 @@ struct GameControllerInput
 
 struct GameInput
 {
-	GameControllerInput Controllers[5];
+	MouseInput Mouse;
+	KeyboardInput Keyboard;
+	GameControllerInput Controllers[4];
 };
 
 struct GameMemory
