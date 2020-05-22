@@ -68,7 +68,7 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOf
 			Pixel (32-bits)
 			*/
 
-			*Pixel++ = (g << 8) | b;
+			*Pixel++ = (g << 16) | b;
 		}
 
 		Row += gameScreenBuffer->Pitch;

@@ -169,7 +169,7 @@ int WINAPI wWinMain(
 
 			// We fille the sound and draw buffers we got from the game.
 			// This is temporarily
-			if (newInput->Controllers[0].MoveUp.EndedDown)
+			if (newInput->Keyboard.W.EndedDown)
 			{
 				IXAudio2SourceVoice* gameSourceVoice = {};
 
