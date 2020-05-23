@@ -72,7 +72,7 @@ internal void Win32ProccessKeyboardMessage(GameButtonState& state, bool isPresse
 // Graphics
 internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
 internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height);
-internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height);
+internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext);
 internal void Win32DrawBuffer(const HWND& windowHandle, Win32BitmapBuffer* buffer);
 
 // Recording 

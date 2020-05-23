@@ -16,12 +16,11 @@ int WINAPI wWinMain(
 
 	if (windowHandle)
 	{
+		// Get Window just so we dont have to remove the function for the current time
+		auto [width, height] = GetWindowDimensions(windowHandle);
+
 		// Get the performance frequence
 		programState.PerformanceFrequence = Win32GetPerformanceFrequence();
-		// Get how many cycle the cpu went through
-		uint64 lastCycleCount = __rdtsc();
-		// Get current cpu time
-		int64 lastCounter = Win32GetWallClock();
 
 		UINT desiredSchedularTimeInMs = 1;
 
@@ -33,7 +32,6 @@ int WINAPI wWinMain(
 		uint8 gameUpdateInHz = monitorRefreshRate / 2; // In HZ
 		real32 targetSecondsPerFrams = 1.f / gameUpdateInHz;
 
-		programState.IsRunning = true;
 		programState.RecordingState.InputRecordingIndex = 0;
 		programState.RecordingState.InputPlayingIndex = 0;
 
@@ -63,6 +61,13 @@ int WINAPI wWinMain(
 		GameInput* currentInput = &Input[1];
 
 		GameAudioBuffer gameaudioBuffer = { };
+
+		// Get how many cycle the cpu went through
+		uint64 lastCycleCount = __rdtsc();
+		// Get current cpu time
+		int64 lastCounter = Win32GetWallClock();
+
+		programState.IsRunning = true;
 
 		while (programState.IsRunning)
 		{
@@ -323,17 +328,11 @@ internal real32 GetSecondsElapsed(uint64 start, uint64 end, uint64 performanceFr
 }
 internal FILETIME GetFileLastWriteDate(const char* fileName)
 {
-	FILETIME result = {};
-	WIN32_FIND_DATAA findFileData;
-
-	HANDLE fileHande = FindFirstFileA(fileName, &findFileData);
-
-	if (fileHande)
-	{
-		result = findFileData.ftLastWriteTime;
-	}
-
-	return result;
+	WIN32_FILE_ATTRIBUTE_DATA result = {};
+	FILETIME lastWriteTime = {};
+	if (GetFileAttributesExA(fileName, GetFileExInfoStandard, &result))
+		lastWriteTime = result.ftLastWriteTime;
+	return lastWriteTime;
 }
 internal void Win32GetCurrentExcutableDirectory(Win32ProgramState* state)
 {
@@ -480,11 +479,11 @@ internal void ProccessControllerInput(GameInput* newInput, GameInput* oldInput)
 			newController->RightStickAverageX = Win32ProcessXInputStickValues(pad->sThumbRX, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
 			newController->RightStickAverageY = Win32ProcessXInputStickValues(pad->sThumbRY, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
 
-			Win32ProcessDigitalButton(newController->LeftStickAverageX < -threshHold ? 1 : 0, 1, &oldController->MoveLeft, &newController->MoveLeft);
-			Win32ProcessDigitalButton(newController->LeftStickAverageX > threshHold ? 1 : 0, 1, & oldController->MoveRight, & newController->MoveRight);
+			Win32ProcessDigitalButton(newController->LeftStickAverageX < -threshHold ? 1 : 0, 1, & oldController->MoveLeft, & newController->MoveLeft);
+			Win32ProcessDigitalButton(newController->LeftStickAverageX > threshHold ? 1 : 0, 1, &oldController->MoveRight, &newController->MoveRight);
 
-			Win32ProcessDigitalButton(newController->LeftStickAverageY < -threshHold ? 1 : 0, 1, &oldController->MoveDown, &newController->MoveDown);
-			Win32ProcessDigitalButton(newController->LeftStickAverageY > threshHold ? 1 : 0, 1, & oldController->MoveUp, & newController->MoveUp);
+			Win32ProcessDigitalButton(newController->LeftStickAverageY < -threshHold ? 1 : 0, 1, & oldController->MoveDown, & newController->MoveDown);
+			Win32ProcessDigitalButton(newController->LeftStickAverageY > threshHold ? 1 : 0, 1, &oldController->MoveUp, &newController->MoveUp);
 
 			XINPUT_VIBRATION vibrations = {};
 
@@ -569,7 +568,7 @@ internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, Keybo
 					Win32EndPlaybackInput(&state->RecordingState);
 				}
 			} break;
-			
+
 
 			case 'P':
 			{
@@ -622,9 +621,8 @@ internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, 
 
 	bitmapBuffer->Memory = VirtualAlloc(0, bitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
 }
-internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height)
+internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext)
 {
-	// TODO: aspect ratio correction 
 	StretchDIBits(
 		deviceContext,
 		// Window Size - Destination
@@ -640,8 +638,7 @@ internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC de
 internal void Win32DrawBuffer(const HWND& windowHandle, Win32BitmapBuffer* buffer)
 {
 	HDC deviceContext = GetDC(windowHandle);
-	auto [width, height] = GetWindowDimensions(windowHandle);
-	Win32DisplayBufferInWindow(buffer, deviceContext, width, height);
+	Win32DisplayBufferInWindow(buffer, deviceContext);
 	ReleaseDC(windowHandle, deviceContext);
 }
 
@@ -762,8 +759,7 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 		{
 			PAINTSTRUCT paint;
 			HDC deviceContext = BeginPaint(windowHandle, &paint);
-			auto [width, height] = GetWindowDimensions(windowHandle);
-			Win32DisplayBufferInWindow(&programState->BitmapBuffer, deviceContext, width, height);
+			Win32DisplayBufferInWindow(&programState->BitmapBuffer, deviceContext);
 			EndPaint(windowHandle, &paint);
 		} break;
 
