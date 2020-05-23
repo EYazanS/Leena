@@ -17,15 +17,6 @@ struct Win32RecordState
 	void* GameMemory;
 };
 
-struct Win32ProgramState
-{
-	bool32 IsRunning;
-	Win32RecordState RecordingState;
-	int64 PerformanceFrequence;
-	char* CurrentExcutableDirectory;
-	char* WriteToCurrentDir;
-};
-
 struct Win32BitmapBuffer
 {
 	BITMAPINFO Info;
@@ -34,6 +25,16 @@ struct Win32BitmapBuffer
 	int Width;
 	int Height;
 	int Pitch;
+};
+
+struct Win32ProgramState
+{
+	bool32 IsRunning;
+	Win32RecordState RecordingState;
+	Win32BitmapBuffer BitmapBuffer;
+	int64 PerformanceFrequence;
+	char* CurrentExcutableDirectory;
+	char* WriteToCurrentDir;
 };
 
 #define LocalPersist static
@@ -72,7 +73,7 @@ internal void Win32ProccessKeyboardMessage(GameButtonState& state, bool isPresse
 internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
 internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height);
 internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, int width, int height);
-internal void Win32DrawBuffer(const HWND& windowHandle);
+internal void Win32DrawBuffer(const HWND& windowHandle, Win32BitmapBuffer* buffer);
 
 // Recording 
 internal void Win32BeginRecordingInput(Win32RecordState* state);

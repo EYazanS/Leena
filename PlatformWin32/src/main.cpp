@@ -3,8 +3,6 @@
 #include "GameFunctions.h"
 #include <stdio.h>
 
-GlobalVariable Win32BitmapBuffer GlobalBitmapBuffer;
-
 int WINAPI wWinMain(
 	_In_ HINSTANCE instance,
 	_In_opt_ HINSTANCE prevInstance,
@@ -55,14 +53,14 @@ int WINAPI wWinMain(
 		Wind32InitializeMasterVoice(xAudio, masterVoice);
 
 		// Init Resolution.
-		Win32ResizeDIBSection(&GlobalBitmapBuffer, 1280, 720);
+		Win32ResizeDIBSection(&programState.BitmapBuffer, 1280, 720);
 
 		// audioBuffer.SourceVoice->Stop();
 
 		GameInput Input[2] = { };
 
-		GameInput* oldInput = &Input[0];
-		GameInput* newInput = &Input[1];
+		GameInput* previousInput = &Input[0];
+		GameInput* currentInput = &Input[1];
 
 		GameAudioBuffer gameaudioBuffer = { };
 
@@ -80,8 +78,8 @@ int WINAPI wWinMain(
 			MSG message = Win32ProcessMessage();
 
 			// Process the keyboard input.
-			KeyboardInput* oldKeyboardInput = &oldInput->Keyboard;
-			KeyboardInput* newKeyboardInput = &newInput->Keyboard;
+			KeyboardInput* oldKeyboardInput = &previousInput->Keyboard;
+			KeyboardInput* newKeyboardInput = &currentInput->Keyboard;
 
 			*newKeyboardInput = {};
 
@@ -111,25 +109,25 @@ int WINAPI wWinMain(
 			}
 
 			// Process the controller input
-			ProccessControllerInput(newInput, oldInput);
+			ProccessControllerInput(currentInput, previousInput);
 
 			GameScreenBuffer screenBuffer =
 			{
-				GlobalBitmapBuffer.Memory,
-				GlobalBitmapBuffer.Width,
-				GlobalBitmapBuffer.Height,
-				GlobalBitmapBuffer.Pitch,
+				programState.BitmapBuffer.Memory,
+				programState.BitmapBuffer.Width,
+				programState.BitmapBuffer.Height,
+				programState.BitmapBuffer.Pitch,
 			};
 
 			// See if we need to record or playback recording
 			if (programState.RecordingState.InputRecordingIndex)
-				Win32RecordInput(&programState.RecordingState, newInput);
+				Win32RecordInput(&programState.RecordingState, currentInput);
 
 			if (programState.RecordingState.InputPlayingIndex)
-				Win32PlaybackInput(&programState.RecordingState, newInput);
+				Win32PlaybackInput(&programState.RecordingState, currentInput);
 
 			// Process game update. the game returns both a sound and draw buffer so we can use.
-			game.Update(&gameMemory, &screenBuffer, &gameaudioBuffer, newInput);
+			game.Update(&gameMemory, &screenBuffer, &gameaudioBuffer, currentInput);
 
 			int64 workCounter = Win32GetWallClock();
 			real64 workSecondsElapsed = GetSecondsElapsed(lastCounter, workCounter, programState.PerformanceFrequence);
@@ -169,7 +167,7 @@ int WINAPI wWinMain(
 
 			// We fille the sound and draw buffers we got from the game.
 			// This is temporarily
-			if (newInput->Keyboard.W.EndedDown)
+			if (currentInput->Keyboard.W.EndedDown)
 			{
 				IXAudio2SourceVoice* gameSourceVoice = {};
 
@@ -182,7 +180,7 @@ int WINAPI wWinMain(
 				Win32PlayAudio(gameSourceVoice);
 			}
 
-			Win32DrawBuffer(windowHandle);
+			Win32DrawBuffer(windowHandle, &programState.BitmapBuffer);
 
 			// Register last counter we got
 			real32 FPS = (1000.0f / msPerFrame);
@@ -192,12 +190,11 @@ int WINAPI wWinMain(
 			OutputDebugStringA(formatBuffer);
 
 			// Swap the states of the input so they persist through frames
-			GameInput* temp = newInput;
-			newInput = oldInput;
-			oldInput = temp;
+			GameInput* temp = currentInput;
+			currentInput = previousInput;
+			previousInput = temp;
 
 			int64 endCycleCount = __rdtsc();
-			int64 cyclesElapsed = endCycleCount - lastCycleCount;
 			lastCycleCount = endCycleCount;
 		}
 	}
@@ -631,7 +628,7 @@ internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC de
 	StretchDIBits(
 		deviceContext,
 		// Window Size - Destination
-		0, 0, width, height,
+		0, 0, bitmapBuffer->Width, bitmapBuffer->Height,
 		// Buffer Size - Source 
 		0, 0, bitmapBuffer->Width, bitmapBuffer->Height,
 		bitmapBuffer->Memory,
@@ -640,11 +637,11 @@ internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC de
 		SRCCOPY
 	);
 }
-internal void Win32DrawBuffer(const HWND& windowHandle)
+internal void Win32DrawBuffer(const HWND& windowHandle, Win32BitmapBuffer* buffer)
 {
 	HDC deviceContext = GetDC(windowHandle);
 	auto [width, height] = GetWindowDimensions(windowHandle);
-	Win32DisplayBufferInWindow(&GlobalBitmapBuffer, deviceContext, width, height);
+	Win32DisplayBufferInWindow(buffer, deviceContext, width, height);
 	ReleaseDC(windowHandle, deviceContext);
 }
 
@@ -766,7 +763,7 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 			PAINTSTRUCT paint;
 			HDC deviceContext = BeginPaint(windowHandle, &paint);
 			auto [width, height] = GetWindowDimensions(windowHandle);
-			Win32DisplayBufferInWindow(&GlobalBitmapBuffer, deviceContext, width, height);
+			Win32DisplayBufferInWindow(&programState->BitmapBuffer, deviceContext, width, height);
 			EndPaint(windowHandle, &paint);
 		} break;
 
