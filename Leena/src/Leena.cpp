@@ -3,7 +3,7 @@
 #include <xaudio2.h>
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset);
-void FillAudioBuffer(GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
+void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 
 struct GameState
@@ -12,7 +12,7 @@ struct GameState
 	int YOffset;
 };
 
-void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
+void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
 {
 	GameState* gameState = (GameState*)gameMemory->PermenantStorage;
 
@@ -22,7 +22,7 @@ void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudi
 	}
 
 	RenderWirdGradiend(screenBuffer, gameState->XOffset, gameState->YOffset);
-	FillAudioBuffer(gameMemory, soundBuffer);
+	FillAudioBuffer(thread, gameMemory, soundBuffer);
 
 	if (input->Keyboard.A.EndedDown)
 		gameState->XOffset -= 5;
@@ -75,11 +75,11 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOf
 	}
 }
 
-void FillAudioBuffer(GameMemory* gameMemory, GameAudioBuffer*& soundBuffer)
+void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer)
 {
 	if (!soundBuffer->BufferData)
 	{
-		DebugFileResult file = gameMemory->ReadFile("resources/Water_Splash_SeaLion_Fienup_001.wav");
+		DebugFileResult file = gameMemory->ReadFile(thread, "resources/Water_Splash_SeaLion_Fienup_001.wav");
 
 		auto result = ReadAudioBufferData(file.Memory);
 

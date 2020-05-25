@@ -1,7 +1,7 @@
 #include "main.h"
 
 #if Leena_Internal
-DebugFileResult DebugPlatformReadEntireFile(const char* fileName)
+DebugFileResult DebugPlatformReadEntireFile(ThreadContext* thread, const char* fileName)
 {
 	DebugFileResult result = {};
 
@@ -31,7 +31,7 @@ DebugFileResult DebugPlatformReadEntireFile(const char* fileName)
 				else
 				{
 					// Free memory if read fail
-					DebugPlatformFreeFileMemory(memResult);
+					DebugPlatformFreeFileMemory(thread, memResult);
 					memResult = 0;
 				}
 			}
@@ -43,13 +43,13 @@ DebugFileResult DebugPlatformReadEntireFile(const char* fileName)
 	return result;
 }
 
-void DebugPlatformFreeFileMemory(void* memory)
+void DebugPlatformFreeFileMemory(ThreadContext* thread, void* memory)
 {
 	if (memory)
 		VirtualFree(memory, NULL, MEM_RELEASE);
 }
 
-bool32 DebugPlatformWriteEntireFile(const char* fileName, uint32 memorySize, void* memory)
+bool32 DebugPlatformWriteEntireFile(ThreadContext* thread, const char* fileName, uint32 memorySize, void* memory)
 {
 	bool32 result = 0;
 	HANDLE fileHandle = CreateFileA(fileName, GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, NULL, NULL);

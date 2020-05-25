@@ -84,6 +84,6 @@ internal void Win32RecordInput(Win32RecordState* state, GameInput* input);
 internal BOOL Win32PlaybackInput(Win32RecordState* state, GameInput* input);
 
 // File IO
-bool32 DebugPlatformWriteEntireFile(const char* fileName, uint32 memorySize, void* memory);
-void DebugPlatformFreeFileMemory(void* memory);
-DebugFileResult DebugPlatformReadEntireFile(const char* fileName);
+bool32 DebugPlatformWriteEntireFile(ThreadContext* thread, const char* fileName, uint32 memorySize, void* memory);
+void DebugPlatformFreeFileMemory(ThreadContext* thread, void* memory);
+DebugFileResult DebugPlatformReadEntireFile(ThreadContext* thread, const char* fileName);

@@ -4,3 +4,4 @@
 #define GlobalVariable
 #define Internal
 #define internal
+#define DllExport extern "C" __declspec(dllexport)

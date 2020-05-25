@@ -10,7 +10,7 @@
 #define DllExport extern "C" __declspec(dllexport)
 
 // Functions provided for the platform layer
-DllExport void GameUpdate(GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameAudioBuffer* soundBuffer, GameInput* input);
+DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameAudioBuffer* soundBuffer, GameInput* input);
 
 inline GameControllerInput* GetController(GameInput* input, uint8 index)
 {

@@ -16,6 +16,7 @@ int WINAPI wWinMain(
 
 	if (windowHandle)
 	{
+		ThreadContext thread;
 		// Get Window just so we dont have to remove the function for the current time
 		auto [width, height] = GetWindowDimensions(windowHandle);
 
@@ -138,7 +139,7 @@ int WINAPI wWinMain(
 				Win32PlaybackInput(&programState.RecordingState, currentInput);
 
 			// Process game update. the game returns both a sound and draw buffer so we can use.
-			game.Update(&gameMemory, &screenBuffer, &gameaudioBuffer, currentInput);
+			game.Update(&thread, &gameMemory, &screenBuffer, &gameaudioBuffer, currentInput);
 
 			int64 workCounter = Win32GetWallClock();
 			real64 workSecondsElapsed = GetSecondsElapsed(lastCounter, workCounter, programState.PerformanceFrequence);
@@ -224,7 +225,7 @@ internal GameCode Win32LoadGameCode()
 
 	if (gameCodeHandle)
 	{
-		result.Update = (game_update*)GetProcAddress(gameCodeHandle, "GameUpdate");
+		result.Update = (GAMEUPDATE*)GetProcAddress(gameCodeHandle, "GameUpdate");
 
 		if (result.Update)
 			result.IsValid = true;

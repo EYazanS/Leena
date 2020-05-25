@@ -1,13 +1,13 @@
 #pragma once
 
-#define GAME_UPDATE(name) void name(GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
-typedef GAME_UPDATE(game_update);
+#define GAME_UPDATE(name) void name(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
+typedef GAME_UPDATE(GAMEUPDATE);
 GAME_UPDATE(GameUpdateStub) {};
 
 struct GameCode
 {
 	HMODULE LibraryHandle;
-	game_update* Update;
+	GAMEUPDATE* Update;
 	bool32 IsValid;
 	FILETIME LastWriteTime;
 };
