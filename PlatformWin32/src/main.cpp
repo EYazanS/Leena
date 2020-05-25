@@ -28,8 +28,14 @@ int WINAPI wWinMain(
 		// Which means can we sleep for exactly 1ms?
 		bool32 isSleepGranular = timeBeginPeriod(desiredSchedularTimeInMs) == TIMERR_NOERROR;
 
-		uint8 monitorRefreshRate = 60; // In HZ
-		uint8 gameUpdateInHz = monitorRefreshRate / 2; // In HZ
+		HDC dc = GetDC(windowHandle);
+		uint32 monitorRefreshRate = 60; // In HZ
+		uint32 win32VRefreshRate = GetDeviceCaps(dc, VREFRESH);
+		
+		if (win32VRefreshRate > 1)
+			monitorRefreshRate = win32VRefreshRate;
+		
+		uint32 gameUpdateInHz = monitorRefreshRate / 2; // In HZ
 		real32 targetSecondsPerFrams = 1.f / gameUpdateInHz;
 
 		programState.RecordingState.InputRecordingIndex = 0;
