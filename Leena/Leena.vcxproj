@@ -138,7 +138,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>Xinput.lib;Xinput9_1_0.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/EXPORT:GameUpdate %(AdditionalOptions)</AdditionalOptions>
-      <ProgramDatabaseFile>$(TargetName)-$([System.DateTime]::Now.ToString("yyyyMMddHHmmss_fff")).pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>$(SolutionDir)Build\$(TargetName)-$([System.DateTime]::Now.ToString("yyyyMMddHHmmss_fff")).pdb</ProgramDatabaseFile>
+      <GenerateMapFile>true</GenerateMapFile>
     </Link>
     <PreBuildEvent>
       <Command>del "$(OutDir)*.pdb"</Command>
@@ -193,7 +194,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>Xinput.lib;Xinput9_1_0.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/EXPORT:GameUpdate %(AdditionalOptions)</AdditionalOptions>
-      <ProgramDatabaseFile>$(TargetName)-$([System.DateTime]::Now.ToString("yyyyMMddHHmmss_fff")).pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>$(SolutionDir)Build\$(TargetName)-$([System.DateTime]::Now.ToString("yyyyMMddHHmmss_fff")).pdb</ProgramDatabaseFile>
     </Link>
     <PreBuildEvent>
       <Command>del "$(OutDir)*.pdb"</Command>
