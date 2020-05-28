@@ -32,10 +32,10 @@ int WINAPI wWinMain(
 		HDC dc = GetDC(windowHandle);
 		uint32 monitorRefreshRate = 60; // In HZ
 		uint32 win32VRefreshRate = GetDeviceCaps(dc, VREFRESH);
-		
+
 		if (win32VRefreshRate > 1)
 			monitorRefreshRate = win32VRefreshRate;
-		
+
 		uint32 gameUpdateInHz = monitorRefreshRate / 2; // In HZ
 		real32 targetSecondsPerFrams = 1.f / gameUpdateInHz;
 
@@ -119,6 +119,10 @@ int WINAPI wWinMain(
 				default:
 					break;
 			}
+
+			// Process the mouse input
+			Win32GetMousePosition(windowHandle, &currentInput->Mouse);
+			Win32GetMouseButtonsState(&currentInput->Mouse);
 
 			// Process the controller input
 			ProccessControllerInput(currentInput, previousInput);
@@ -591,10 +595,31 @@ internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, Keybo
 			} break;
 		}
 }
-internal void Win32ProccessKeyboardMessage(GameButtonState& state, bool isPressed)
+internal void Win32ProccessKeyboardMessage(GameButtonState& state, bool32 isPressed)
 {
-	state.EndedDown = isPressed;
-	++state.HalfTransitionCount;
+	if (state.EndedDown != isPressed)
+	{
+		state.EndedDown = isPressed;
+		++state.HalfTransitionCount;
+	}
+}
+internal void Win32GetMousePosition(HWND windowHandle, MouseInput* mouse)
+{
+	POINT mousePos = {};
+
+	if (GetCursorPos(&mousePos))
+	{
+		if (ScreenToClient(windowHandle, &mousePos))
+		{
+			mouse->X = mousePos.x;
+			mouse->Y = mousePos.y;
+		}
+	}
+}
+internal void Win32GetMouseButtonsState(MouseInput* mouse)
+{
+	Win32ProccessKeyboardMessage(mouse->LeftButton, GetKeyState(VK_LBUTTON) & (1 << 15));
+	Win32ProccessKeyboardMessage(mouse->RightButton, GetKeyState(VK_RBUTTON) & (1 << 15));
 }
 
 // Graphics

@@ -36,6 +36,12 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	if (input->Keyboard.S.EndedDown)
 		gameState->YOffset -= 5;
 
+	if (input->Mouse.LeftButton.EndedDown)
+	{
+		gameState->XOffset += static_cast<int>(input->Mouse.X / 5);
+		gameState->YOffset += static_cast<int>(input->Mouse.Y / 5);
+	}
+
 	for each (GameControllerInput controller in input->Controllers)
 	{
 		if (controller.IsConnected)

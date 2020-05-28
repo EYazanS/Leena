@@ -73,8 +73,8 @@ struct MouseInput
 {
 	bool32 IsConnected;
 
-	real32 XAverage;
-	real32 YAverage;
+	uint64 X;
+	uint64 Y;
 
 	union
 	{
