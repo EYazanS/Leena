@@ -3,6 +3,7 @@
 #include <xaudio2.h>
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset);
+void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 playerY);
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 
@@ -21,9 +22,6 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		gameMemory->IsInitialized = true;
 	}
 
-	RenderWirdGradiend(screenBuffer, gameState->XOffset, gameState->YOffset);
-	FillAudioBuffer(thread, gameMemory, soundBuffer);
-
 	if (input->Keyboard.A.EndedDown)
 		gameState->XOffset -= 5;
 
@@ -36,12 +34,6 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	if (input->Keyboard.S.EndedDown)
 		gameState->YOffset -= 5;
 
-	if (input->Mouse.LeftButton.EndedDown)
-	{
-		gameState->XOffset += static_cast<int>(input->Mouse.X / 5);
-		gameState->YOffset += static_cast<int>(input->Mouse.Y / 5);
-	}
-
 	for each (GameControllerInput controller in input->Controllers)
 	{
 		if (controller.IsConnected)
@@ -53,9 +45,13 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 			}
 		}
 	}
+
+	RenderWirdGradiend(screenBuffer, gameState->XOffset, gameState->YOffset);
+	RenderPlayer(screenBuffer, input->Mouse.X, input->Mouse.Y);
+	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
 
-void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset)
+void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int xOffset, int yOffset)
 {
 	uint8* Row = (uint8*)gameScreenBuffer->Memory;
 
@@ -65,8 +61,8 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOf
 
 		for (int X = 0; X < gameScreenBuffer->Width; ++X)
 		{
-			uint8 g = static_cast<uint8>(Y + YOffset);
-			uint8 b = static_cast<uint8>(X + XOffset);
+			uint8 g = static_cast<uint8>(Y + yOffset);
+			uint8 b = static_cast<uint8>(X + xOffset);
 
 			/*
 			Memory:   BB GG RR xx
@@ -127,4 +123,29 @@ GameAudioBuffer* ReadAudioBufferData(void* memory)
 	result->BufferData = byte;
 
 	return result;
+}
+
+void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 playerY)
+{
+	uint8* endOfBuffer = ((uint8*)gameScreenBuffer->Memory) + ((uint64)gameScreenBuffer->Pitch * (uint64)gameScreenBuffer->Height);
+
+	uint32 Color = 0xFFFFFFFF;
+
+	int64 top = playerY;
+
+	uint64 bottom = playerY + 10;
+
+	for (uint64 x = playerX; x < playerX + 10; ++x)
+	{
+		uint8* pixel = (((uint8*)gameScreenBuffer->Memory) + x * 4 + top * gameScreenBuffer->Pitch);
+
+		for (uint64 y = top; y < bottom; ++y)
+		{
+			if (pixel >= gameScreenBuffer->Memory && ((pixel + 4) < endOfBuffer))
+			{
+				*(uint32*)pixel = Color;
+				pixel += gameScreenBuffer->Pitch;
+			}
+		}
+	}
 }
