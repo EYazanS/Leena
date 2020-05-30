@@ -36,13 +36,10 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 
 	for (GameControllerInput controller : input->Controllers)
 	{
-		if (controller.IsConnected)
+		if (controller.IsConnected && controller.IsAnalog)
 		{
-			if (controller.IsAnalog)
-			{
-				gameState->XOffset += static_cast<int>(5 * controller.LeftStickAverageX);
-				gameState->YOffset += static_cast<int>(5 * controller.LeftStickAverageY);
-			}
+			gameState->XOffset += static_cast<int>(5 * controller.LeftStickAverageX);
+			gameState->YOffset += static_cast<int>(5 * controller.LeftStickAverageY);
 		}
 	}
 
