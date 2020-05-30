@@ -611,8 +611,10 @@ internal void Win32GetMousePosition(HWND windowHandle, MouseInput* mouse)
 	{
 		if (ScreenToClient(windowHandle, &mousePos))
 		{
-			mouse->X = mousePos.x;
-			mouse->Y = mousePos.y;
+			if (mousePos.x > 0)
+				mouse->X = mousePos.x;
+			if (mousePos.y > 0)
+				mouse->Y = mousePos.y;
 		}
 	}
 }
