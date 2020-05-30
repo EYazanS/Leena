@@ -34,7 +34,7 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	if (input->Keyboard.S.EndedDown)
 		gameState->YOffset -= 5;
 
-	for each (GameControllerInput controller in input->Controllers)
+	for (GameControllerInput controller : input->Controllers)
 	{
 		if (controller.IsConnected)
 		{
