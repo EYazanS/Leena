@@ -69,6 +69,12 @@ struct GameButtonState
 	int HalfTransitionCount;
 };
 
+struct WindowDimensions
+{
+	int32 Width;
+	int32 Height;
+};
+
 struct MouseInput
 {
 	bool32 IsConnected;

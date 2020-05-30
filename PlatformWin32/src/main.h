@@ -5,7 +5,6 @@
 #include <Windows.h>
 #include <Xinput.h>
 #include <xaudio2.h>
-#include <tuple>
 
 struct Win32RecordState
 {
@@ -72,7 +71,7 @@ internal void Win32GetMousePosition(HWND windowHandle, MouseInput* mouse);
 internal void Win32GetMouseButtonsState(MouseInput* mouse);
 
 // Graphics
-internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle);
+internal WindowDimensions GetWindowDimensions(HWND windowHandle);
 internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height);
 internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext);
 internal void Win32DrawBuffer(const HWND& windowHandle, Win32BitmapBuffer* buffer);

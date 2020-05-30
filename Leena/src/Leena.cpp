@@ -1,6 +1,4 @@
 #include "Leena.h"
-#include <Windows.h>
-#include <xaudio2.h>
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset);
 void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 playerY);

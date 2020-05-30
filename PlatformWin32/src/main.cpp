@@ -58,7 +58,7 @@ int WINAPI wWinMain(
 		Wind32InitializeMasterVoice(xAudio, masterVoice);
 
 		// Init Resolution.
-		Win32ResizeDIBSection(&programState.BitmapBuffer, 1280, 720);
+		Win32ResizeDIBSection(&programState.BitmapBuffer, width, height);
 
 		// audioBuffer.SourceVoice->Stop();
 
@@ -625,13 +625,13 @@ internal void Win32GetMouseButtonsState(MouseInput* mouse)
 }
 
 // Graphics
-internal std::tuple<int, int> GetWindowDimensions(HWND windowHandle)
+internal WindowDimensions GetWindowDimensions(HWND windowHandle)
 {
 	RECT clientRect;
 	GetClientRect(windowHandle, &clientRect);
 	int width = clientRect.right - clientRect.left;
 	int height = clientRect.bottom - clientRect.top;
-	return std::make_tuple(width, height);
+	return { width, height };
 }
 internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height)
 {
