@@ -29,10 +29,10 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		gameState->XOffset += 5;
 
 	if (input->Keyboard.W.EndedDown)
-		gameState->YOffset += 5;
+		gameState->YOffset -= 5;
 
 	if (input->Keyboard.S.EndedDown)
-		gameState->YOffset -= 5;
+		gameState->YOffset += 5;
 
 	for (GameControllerInput controller : input->Controllers)
 	{
@@ -46,7 +46,8 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		}
 	}
 
-	RenderWirdGradiend(screenBuffer, gameState->XOffset, gameState->YOffset);
+	RenderWirdGradiend(screenBuffer, 0, 0);
+	RenderPlayer(screenBuffer, gameState->XOffset, gameState->YOffset);
 	RenderPlayer(screenBuffer, input->Mouse.X, input->Mouse.Y);
 	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
