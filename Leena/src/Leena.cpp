@@ -78,7 +78,7 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int xOffset, int yOf
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer)
 {
-	if (!soundBuffer->BufferData)
+	if (0)
 	{
 		DebugFileResult file = gameMemory->ReadFile(thread, "resources/Water_Splash_SeaLion_Fienup_001.wav");
 

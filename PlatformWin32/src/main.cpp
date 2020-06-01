@@ -162,19 +162,16 @@ int WINAPI wWinMain(
 			lastCounter = endCounter;
 
 			// We fille the sound and draw buffers we got from the game.
-			// This is temporarily
-			if (currentInput->Keyboard.W.EndedDown)
-			{
-				IXAudio2SourceVoice* gameSourceVoice = {};
+			// TODO: Look if i dont need to create a new source voice every frame.
+			IXAudio2SourceVoice* gameSourceVoice = {};
 
-				auto wave = Wind32InitializeWaveFormat(xAudio, gameSourceVoice, &gameaudioBuffer);
+			auto wave = Wind32InitializeWaveFormat(xAudio, gameSourceVoice, &gameaudioBuffer);
 
-				XAUDIO2_BUFFER audioBuffer2 = {};
+			XAUDIO2_BUFFER audioBuffer2 = {};
 
-				Win32FillaudioBuffer(gameSourceVoice, &gameaudioBuffer, audioBuffer2);
+			Win32FillaudioBuffer(gameSourceVoice, &gameaudioBuffer, audioBuffer2);
 
-				Win32PlayAudio(gameSourceVoice);
-			}
+			Win32PlayAudio(gameSourceVoice);
 
 			Win32DrawBuffer(windowHandle, &programState.BitmapBuffer);
 
@@ -384,18 +381,23 @@ internal WAVEFORMATEX Wind32InitializeWaveFormat(IXAudio2* xAudio, IXAudio2Sourc
 }
 internal void Win32PlayAudio(IXAudio2SourceVoice* sourceVoice)
 {
-	sourceVoice->Start(0);
+	// TODO: See what we can do to play silence if needed.
+	if (sourceVoice)
+		sourceVoice->Start(0);
 }
 internal HRESULT Win32FillaudioBuffer(IXAudio2SourceVoice* sourceVoice, GameAudioBuffer* gameAudioBuffer, XAUDIO2_BUFFER& audioBuffer)
 {
 	HRESULT result = {};
 
-	audioBuffer.AudioBytes = gameAudioBuffer->BufferSize;  //buffer containing audio data
-	audioBuffer.pAudioData = (BYTE*)gameAudioBuffer->BufferData;  //size of the audio buffer in bytes
-	audioBuffer.Flags = XAUDIO2_END_OF_STREAM;
+	if (gameAudioBuffer->BufferSize > 0)
+	{
+		audioBuffer.AudioBytes = gameAudioBuffer->BufferSize;  //buffer containing audio data
+		audioBuffer.pAudioData = (BYTE*)gameAudioBuffer->BufferData;  //size of the audio buffer in bytes
+		audioBuffer.Flags = XAUDIO2_END_OF_STREAM;
 
-	if (FAILED(sourceVoice->SubmitSourceBuffer(&audioBuffer)))
-		return result;
+		if (FAILED(sourceVoice->SubmitSourceBuffer(&audioBuffer)))
+			return result;
+	}
 
 	return result;
 }
