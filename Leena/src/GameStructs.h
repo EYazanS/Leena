@@ -170,6 +170,7 @@ struct GameControllerInput
 
 struct GameInput
 {
+	real64 TimeToAdvance;
 	MouseInput Mouse;
 	KeyboardInput Keyboard;
 	GameControllerInput Controllers[4];

@@ -1,14 +1,14 @@
 #include "Leena.h"
 
-void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int XOffset, int YOffset);
+void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int PlayerX, int PlayerY);
 void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 playerY);
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 
 struct GameState
 {
-	int XOffset;
-	int YOffset;
+	int PlayerX;
+	int PlayerY;
 };
 
 void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
@@ -20,30 +20,33 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		gameMemory->IsInitialized = true;
 	}
 
+	const int pixelsToMovePerSec = 100;
+
+	real64 frameMovement = pixelsToMovePerSec * input->TimeToAdvance;
+
 	if (input->Keyboard.A.EndedDown)
-		gameState->XOffset -= 5;
+		gameState->PlayerX -= static_cast<int>(frameMovement);
 
 	if (input->Keyboard.D.EndedDown)
-		gameState->XOffset += 5;
+		gameState->PlayerX += static_cast<int>(frameMovement);
 
 	if (input->Keyboard.W.EndedDown)
-		gameState->YOffset -= 5;
+		gameState->PlayerY -= static_cast<int>(frameMovement);
 
 	if (input->Keyboard.S.EndedDown)
-		gameState->YOffset += 5;
+		gameState->PlayerY += static_cast<int>(frameMovement);
 
 	for (GameControllerInput controller : input->Controllers)
 	{
 		if (controller.IsConnected && controller.IsAnalog)
 		{
-			gameState->XOffset += static_cast<int>(5 * controller.LeftStickAverageX);
-			gameState->YOffset += static_cast<int>(5 * controller.LeftStickAverageY);
+			gameState->PlayerX += static_cast<int>(frameMovement * controller.LeftStickAverageX);
+			gameState->PlayerY += static_cast<int>(frameMovement * controller.LeftStickAverageY);
 		}
 	}
 
 	RenderWirdGradiend(screenBuffer, 0, 0);
-	RenderPlayer(screenBuffer, gameState->XOffset, gameState->YOffset);
-	RenderPlayer(screenBuffer, input->Mouse.X, input->Mouse.Y);
+	RenderPlayer(screenBuffer, gameState->PlayerX, gameState->PlayerY);
 	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
 

@@ -37,7 +37,7 @@ int WINAPI wWinMain(
 			monitorRefreshRate = win32VRefreshRate;
 
 		uint32 gameUpdateInHz = monitorRefreshRate / 2; // In HZ
-		real32 targetSecondsPerFrams = 1.f / gameUpdateInHz;
+		real64 targetSecondsToAdvanceBy = 1.f / gameUpdateInHz;
 
 		programState.RecordingState.InputRecordingIndex = 0;
 		programState.RecordingState.InputPlayingIndex = 0;
@@ -76,8 +76,12 @@ int WINAPI wWinMain(
 
 		programState.IsRunning = true;
 
+		real64 timeTookToRenderLastFrame = 0.0f;
+
 		while (programState.IsRunning)
 		{
+			currentInput->TimeToAdvance = targetSecondsToAdvanceBy;
+
 			FILETIME newLastWriteTIme = GetFileLastWriteDate("Leena.dll");
 
 			if (CompareFileTime(&newLastWriteTIme, &game.LastWriteTime) != 0)
@@ -149,32 +153,8 @@ int WINAPI wWinMain(
 			real64 workSecondsElapsed = GetSecondsElapsed(lastCounter, workCounter, programState.PerformanceFrequence);
 			real64 timeTakenOnFrame = workSecondsElapsed;
 
-			// Make sure we stay at the target time for each frame.
-			if (timeTakenOnFrame < targetSecondsPerFrams)
-			{
-				if (isSleepGranular)
-				{
-					// We substract 2 ms from the sleep incase the os doesnt wake us on time
-					DWORD sleepMs = (DWORD)(1000.f * (targetSecondsPerFrams - timeTakenOnFrame)) - 2;
-
-					if (sleepMs > 0)
-						Sleep(sleepMs);
-				}
-
-				auto testTimeTakenOnFrame = GetSecondsElapsed(lastCounter, Win32GetWallClock(), programState.PerformanceFrequence);
-
-				// Assert(testTimeTakenOnFrame < targetSecondsPerFrams);
-
-				while (timeTakenOnFrame < targetSecondsPerFrams)
-				{
-					timeTakenOnFrame = GetSecondsElapsed(lastCounter, Win32GetWallClock(), programState.PerformanceFrequence);
-				}
-			}
-			else
-			{
-				// missed a frame
-				OutputDebugStringA("Missed a frame");
-			}
+			// TODO: Make sure to calculate this time correctly, this only temp.
+			targetSecondsToAdvanceBy = timeTakenOnFrame * 10;
 
 			// Display performance counter
 			int64 endCounter = Win32GetWallClock();
