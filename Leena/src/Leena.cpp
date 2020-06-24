@@ -26,9 +26,9 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		gameMemory->IsInitialized = true;
 	}
 
-	uint32 tileMap[10][16] =
+	uint32 tileMap[9][16] =
 	{
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
 		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
 		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
 		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
@@ -36,8 +36,7 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
 		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
 		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1
 	};
 
 	const int pixelsToMovePerSec = 100;
@@ -110,20 +109,20 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int xOffset, int yOf
 
 void DrawTimeMap(GameScreenBuffer* screenBuffer, uint32 tileMap[10][16])
 {
-	real32 tileHeight = screenBuffer->Height / 10.f;
+	real32 tileHeight = screenBuffer->Height / 9.f;
 	real32 tileWidth = screenBuffer->Width / 16.f;
 
-	for (size_t y = 0; y < 10; y++)
+	for (size_t y = 0; y < 9; y++)
 	{
 		for (size_t x = 0; x < 16; x++)
 		{
 			Colour colour = {};
 
 			(tileMap[y][x] == 1) 
-				? colour = { 0.7f, 0.7f, 0.7f }
-				: colour = { 1.f, 1.f, 1.f };
+				? colour = { 1.f, 1.f, 1.f }
+				: colour = { 0.7f, 0.7f, 0.7f };
 
-				DrawRectangle(screenBuffer, tileWidth * x, tileHeight * y, (tileWidth * x) + tileWidth, (tileHeight * y) + tileHeight, colour);
+			DrawRectangle(screenBuffer, tileWidth * x, tileHeight * y, (tileWidth * x) + tileWidth, (tileHeight * y) + tileHeight, colour);
 		}
 	}
 }
