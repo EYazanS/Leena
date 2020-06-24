@@ -5,7 +5,11 @@ void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 pla
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 int32 RoundReal32ToInt32(real32 value);
-void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY);
+void DrawRectangle(
+	GameScreenBuffer* gameScreenBuffer,
+	real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY,
+	Colour colour);
+void DrawTimeMap(GameScreenBuffer* screenBuffer, uint32 tileMap[10][16]);
 
 struct GameState
 {
@@ -21,6 +25,20 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	{
 		gameMemory->IsInitialized = true;
 	}
+
+	uint32 tileMap[10][16] =
+	{
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+	};
 
 	const int pixelsToMovePerSec = 100;
 
@@ -38,6 +56,18 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	if (input->Keyboard.S.EndedDown)
 		gameState->PlayerY += static_cast<int>(frameMovement);
 
+	if (gameState->PlayerX < 0)
+		gameState->PlayerX = 0;
+
+	if (gameState->PlayerY < 0)
+		gameState->PlayerY = 0;
+
+	if (gameState->PlayerX + 10 > screenBuffer->Width)
+		gameState->PlayerX = screenBuffer->Width - 10;
+
+	if (gameState->PlayerY + 10 > screenBuffer->Height)
+		gameState->PlayerY = screenBuffer->Height - 10;
+
 	for (GameControllerInput controller : input->Controllers)
 	{
 		if (controller.IsConnected && controller.IsAnalog)
@@ -47,9 +77,8 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		}
 	}
 
-	RenderWirdGradiend(screenBuffer, 0, 0);
+	DrawTimeMap(screenBuffer, tileMap);
 	RenderPlayer(screenBuffer, gameState->PlayerX, gameState->PlayerY);
-	DrawRectangle(screenBuffer, gameState->PlayerX + 15.f, gameState->PlayerY + 15.f, gameState->PlayerX + 50.f, gameState->PlayerY + 50.f);
 	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
 
@@ -76,6 +105,26 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int xOffset, int yOf
 		}
 
 		Row += gameScreenBuffer->Pitch;
+	}
+}
+
+void DrawTimeMap(GameScreenBuffer* screenBuffer, uint32 tileMap[10][16])
+{
+	real32 tileHeight = screenBuffer->Height / 10.f;
+	real32 tileWidth = screenBuffer->Width / 16.f;
+
+	for (size_t y = 0; y < 10; y++)
+	{
+		for (size_t x = 0; x < 16; x++)
+		{
+			Colour colour = {};
+
+			(tileMap[y][x] == 1) 
+				? colour = { 0.7f, 0.7f, 0.7f }
+				: colour = { 1.f, 1.f, 1.f };
+
+				DrawRectangle(screenBuffer, tileWidth * x, tileHeight * y, (tileWidth * x) + tileWidth, (tileHeight * y) + tileHeight, colour);
+		}
 	}
 }
 
@@ -133,18 +182,6 @@ void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 pla
 
 	uint32 colour = 0xFFFFFFFF;
 
-	if (playerX < 0)
-		playerX = 0;
-
-	if (playerY < 0)
-		playerY = 0;
-
-	if (playerX > gameScreenBuffer->Width)
-		playerX = gameScreenBuffer->Width;
-
-	if (playerY > gameScreenBuffer->Height)
-		playerY = gameScreenBuffer->Height;
-
 	int64 top = playerY;
 
 	uint64 bottom = playerY + 10;
@@ -164,7 +201,10 @@ void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 pla
 	}
 }
 
-void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY)
+void DrawRectangle(
+	GameScreenBuffer* gameScreenBuffer,
+	real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY,
+	Colour colour)
 {
 	int32 minX = RoundReal32ToInt32(realMinX);
 	int32 maxX = RoundReal32ToInt32(realMaxX);
@@ -185,9 +225,13 @@ void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 r
 	if (maxY > gameScreenBuffer->Height)
 		maxY = gameScreenBuffer->Height;
 
-	uint8* endOfBuffer = ((uint8*)gameScreenBuffer->Memory) + ((uint64)gameScreenBuffer->Pitch * (uint64)gameScreenBuffer->Height);
+	// Bit Pattern = x0 AA RR GG BB
+	uint32 finalColour =
+		(RoundReal32ToInt32(colour.Red * 255.f) << 16) |
+		(RoundReal32ToInt32(colour.Green * 255.f) << 8) |
+		(RoundReal32ToInt32(colour.Blue * 255.f) << 0);
 
-	uint32 colour = 0xFFFFFFFF;
+	uint8* endOfBuffer = ((uint8*)gameScreenBuffer->Memory) + ((uint64)gameScreenBuffer->Pitch * (uint64)gameScreenBuffer->Height);
 
 	uint8* row = (((uint8*)gameScreenBuffer->Memory) + minX * 4 + minY * gameScreenBuffer->Pitch);
 
@@ -196,7 +240,7 @@ void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 r
 		uint32* pixel = (uint32*)row;
 		for (int32 x = minX; x < maxX + 10; ++x)
 		{
-			*pixel++ = colour;
+			*pixel++ = finalColour;
 		}
 
 		row += gameScreenBuffer->Pitch;

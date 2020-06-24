@@ -193,3 +193,10 @@ struct GameClock
 {
 	real32 TimeElapsed;
 };
+
+struct Colour
+{
+	real32 Red;
+	real32 Green;
+	real32 Blue;
+};
