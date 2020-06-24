@@ -179,7 +179,7 @@ void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 pla
 {
 	uint8* endOfBuffer = ((uint8*)gameScreenBuffer->Memory) + ((uint64)gameScreenBuffer->Pitch * (uint64)gameScreenBuffer->Height);
 
-	uint32 colour = 0xFFFFFFFF;
+	uint32 colour = 0xFFF00FFF;
 
 	int64 top = playerY;
 
