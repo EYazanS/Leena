@@ -4,6 +4,8 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int PlayerX, int Pla
 void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 playerY);
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
 GameAudioBuffer* ReadAudioBufferData(void* memory);
+int32 RoundReal32ToInt32(real32 value);
+void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY);
 
 struct GameState
 {
@@ -47,6 +49,7 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 
 	RenderWirdGradiend(screenBuffer, 0, 0);
 	RenderPlayer(screenBuffer, gameState->PlayerX, gameState->PlayerY);
+	DrawRectangle(screenBuffer, gameState->PlayerX + 15.f, gameState->PlayerY + 15.f, gameState->PlayerX + 50.f, gameState->PlayerY + 50.f);
 	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
 
@@ -130,6 +133,18 @@ void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 pla
 
 	uint32 colour = 0xFFFFFFFF;
 
+	if (playerX < 0)
+		playerX = 0;
+
+	if (playerY < 0)
+		playerY = 0;
+
+	if (playerX > gameScreenBuffer->Width)
+		playerX = gameScreenBuffer->Width;
+
+	if (playerY > gameScreenBuffer->Height)
+		playerY = gameScreenBuffer->Height;
+
 	int64 top = playerY;
 
 	uint64 bottom = playerY + 10;
@@ -147,4 +162,49 @@ void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 pla
 			}
 		}
 	}
+}
+
+void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY)
+{
+	int32 minX = RoundReal32ToInt32(realMinX);
+	int32 maxX = RoundReal32ToInt32(realMaxX);
+
+	int32 minY = RoundReal32ToInt32(realMinY);
+	int32 maxY = RoundReal32ToInt32(realMaxY);
+
+	// Clip to the nearest valid pixel
+	if (minX < 0)
+		minX = 0;
+
+	if (minY < 0)
+		minY = 0;
+
+	if (maxX > gameScreenBuffer->Width)
+		maxX = gameScreenBuffer->Width;
+
+	if (maxY > gameScreenBuffer->Height)
+		maxY = gameScreenBuffer->Height;
+
+	uint8* endOfBuffer = ((uint8*)gameScreenBuffer->Memory) + ((uint64)gameScreenBuffer->Pitch * (uint64)gameScreenBuffer->Height);
+
+	uint32 colour = 0xFFFFFFFF;
+
+	uint8* row = (((uint8*)gameScreenBuffer->Memory) + minX * 4 + minY * gameScreenBuffer->Pitch);
+
+	for (int32 y = minY; y < maxY; ++y)
+	{
+		uint32* pixel = (uint32*)row;
+		for (int32 x = minX; x < maxX + 10; ++x)
+		{
+			*pixel++ = colour;
+		}
+
+		row += gameScreenBuffer->Pitch;
+	}
+}
+
+int32 RoundReal32ToInt32(real32 value)
+{
+	int32 result = (int32)(value + 0.5f);
+	return result;
 }
