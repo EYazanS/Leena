@@ -300,7 +300,7 @@ internal MSG Win32ProcessMessage()
 }
 internal GameMemory InitGameMemory()
 {
-	GameMemory gameMemory;
+	GameMemory gameMemory = {};
 
 	#if Leena_Internal
 	LPVOID baseAddress = (LPVOID)Terabytes(2);

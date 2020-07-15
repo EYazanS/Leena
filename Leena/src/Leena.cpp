@@ -1,15 +1,19 @@
 #include "Leena.h"
 
+#define TileMapXCount 17
+#define TileMapYCount 9
+
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int PlayerX, int PlayerY);
 void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 playerY);
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
 GameAudioBuffer* ReadAudioBufferData(void* memory);
-int32 RoundReal32ToInt32(real32 value);
+inline int32 RoundReal32ToInt32(real32 value);
+inline int32 TruncateReal32ToInt32(real32 value);
 void DrawRectangle(
 	GameScreenBuffer* gameScreenBuffer,
 	real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY,
 	Colour colour);
-void DrawTimeMap(GameScreenBuffer* screenBuffer, uint32 tileMap[10][16]);
+void DrawTimeMap(GameScreenBuffer* screenBuffer, uint32 tileMap[TileMapYCount][TileMapXCount]);
 
 struct GameState
 {
@@ -21,58 +25,74 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 {
 	GameState* gameState = (GameState*)gameMemory->PermenantStorage;
 
+	uint32 tileMap[TileMapYCount][TileMapXCount] =
+	{
+		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1
+	};
+
+	real32 upperLeftX = 0;
+	real32 upperLeftY = 0;
+	real32 tileWidth = screenBuffer->Height / 17.f;
+	real32 tileHeight = screenBuffer->Height / 9.f;
+
 	if (!gameMemory->IsInitialized)
 	{
+		gameState->PlayerX = 70;
+		gameState->PlayerY = 70;
 		gameMemory->IsInitialized = true;
 	}
 
-	uint32 tileMap[9][16] =
-	{
-		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1
-	};
+	real32 pixelsToMovePerSec = 100.f;
 
-	const int pixelsToMovePerSec = 100;
-
-	real64 frameMovement = pixelsToMovePerSec * input->TimeToAdvance;
+	real32 playerMovementX = 0.f; // pixels/second
+	real32 playerMovementY = 0.f; // pixels/second
 
 	if (input->Keyboard.A.EndedDown)
-		gameState->PlayerX -= static_cast<int>(frameMovement);
+		playerMovementX += -1.f;
 
 	if (input->Keyboard.D.EndedDown)
-		gameState->PlayerX += static_cast<int>(frameMovement);
+		playerMovementX += 1.f;
 
 	if (input->Keyboard.W.EndedDown)
-		gameState->PlayerY -= static_cast<int>(frameMovement);
+		playerMovementY += -1.f;
 
 	if (input->Keyboard.S.EndedDown)
-		gameState->PlayerY += static_cast<int>(frameMovement);
+		playerMovementY += 1.f;
 
-	if (gameState->PlayerX < 0)
-		gameState->PlayerX = 0;
+	playerMovementY *= pixelsToMovePerSec;
+	playerMovementX *= pixelsToMovePerSec;
 
-	if (gameState->PlayerY < 0)
-		gameState->PlayerY = 0;
+	real32 newPlayerX = gameState->PlayerX + playerMovementX * (real32)input->TimeToAdvance;
+	real32 newPlayerY = gameState->PlayerY + playerMovementY * (real32)input->TimeToAdvance;
 
-	if (gameState->PlayerX + 10 > screenBuffer->Width)
-		gameState->PlayerX = screenBuffer->Width - 10;
-
-	if (gameState->PlayerY + 10 > screenBuffer->Height)
-		gameState->PlayerY = screenBuffer->Height - 10;
+	int32 playerTileX = TruncateReal32ToInt32((newPlayerX - upperLeftX) / tileWidth);
+	int32 playerTileY = TruncateReal32ToInt32((newPlayerY - upperLeftY) / tileHeight);
 
 	for (GameControllerInput controller : input->Controllers)
 	{
 		if (controller.IsConnected && controller.IsAnalog)
 		{
-			gameState->PlayerX += static_cast<int>(frameMovement * controller.LeftStickAverageX);
-			gameState->PlayerY += static_cast<int>(frameMovement * controller.LeftStickAverageY);
+			gameState->PlayerX += static_cast<int>(pixelsToMovePerSec * input->TimeToAdvance * controller.LeftStickAverageX);
+			gameState->PlayerY += static_cast<int>(pixelsToMovePerSec * input->TimeToAdvance * controller.LeftStickAverageY);
+		}
+	}
+
+	if ((playerTileX >= 0 && playerTileX < TileMapXCount) && (playerTileY >= 0 && playerTileY < TileMapYCount))
+	{
+		uint32 tileMapValue = tileMap[playerTileY][playerTileX];
+
+		if (!tileMapValue)
+		{
+			gameState->PlayerX = TruncateReal32ToInt32(newPlayerX);
+			gameState->PlayerY = TruncateReal32ToInt32(newPlayerY);
 		}
 	}
 
@@ -107,20 +127,20 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int xOffset, int yOf
 	}
 }
 
-void DrawTimeMap(GameScreenBuffer* screenBuffer, uint32 tileMap[10][16])
+void DrawTimeMap(GameScreenBuffer* screenBuffer, uint32 tileMap[TileMapYCount][TileMapXCount])
 {
-	real32 tileHeight = screenBuffer->Height / 9.f;
-	real32 tileWidth = screenBuffer->Width / 16.f;
+	real32 tileHeight = screenBuffer->Height / (real32)TileMapYCount;
+	real32 tileWidth = screenBuffer->Width / (real32)TileMapXCount;
 
-	for (size_t y = 0; y < 9; y++)
+	for (size_t y = 0; y < TileMapYCount; y++)
 	{
-		for (size_t x = 0; x < 16; x++)
+		for (size_t x = 0; x < TileMapXCount; x++)
 		{
 			Colour colour = {};
 
-			(tileMap[y][x] == 1) 
+			(tileMap[y][x] == 1)
 				? colour = { 1.f, 1.f, 1.f }
-				: colour = { 0.7f, 0.7f, 0.7f };
+			: colour = { 0.7f, 0.7f, 0.7f };
 
 			DrawRectangle(screenBuffer, tileWidth * x, tileHeight * y, (tileWidth * x) + tileWidth, (tileHeight * y) + tileHeight, colour);
 		}
@@ -249,5 +269,11 @@ void DrawRectangle(
 int32 RoundReal32ToInt32(real32 value)
 {
 	int32 result = (int32)(value + 0.5f);
+	return result;
+}
+
+int32 TruncateReal32ToInt32(real32 value)
+{
+	int32 result = (int32)(value);
 	return result;
 }
