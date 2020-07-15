@@ -153,8 +153,32 @@ int WINAPI wWinMain(
 			real64 workSecondsElapsed = GetSecondsElapsed(lastCounter, workCounter, programState.PerformanceFrequence);
 			real64 timeTakenOnFrame = workSecondsElapsed;
 
-			// TODO: Make sure to calculate this time correctly, this only temp.
-			targetSecondsToAdvanceBy = timeTakenOnFrame * 10;
+			// Make sure we stay at the target time for each frame.
+			if (timeTakenOnFrame < targetSecondsToAdvanceBy)
+			{
+				if (isSleepGranular)
+				{
+					// We substract 2 ms from the sleep incase the os doesnt wake us on time
+					DWORD sleepMs = (DWORD)(1000.f * (targetSecondsToAdvanceBy - timeTakenOnFrame)) - 2;
+
+					if (sleepMs > 0)
+						Sleep(sleepMs);
+				}
+
+				auto testTimeTakenOnFrame = GetSecondsElapsed(lastCounter, Win32GetWallClock(), programState.PerformanceFrequence);
+
+				// Assert(testTimeTakenOnFrame < targetSecondsPerFrams);
+
+				while (timeTakenOnFrame < targetSecondsToAdvanceBy)
+				{
+					timeTakenOnFrame = GetSecondsElapsed(lastCounter, Win32GetWallClock(), programState.PerformanceFrequence);
+				}
+			}
+			else
+			{
+				// missed a frame
+				OutputDebugStringA("Missed a frame");
+			}
 
 			// Display performance counter
 			int64 endCounter = Win32GetWallClock();
