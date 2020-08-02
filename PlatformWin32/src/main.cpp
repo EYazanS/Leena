@@ -30,7 +30,7 @@ int WINAPI wWinMain(
 		bool32 isSleepGranular = timeBeginPeriod(desiredSchedularTimeInMs) == TIMERR_NOERROR;
 
 		HDC dc = GetDC(windowHandle);
-		uint32 monitorRefreshRate = 60; // In HZ
+		uint32 monitorRefreshRate = 120; // In HZ
 		uint32 win32VRefreshRate = GetDeviceCaps(dc, VREFRESH);
 
 		if (win32VRefreshRate > 1)

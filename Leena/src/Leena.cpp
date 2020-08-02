@@ -1,6 +1,6 @@
 #include "Leena.h"
 
-#define TileMapXCount 17
+#define TileMapXCount 16
 #define TileMapYCount 9
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int PlayerX, int PlayerY);
@@ -27,25 +27,25 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 
 	uint32 tileMap[TileMapYCount][TileMapXCount] =
 	{
-		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1
+		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
+		1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1,
+		0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0,
+		1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1,
+		1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1
 	};
 
 	real32 upperLeftX = 0;
 	real32 upperLeftY = 0;
-	real32 tileWidth = screenBuffer->Height / 17.f;
-	real32 tileHeight = screenBuffer->Height / 9.f;
+	real32 tileWidth = 60;
+	real32 tileHeight = 60;
 
 	if (!gameMemory->IsInitialized)
 	{
-		gameState->PlayerX = 70;
+		gameState->PlayerX = 140;
 		gameState->PlayerY = 70;
 		gameMemory->IsInitialized = true;
 	}
@@ -129,8 +129,8 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int xOffset, int yOf
 
 void DrawTimeMap(GameScreenBuffer* screenBuffer, uint32 tileMap[TileMapYCount][TileMapXCount])
 {
-	real32 tileHeight = screenBuffer->Height / (real32)TileMapYCount;
-	real32 tileWidth = screenBuffer->Width / (real32)TileMapXCount;
+	real32 tileHeight = 60;
+	real32 tileWidth = 60;
 
 	for (size_t y = 0; y < TileMapYCount; y++)
 	{
