@@ -13,7 +13,7 @@ void DrawRectangle(
 	GameScreenBuffer* gameScreenBuffer,
 	real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY,
 	Colour colour);
-void DrawTimeMap(GameScreenBuffer* screenBuffer, uint32 tileMap[TileMapYCount][TileMapXCount]);
+void DrawTimeMap(GameScreenBuffer* screenBuffer, uint32 tileMap[TileMapYCount][TileMapXCount], real32 upperLeftX, real32 upperLeftY, real32 tileHeight, real32 tileWidth);
 
 struct GameState
 {
@@ -38,8 +38,8 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1
 	};
 
-	real32 upperLeftX = 0;
-	real32 upperLeftY = 0;
+	real32 upperLeftX = -30;
+	real32 upperLeftY = -30;
 	real32 tileWidth = 60;
 	real32 tileHeight = 60;
 
@@ -50,7 +50,7 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		gameMemory->IsInitialized = true;
 	}
 
-	real32 pixelsToMovePerSec = 100.f;
+	real32 pixelsToMovePerSec = 250.f;
 
 	real32 playerMovementX = 0.f; // pixels/second
 	real32 playerMovementY = 0.f; // pixels/second
@@ -96,7 +96,7 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		}
 	}
 
-	DrawTimeMap(screenBuffer, tileMap);
+	DrawTimeMap(screenBuffer, tileMap, upperLeftX, upperLeftY, tileHeight, tileWidth);
 	RenderPlayer(screenBuffer, gameState->PlayerX, gameState->PlayerY);
 	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
@@ -127,22 +127,25 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int xOffset, int yOf
 	}
 }
 
-void DrawTimeMap(GameScreenBuffer* screenBuffer, uint32 tileMap[TileMapYCount][TileMapXCount])
+void DrawTimeMap(GameScreenBuffer* screenBuffer, uint32 tileMap[TileMapYCount][TileMapXCount], real32 upperLeftX, real32 upperLeftY, real32 tileHeight, real32 tileWidth)
 {
-	real32 tileHeight = 60;
-	real32 tileWidth = 60;
-
-	for (size_t y = 0; y < TileMapYCount; y++)
+	for (size_t row = 0; row < TileMapYCount; row++)
 	{
-		for (size_t x = 0; x < TileMapXCount; x++)
+		for (size_t column = 0; column < TileMapXCount; column++)
 		{
 			Colour colour = {};
 
-			(tileMap[y][x] == 1)
+			(tileMap[row][column] == 1)
 				? colour = { 1.f, 1.f, 1.f }
 			: colour = { 0.7f, 0.7f, 0.7f };
 
-			DrawRectangle(screenBuffer, tileWidth * x, tileHeight * y, (tileWidth * x) + tileWidth, (tileHeight * y) + tileHeight, colour);
+			real32 minX = upperLeftX + ((real32)column * tileWidth);
+			real32 maxX = minX + tileWidth;
+			
+			real32 minY = upperLeftY + ((real32)row * tileHeight);
+			real32 maxY = minY + tileHeight;
+
+			DrawRectangle(screenBuffer, minX, minY, maxX, maxY, colour);
 		}
 	}
 }
