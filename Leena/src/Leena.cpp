@@ -1,10 +1,7 @@
 #include "Leena.h"
 
-#define TileMapXCount 16
-#define TileMapYCount 9
-
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int PlayerX, int PlayerY);
-void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 playerY);
+void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 playerY, real32 playerWidth, real32 playerHeight);
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 inline int32 RoundReal32ToInt32(real32 value);
@@ -13,19 +10,16 @@ void DrawRectangle(
 	GameScreenBuffer* gameScreenBuffer,
 	real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY,
 	Colour colour);
-void DrawTimeMap(GameScreenBuffer* screenBuffer, uint32 tileMap[TileMapYCount][TileMapXCount], real32 upperLeftX, real32 upperLeftY, real32 tileHeight, real32 tileWidth);
-
-struct GameState
-{
-	int PlayerX;
-	int PlayerY;
-};
+void DrawTimeMap(GameScreenBuffer* screenBuffer, TileMap* tileMap);
+int32 IsPointEmpty(const real32& testX, const real32& testY, TileMap* tileMap);
 
 void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
 {
 	GameState* gameState = (GameState*)gameMemory->PermenantStorage;
 
-	uint32 tileMap[TileMapYCount][TileMapXCount] =
+	TileMap tileMap = {};
+
+	uint32 tiles[16][9] =
 	{
 		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
@@ -38,10 +32,16 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1
 	};
 
-	real32 upperLeftX = -30;
-	real32 upperLeftY = -30;
-	real32 tileWidth = 60;
-	real32 tileHeight = 60;
+	tileMap.CountX = 16;
+	tileMap.CountY = 9;
+	tileMap.TileHeight = 60;
+	tileMap.TileWidth = 60;
+	tileMap.UpperLeftX = -30;
+	tileMap.UpperLeftY = -30;
+	tileMap.Tiles = (uint32*)tiles;
+
+	real32 playerWidth = 0.75f * (real32)tileMap.TileWidth;
+	real32 playerHeight = (real32)tileMap.TileHeight;
 
 	if (!gameMemory->IsInitialized)
 	{
@@ -70,12 +70,7 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	playerMovementY *= pixelsToMovePerSec;
 	playerMovementX *= pixelsToMovePerSec;
 
-	real32 newPlayerX = gameState->PlayerX + (playerMovementX * (real32)input->TimeToAdvance);
-	real32 newPlayerY = gameState->PlayerY + (playerMovementY * (real32)input->TimeToAdvance);
-
-	int32 playerTileX = TruncateReal32ToInt32((newPlayerX - upperLeftX) / tileWidth);
-	int32 playerTileY = TruncateReal32ToInt32((newPlayerY - upperLeftY) / tileHeight);
-
+	// TODO: Deal with controller movement
 	for (GameControllerInput controller : input->Controllers)
 	{
 		if (controller.IsConnected && controller.IsAnalog)
@@ -85,20 +80,38 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		}
 	}
 
-	if ((playerTileX >= 0 && playerTileX < TileMapXCount) && (playerTileY >= 0 && playerTileY < TileMapYCount))
-	{
-		uint32 tileMapValue = tileMap[playerTileY][playerTileX];
+	real32 newPlayerX = gameState->PlayerX + (playerMovementX * (real32)input->TimeToAdvance);
+	real32 newPlayerY = gameState->PlayerY + (playerMovementY * (real32)input->TimeToAdvance);
 
-		if (!tileMapValue)
-		{
-			gameState->PlayerX = TruncateReal32ToInt32(newPlayerX);
-			gameState->PlayerY = TruncateReal32ToInt32(newPlayerY);
-		}
+	if (IsPointEmpty(newPlayerX, newPlayerY, &tileMap) && 
+		IsPointEmpty(newPlayerX - (0.5f * playerWidth), newPlayerY, &tileMap) && 
+		IsPointEmpty(newPlayerX + (0.5f * playerWidth), newPlayerY, &tileMap)
+	)
+	{
+		gameState->PlayerX = TruncateReal32ToInt32(newPlayerX);
+		gameState->PlayerY = TruncateReal32ToInt32(newPlayerY);
 	}
 
-	DrawTimeMap(screenBuffer, tileMap, upperLeftX, upperLeftY, tileHeight, tileWidth);
-	RenderPlayer(screenBuffer, gameState->PlayerX, gameState->PlayerY);
+	DrawTimeMap(screenBuffer, &tileMap);
+	RenderPlayer(screenBuffer, gameState->PlayerX, gameState->PlayerY, playerWidth, playerHeight);
 	FillAudioBuffer(thread, gameMemory, soundBuffer);
+}
+
+int32 IsPointEmpty(const real32& testX, const real32& testY, TileMap* tileMap)
+{
+	int32 isEmpty = 0;
+
+	int32 tileX = TruncateReal32ToInt32((testX - tileMap->UpperLeftX) / tileMap->TileWidth);
+	int32 tileY = TruncateReal32ToInt32((testY - tileMap->UpperLeftY) / tileMap->TileHeight);
+
+
+	if ((tileX >= 0 && tileX < tileMap->CountX) && (tileY >= 0 && tileY < tileMap->CountY))
+	{
+		uint32 tileMapValue = tileMap->Tiles[tileY * tileMap->CountX + tileX];
+		isEmpty = tileMapValue == 0;
+	}
+
+	return isEmpty;
 }
 
 void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int xOffset, int yOffset)
@@ -127,23 +140,23 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int xOffset, int yOf
 	}
 }
 
-void DrawTimeMap(GameScreenBuffer* screenBuffer, uint32 tileMap[TileMapYCount][TileMapXCount], real32 upperLeftX, real32 upperLeftY, real32 tileHeight, real32 tileWidth)
+void DrawTimeMap(GameScreenBuffer* screenBuffer, TileMap* tileMap)
 {
-	for (size_t row = 0; row < TileMapYCount; row++)
+	for (size_t row = 0; row < tileMap->CountY; row++)
 	{
-		for (size_t column = 0; column < TileMapXCount; column++)
+		for (size_t column = 0; column < tileMap->CountX; column++)
 		{
 			Colour colour = {};
 
-			(tileMap[row][column] == 1)
+			(tileMap->Tiles[row * tileMap->CountX + column] == 1)
 				? colour = { 1.f, 1.f, 1.f }
 			: colour = { 0.7f, 0.7f, 0.7f };
 
-			real32 minX = upperLeftX + ((real32)column * tileWidth);
-			real32 maxX = minX + tileWidth;
-			
-			real32 minY = upperLeftY + ((real32)row * tileHeight);
-			real32 maxY = minY + tileHeight;
+			real32 minX = tileMap->UpperLeftX + ((real32)column * tileMap->TileWidth);
+			real32 maxX = minX + tileMap->TileWidth;
+
+			real32 minY = tileMap->UpperLeftY + ((real32)row * tileMap->TileHeight);
+			real32 maxY = minY + tileMap->TileHeight;
 
 			DrawRectangle(screenBuffer, minX, minY, maxX, maxY, colour);
 		}
@@ -198,12 +211,9 @@ GameAudioBuffer* ReadAudioBufferData(void* memory)
 	return result;
 }
 
-void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 playerY)
+void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 playerY, real32 playerWidth, real32 playerHeight)
 {
 	Colour colour = { 1.f, 0.f, 1.f };
-
-	real32 playerWidth = 10;
-	real32 playerHeight = 15;
 
 	real32 playerTop = playerY - playerHeight;
 	real32 playerLeft = playerX - (0.5f * playerWidth);

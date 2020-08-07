@@ -18,6 +18,24 @@ inline GameControllerInput* GetController(GameInput* input, uint8 index)
 	GameControllerInput* result = &input->Controllers[index];
 	return result;
 }
+
+struct GameState
+{
+	int PlayerX;
+	int PlayerY;
+};
+
+struct TileMap
+{
+	int32 CountX;
+	int32 CountY;
+	int32 UpperLeftX;
+	int32 UpperLeftY;
+	int32 TileWidth;
+	int32 TileHeight;
+	uint32* Tiles;
+};
+
 #define LeenaH
 
 #endif
