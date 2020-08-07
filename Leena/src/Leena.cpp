@@ -70,8 +70,8 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	playerMovementY *= pixelsToMovePerSec;
 	playerMovementX *= pixelsToMovePerSec;
 
-	real32 newPlayerX = gameState->PlayerX + playerMovementX * (real32)input->TimeToAdvance;
-	real32 newPlayerY = gameState->PlayerY + playerMovementY * (real32)input->TimeToAdvance;
+	real32 newPlayerX = gameState->PlayerX + (playerMovementX * (real32)input->TimeToAdvance);
+	real32 newPlayerY = gameState->PlayerY + (playerMovementY * (real32)input->TimeToAdvance);
 
 	int32 playerTileX = TruncateReal32ToInt32((newPlayerX - upperLeftX) / tileWidth);
 	int32 playerTileY = TruncateReal32ToInt32((newPlayerY - upperLeftY) / tileHeight);
@@ -200,27 +200,15 @@ GameAudioBuffer* ReadAudioBufferData(void* memory)
 
 void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 playerY)
 {
-	uint8* endOfBuffer = ((uint8*)gameScreenBuffer->Memory) + ((uint64)gameScreenBuffer->Pitch * (uint64)gameScreenBuffer->Height);
+	Colour colour = { 1.f, 0.f, 1.f };
 
-	uint32 colour = 0xFFF00FFF;
+	real32 playerWidth = 10;
+	real32 playerHeight = 15;
 
-	int64 top = playerY;
+	real32 playerTop = playerY - playerHeight;
+	real32 playerLeft = playerX - (0.5f * playerWidth);
 
-	uint64 bottom = playerY + 10;
-
-	for (uint64 x = playerX; x < playerX + 10; ++x)
-	{
-		uint8* pixel = (((uint8*)gameScreenBuffer->Memory) + x * 4 + top * gameScreenBuffer->Pitch);
-
-		for (uint64 y = top; y < bottom; ++y)
-		{
-			if (pixel >= gameScreenBuffer->Memory && ((pixel + 4) < endOfBuffer))
-			{
-				*(uint32*)pixel = colour;
-				pixel += gameScreenBuffer->Pitch;
-			}
-		}
-	}
+	DrawRectangle(gameScreenBuffer, playerLeft, playerTop, playerLeft + playerWidth, playerTop + playerHeight, colour);
 }
 
 void DrawRectangle(
@@ -260,6 +248,7 @@ void DrawRectangle(
 	for (int32 y = minY; y < maxY; ++y)
 	{
 		uint32* pixel = (uint32*)row;
+
 		for (int32 x = minX; x < maxX + 10; ++x)
 		{
 			*pixel++ = finalColour;
