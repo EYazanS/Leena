@@ -2,8 +2,6 @@
 
 #if !defined(LeenaH)
 
-#include <math.h>
-
 #include "GameTypes.h"
 #include "GameStructs.h"
 
@@ -34,6 +32,13 @@ struct TileMap
 	int32 TileWidth;
 	int32 TileHeight;
 	uint32* Tiles;
+};
+
+struct World
+{
+	int32 CountX;
+	int32 CountY;
+	TileMap* TileMaps;
 };
 
 #define LeenaH
