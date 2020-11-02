@@ -97,8 +97,8 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	tileMaps[1][1] = tileMaps[0][0];
 	tileMaps[1][1].Tiles = (uint32*)tiles3;
 
-	TileMap* currentTileMap = &tileMaps[0][0];
-
+	TileMap* currentTileMap = GetTileMap(&world, gameState->PlayerTileMapX, gameState->PlayerTileMapY);
+	Assert(currentTileMap);
 	real32 playerWidth = 0.5f * (real32)currentTileMap->TileWidth;
 	real32 playerHeight = 0.75f * (real32)currentTileMap->TileHeight;
 
@@ -106,6 +106,8 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	{
 		gameState->PlayerX = 140;
 		gameState->PlayerY = 70;
+		gameState->PlayerTileMapX = 0;
+		gameState->PlayerTileMapY = 0;
 		gameMemory->IsInitialized = true;
 	}
 
