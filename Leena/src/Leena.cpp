@@ -130,7 +130,7 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	playerMovementX *= pixelsToMovePerSec;
 
 	// TODO: Deal with controller movement
-	for (GameControllerInput controller : input->Controllers)
+	for (const GameControllerInput& controller : input->Controllers)
 	{
 		if (controller.IsConnected && controller.IsAnalog)
 		{
@@ -331,7 +331,7 @@ void DrawRectangle(
 
 	uint8* endOfBuffer = ((uint8*)gameScreenBuffer->Memory) + ((uint64)gameScreenBuffer->Pitch * (uint64)gameScreenBuffer->Height);
 
-	uint8* row = (((uint8*)gameScreenBuffer->Memory) + minX * 4 + minY * gameScreenBuffer->Pitch);
+	uint8* row = (((uint8*)gameScreenBuffer->Memory) + (int64)minX * 4 + (int64)minY * gameScreenBuffer->Pitch);
 
 	for (int32 y = minY; y < maxY; ++y)
 	{
