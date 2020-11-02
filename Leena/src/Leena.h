@@ -28,12 +28,6 @@ struct GameState
 
 struct TileMap
 {
-	int32 CountX;
-	int32 CountY;
-	int32 UpperLeftX;
-	int32 UpperLeftY;
-	int32 TileWidth;
-	int32 TileHeight;
 	uint32* Tiles;
 };
 
@@ -41,6 +35,12 @@ struct World
 {
 	int32 CountX;
 	int32 CountY;
+	int32 UpperLeftX;
+	int32 UpperLeftY;
+	int32 TileWidth;
+	int32 TileHeight;
+	int32 TileMapCountX;
+	int32 TileMapCountY;
 	TileMap* TileMaps;
 };
 
