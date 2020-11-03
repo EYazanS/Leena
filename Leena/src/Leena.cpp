@@ -4,8 +4,7 @@ void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int PlayerX, int Pla
 void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 playerY, real32 playerWidth, real32 playerHeight);
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
 GameAudioBuffer* ReadAudioBufferData(void* memory);
-inline int32 RoundReal32ToInt32(real32 value);
-inline int32 TruncateReal32ToInt32(real32 value);
+
 void DrawRectangle(
 	GameScreenBuffer* gameScreenBuffer,
 	real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY,
@@ -16,6 +15,11 @@ bool32 IsWorldPointEmpty(World* world, RawLocation location);
 inline int32 GetTileVAlueUnchecked(TileMap* tileMap, size_t tileCountX, size_t tileX, size_t tileY);
 inline TileMap* GetTileMap(World* world, size_t tileX, size_t tileY);
 inline CononicalLocation Canoniocalize(World* world, RawLocation location);
+
+// Math
+inline int32 FloorReal32ToInt32(real32 value);
+inline int32 RoundReal32ToInt32(real32 value);
+inline int32 TruncateReal32ToInt32(real32 value);
 
 void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
 {
@@ -38,7 +42,7 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	world.TileMapCountY = 2;
 	world.TileMaps = (TileMap*)&tileMaps;
 
-	uint32 tiles0[16][9] =
+	uint32 tiles00[16][9] =
 	{
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
@@ -51,7 +55,7 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1
 	};
 
-	uint32 tiles1[16][9] =
+	uint32 tiles01[16][9] =
 	{
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
@@ -61,10 +65,10 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1,
 		1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1,
 		1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1
 	};
 
-	uint32 tiles2[16][9] =
+	uint32 tiles10[16][9] =
 	{
 		1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
@@ -74,10 +78,10 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1,
 		1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1,
 		1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 	};
 
-	uint32 tiles3[16][9] =
+	uint32 tiles11[16][9] =
 	{
 		1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
@@ -97,10 +101,10 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	world.UpperLeftX = -30;
 	world.UpperLeftY = -30;
 
-	tileMaps[0][0].Tiles = (uint32*)tiles0;
-	tileMaps[0][1].Tiles = (uint32*)tiles1;
-	tileMaps[1][0].Tiles = (uint32*)tiles2;
-	tileMaps[1][1].Tiles = (uint32*)tiles3;
+	tileMaps[0][0].Tiles = (uint32*)tiles00;
+	tileMaps[0][1].Tiles = (uint32*)tiles01;
+	tileMaps[1][0].Tiles = (uint32*)tiles10;
+	tileMaps[1][1].Tiles = (uint32*)tiles11;
 
 	TileMap* currentTileMap = GetTileMap(&world, gameState->PlayerTileMapX, gameState->PlayerTileMapY);
 	Assert(currentTileMap);
@@ -141,7 +145,7 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	real32 newPlayerY = gameState->PlayerY + (playerMovementY * (real32)input->TimeToAdvance);
 
 	RawLocation playerLocation = { gameState->PlayerTileMapX, gameState->PlayerTileMapY, newPlayerX, newPlayerY };
-	
+
 	RawLocation playerLeftLocation = playerLocation;
 	playerLeftLocation.PlayerX -= 0.5f * playerWidth;
 
@@ -150,8 +154,12 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 
 	if (IsWorldPointEmpty(&world, playerLocation) && IsWorldPointEmpty(&world, playerLeftLocation) && IsWorldPointEmpty(&world, playerRightLocation))
 	{
-		gameState->PlayerX = TruncateReal32ToInt32(newPlayerX);
-		gameState->PlayerY = TruncateReal32ToInt32(newPlayerY);
+		CononicalLocation canLocation = Canoniocalize(&world, playerLocation);
+
+		gameState->PlayerTileMapX = canLocation.TileMapX;
+		gameState->PlayerTileMapY = canLocation.TileMapY;
+		gameState->PlayerX = world.UpperLeftX + world.TileWidth * canLocation.TileX + TruncateReal32ToInt32(canLocation.PlayerX);
+		gameState->PlayerY = world.UpperLeftY + world.TileHeight * canLocation.TileY + TruncateReal32ToInt32(canLocation.PlayerY);
 	}
 
 	DrawTimeMap(&world, screenBuffer, currentTileMap);
@@ -169,14 +177,16 @@ inline CononicalLocation Canoniocalize(World* world, RawLocation location)
 	real32 playerX = location.PlayerX - world->UpperLeftX;
 	real32 playerY = location.PlayerY - world->UpperLeftY;
 
-	result.TileX = TruncateReal32ToInt32(playerX / world->TileWidth);
-	result.TileY = TruncateReal32ToInt32(playerY / world->TileHeight);
+	result.TileX = FloorReal32ToInt32(playerX / world->TileWidth);
+	result.TileY = FloorReal32ToInt32(playerY / world->TileHeight);
 
 	result.PlayerX = playerX - result.TileX * world->TileWidth;
 	result.PlayerY = playerY - result.TileY * world->TileHeight;
 
-	Assert(result.PlayerX >= 0 && result.PlayerX < world->TileWidth);
-	Assert(result.PlayerY >= 0 && result.PlayerY < world->TileHeight);
+	Assert(result.PlayerX >= 0);
+	Assert(result.PlayerX < world->TileWidth);
+	Assert(result.PlayerY >= 0);
+	Assert(result.PlayerY < world->TileHeight);
 
 	if (result.TileX < 0)
 	{
@@ -386,15 +396,23 @@ void DrawRectangle(
 	}
 }
 
-int32 RoundReal32ToInt32(real32 value)
+inline int32 RoundReal32ToInt32(real32 value)
 {
 	int32 result = (int32)(value + 0.5f);
 	return result;
 }
 
-int32 TruncateReal32ToInt32(real32 value)
+inline int32 TruncateReal32ToInt32(real32 value)
 {
 	int32 result = (int32)(value);
+	return result;
+}
+
+#include <math.h>
+
+inline int32 FloorReal32ToInt32(real32 value)
+{
+	int32 result = (int32)floorf(value);
 	return result;
 }
 
