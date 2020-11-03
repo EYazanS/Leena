@@ -139,11 +139,15 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	real32 newPlayerX = gameState->PlayerX + (playerMovementX * (real32)input->TimeToAdvance);
 	real32 newPlayerY = gameState->PlayerY + (playerMovementY * (real32)input->TimeToAdvance);
 
-	RawLocation location = { gameState->PlayerTileMapX, gameState->PlayerTileMapY, newPlayerX, newPlayerY };
-	RawLocation leftLocation = { gameState->PlayerTileMapX, gameState->PlayerTileMapY, newPlayerX - (0.5f * playerWidth), newPlayerY };
-	RawLocation rightLocation = { gameState->PlayerTileMapX, gameState->PlayerTileMapY, newPlayerX + (0.5f * playerWidth), newPlayerY };
+	RawLocation playerLocation = { gameState->PlayerTileMapX, gameState->PlayerTileMapY, newPlayerX, newPlayerY };
+	
+	RawLocation playerLeftLocation = playerLocation;
+	playerLeftLocation.PlayerX -= 0.5f * playerWidth;
 
-	if (IsWorldPointEmpty(&world, location) && IsWorldPointEmpty(&world, leftLocation) && IsWorldPointEmpty(&world, rightLocation))
+	RawLocation playerRightLocation = playerLocation;
+	playerRightLocation.PlayerX += 0.5f * playerWidth;
+
+	if (IsWorldPointEmpty(&world, playerLocation) && IsWorldPointEmpty(&world, playerLeftLocation) && IsWorldPointEmpty(&world, playerRightLocation))
 	{
 		gameState->PlayerX = TruncateReal32ToInt32(newPlayerX);
 		gameState->PlayerY = TruncateReal32ToInt32(newPlayerY);
@@ -156,7 +160,7 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 
 inline CononicalLocation Canoniocalize(World* world, RawLocation location)
 {
-	CononicalLocation result;
+	CononicalLocation result = {};
 
 	result.TileMapX = location.TileMapX;
 	result.TileMapY = location.TileMapY;
