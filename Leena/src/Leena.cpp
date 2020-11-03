@@ -15,6 +15,7 @@ int32 IsTileMapPointEmpty(World* world, TileMap* tileMap, int32 tileTestX, int32
 bool32 IsWorldPointEmpty(World* world, RawLocation location);
 inline int32 GetTileVAlueUnchecked(TileMap* tileMap, size_t tileCountX, size_t tileX, size_t tileY);
 inline TileMap* GetTileMap(World* world, size_t tileX, size_t tileY);
+inline CononicalLocation Canoniocalize(World* world, RawLocation location);
 
 void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
 {
