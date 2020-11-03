@@ -90,7 +90,7 @@ struct MouseInput
 		{
 			GameButtonState RightButton;
 			GameButtonState LeftButton;
-			
+
 			// Add button before this line so the assertion about the buttons array == the struct can hit properly 
 			GameButtonState Terminator;
 		};
@@ -114,7 +114,7 @@ struct KeyboardInput
 
 			GameButtonState E;
 			GameButtonState Q;
-			
+
 			// Add button before this line so the assertion about the buttons array == the struct can hit properly 
 			GameButtonState Terminator;
 		};
@@ -199,4 +199,27 @@ struct Colour
 	real32 Red;
 	real32 Green;
 	real32 Blue;
+};
+
+struct RawLocation
+{
+	int32 TileMapX;
+	int32 TileMapY;
+
+	// Tile map relative
+	real32 PlayerX;
+	real32 PlayerY;
+};
+
+struct CononicalLocation
+{
+	int32 TileMapX;
+	int32 TileMapY;
+
+	int32 TileX;
+	int32 TileY;
+
+	// Tile relative
+	real32 PlayerX;
+	real32 PlayerY;
 };

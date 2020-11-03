@@ -12,7 +12,7 @@ void DrawRectangle(
 	Colour colour);
 void DrawTimeMap(World* world, GameScreenBuffer* screenBuffer, TileMap* tileMap);
 int32 IsTileMapPointEmpty(World* world, TileMap* tileMap, int32 tileTestX, int32 tileTestY);
-bool32 IsWorldPointEmpty(World* world, int32 testTileMapX, int32 testTileMapY, real32 testPlayerX, real32 testPlayerY);
+bool32 IsWorldPointEmpty(World* world, RawLocation location);
 inline int32 GetTileVAlueUnchecked(TileMap* tileMap, size_t tileCountX, size_t tileX, size_t tileY);
 inline TileMap* GetTileMap(World* world, size_t tileX, size_t tileY);
 
@@ -139,10 +139,11 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	real32 newPlayerX = gameState->PlayerX + (playerMovementX * (real32)input->TimeToAdvance);
 	real32 newPlayerY = gameState->PlayerY + (playerMovementY * (real32)input->TimeToAdvance);
 
-	if (IsWorldPointEmpty(&world, gameState->PlayerTileMapX, gameState->PlayerTileMapY, newPlayerX, newPlayerY) &&
-		IsWorldPointEmpty(&world, gameState->PlayerTileMapX, gameState->PlayerTileMapY, newPlayerX - (0.5f * playerWidth), newPlayerY) &&
-		IsWorldPointEmpty(&world, gameState->PlayerTileMapX, gameState->PlayerTileMapY, newPlayerX + (0.5f * playerWidth), newPlayerY)
-	)
+	RawLocation location = { gameState->PlayerTileMapX, gameState->PlayerTileMapY, newPlayerX, newPlayerY };
+	RawLocation leftLocation = { gameState->PlayerTileMapX, gameState->PlayerTileMapY, newPlayerX - (0.5f * playerWidth), newPlayerY };
+	RawLocation rightLocation = { gameState->PlayerTileMapX, gameState->PlayerTileMapY, newPlayerX + (0.5f * playerWidth), newPlayerY };
+
+	if (IsWorldPointEmpty(&world, location) && IsWorldPointEmpty(&world, leftLocation) && IsWorldPointEmpty(&world, rightLocation))
 	{
 		gameState->PlayerX = TruncateReal32ToInt32(newPlayerX);
 		gameState->PlayerY = TruncateReal32ToInt32(newPlayerY);
@@ -153,40 +154,58 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
 
-bool32 IsWorldPointEmpty(World* world, int32 testTileMapX, int32 testTileMapY, real32 testPlayerX, real32 testPlayerY)
+inline CononicalLocation Canoniocalize(World* world, RawLocation location)
+{
+	CononicalLocation result;
+
+	result.TileMapX = location.TileMapX;
+	result.TileMapY = location.TileMapY;
+
+	real32 playerX = location.PlayerX - world->UpperLeftX;
+	real32 playerY = location.PlayerY - world->UpperLeftY;
+
+	result.TileX = TruncateReal32ToInt32(playerX / world->TileWidth);
+	result.TileY = TruncateReal32ToInt32(playerY / world->TileHeight);
+
+	result.PlayerX = location.PlayerX - result.TileX * world->TileWidth;
+	result.PlayerY = location.PlayerX - result.TileY * world->TileHeight;
+
+	if (result.TileX < 0)
+	{
+		result.TileX = world->CountX + result.TileX;
+		--result.TileMapX;
+	}
+
+	if (result.TileY < 0)
+	{
+		result.TileY = world->CountY + result.TileY;
+		--result.TileMapY;
+	}
+
+	if (result.TileX >= world->CountX)
+	{
+		result.TileX = world->CountX - result.TileX;
+		++result.TileMapX;
+	}
+
+	if (result.TileY >= world->CountY)
+	{
+		result.TileY = world->CountY - result.TileY;
+		++result.TileMapY;
+	}
+
+	return result;
+}
+
+bool32 IsWorldPointEmpty(World* world, RawLocation location)
 {
 	int32 isEmpty = 0;
 
-	int32 testTileX = TruncateReal32ToInt32((testPlayerX - world->UpperLeftX) / world->TileWidth);
-	int32 testTileY = TruncateReal32ToInt32((testPlayerY - world->UpperLeftY) / world->TileHeight);
+	CononicalLocation canonicalLocation = Canoniocalize(world, location);
 
-	if (testTileX < 0)
-	{
-		testTileX = world->CountX + testTileX;
-		--testTileMapX;
-	}
+	TileMap* tileMap = GetTileMap(world, canonicalLocation.TileMapX, canonicalLocation.TileMapY);
 
-	if (testTileY < 0)
-	{
-		testTileY = world->CountY + testTileY;
-		--testTileMapY;
-	}
-
-	if (testTileX >= world->CountX)
-	{
-		testTileX = world->CountX - testTileX;
-		++testTileMapX;
-	}
-
-	if (testTileY >= world->CountY)
-	{
-		testTileY = world->CountY - testTileY;
-		++testTileMapY;
-	}
-
-	TileMap* tileMap = GetTileMap(world, testTileMapX, testTileMapY);
-
-	isEmpty = IsTileMapPointEmpty(world, tileMap, testTileX, testTileY);
+	isEmpty = IsTileMapPointEmpty(world, tileMap, canonicalLocation.TileX, canonicalLocation.TileY);
 
 	return isEmpty;
 }
@@ -372,7 +391,7 @@ int32 TruncateReal32ToInt32(real32 value)
 }
 
 inline int32 GetTileVAlueUnchecked(TileMap* tileMap, size_t tileCountX, size_t tileX, size_t tileY)
-{    
+{
 	return tileMap->Tiles[tileY * tileCountX + tileX];
 }
 
