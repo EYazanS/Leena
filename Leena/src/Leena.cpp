@@ -172,8 +172,11 @@ inline CononicalLocation Canoniocalize(World* world, RawLocation location)
 	result.TileX = TruncateReal32ToInt32(playerX / world->TileWidth);
 	result.TileY = TruncateReal32ToInt32(playerY / world->TileHeight);
 
-	result.PlayerX = location.PlayerX - result.TileX * world->TileWidth;
-	result.PlayerY = location.PlayerX - result.TileY * world->TileHeight;
+	result.PlayerX = playerX - result.TileX * world->TileWidth;
+	result.PlayerY = playerY - result.TileY * world->TileHeight;
+
+	Assert(result.PlayerX >= 0 && result.PlayerX < world->TileWidth);
+	Assert(result.PlayerY >= 0 && result.PlayerY < world->TileHeight);
 
 	if (result.TileX < 0)
 	{
