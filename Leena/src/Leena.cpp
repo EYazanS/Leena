@@ -93,8 +93,8 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	world.CountY = 9;
 	world.TileHeight = 60;
 	world.TileWidth = 60;
-	world.UpperLeftX = -30;
-	world.UpperLeftY = -30;
+	world.UpperLeftX = -world.TileWidth / 2;
+	world.UpperLeftY = -world.TileHeight / 2;
 
 	tileMaps[0][0].Tiles = (uint32*)tiles00;
 	tileMaps[0][1].Tiles = (uint32*)tiles01;
