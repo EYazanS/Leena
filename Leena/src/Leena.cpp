@@ -16,11 +16,6 @@ inline int32 GetTileVAlueUnchecked(TileMap* tileMap, size_t tileCountX, size_t t
 inline TileMap* GetTileMap(World* world, size_t tileX, size_t tileY);
 inline CononicalLocation Canoniocalize(World* world, RawLocation location);
 
-// Math
-inline int32 FloorReal32ToInt32(real32 value);
-inline int32 RoundReal32ToInt32(real32 value);
-inline int32 TruncateReal32ToInt32(real32 value);
-
 void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
 {
 	GameState* gameState = (GameState*)gameMemory->PermenantStorage;
@@ -394,26 +389,6 @@ void DrawRectangle(
 
 		row += gameScreenBuffer->Pitch;
 	}
-}
-
-inline int32 RoundReal32ToInt32(real32 value)
-{
-	int32 result = (int32)(value + 0.5f);
-	return result;
-}
-
-inline int32 TruncateReal32ToInt32(real32 value)
-{
-	int32 result = (int32)(value);
-	return result;
-}
-
-#include <math.h>
-
-inline int32 FloorReal32ToInt32(real32 value)
-{
-	int32 result = (int32)floorf(value);
-	return result;
 }
 
 inline int32 GetTileVAlueUnchecked(TileMap* tileMap, size_t tileCountX, size_t tileX, size_t tileY)

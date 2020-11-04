@@ -4,6 +4,7 @@
 
 #include "GameTypes.h"
 #include "GameStructs.h"
+#include "Utilities\Intrinsics.h"
 
 #define DllExport extern "C" __declspec(dllexport)
 
