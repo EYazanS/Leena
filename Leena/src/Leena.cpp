@@ -29,13 +29,23 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		gameMemory->IsInitialized = true;
 	}
 
-	World world = {};
-
 	TileMap tileMaps[2][2] = {};
+
+	World world = {};
 
 	world.TileMapCountX = 2;
 	world.TileMapCountY = 2;
+
+	world.TileMapSideInMeter = 1.4f;
+
 	world.TileMaps = (TileMap*)&tileMaps;
+	world.CountX = 16;
+	world.CountY = 9;
+
+	world.TileSideInPixels = 60;
+
+	world.UpperLeftX = -world.TileSideInPixels / 2;
+	world.UpperLeftY = 0;
 
 	uint32 tiles00[16][9] =
 	{
@@ -89,13 +99,6 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 	};
 
-	world.CountX = 16;
-	world.CountY = 9;
-	world.TileHeight = 60;
-	world.TileWidth = 60;
-	world.UpperLeftX = -world.TileWidth / 2;
-	world.UpperLeftY = -world.TileHeight / 2;
-
 	tileMaps[0][0].Tiles = (uint32*)tiles00;
 	tileMaps[0][1].Tiles = (uint32*)tiles01;
 	tileMaps[1][0].Tiles = (uint32*)tiles10;
@@ -103,8 +106,8 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 
 	TileMap* currentTileMap = GetTileMap(&world, gameState->PlayerTileMapX, gameState->PlayerTileMapY);
 	Assert(currentTileMap);
-	real32 playerWidth = 0.5f * (real32)world.TileWidth;
-	real32 playerHeight = 0.75f * (real32)world.TileHeight;
+	real32 playerWidth = 0.5f * (real32)world.TileSideInPixels;
+	real32 playerHeight = 1.25f * (real32)world.TileSideInPixels;
 
 	real32 pixelsToMovePerSec = 250.f;
 
@@ -153,8 +156,8 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 
 		gameState->PlayerTileMapX = canLocation.TileMapX;
 		gameState->PlayerTileMapY = canLocation.TileMapY;
-		gameState->PlayerX = world.UpperLeftX + world.TileWidth * canLocation.TileX + TruncateReal32ToInt32(canLocation.PlayerX);
-		gameState->PlayerY = world.UpperLeftY + world.TileHeight * canLocation.TileY + TruncateReal32ToInt32(canLocation.PlayerY);
+		gameState->PlayerX = world.UpperLeftX + world.TileSideInPixels * canLocation.TileX + TruncateReal32ToInt32(canLocation.PlayerX);
+		gameState->PlayerY = world.UpperLeftY + world.TileSideInPixels * canLocation.TileY + TruncateReal32ToInt32(canLocation.PlayerY);
 	}
 
 	DrawTimeMap(&world, screenBuffer, currentTileMap);
@@ -172,16 +175,16 @@ inline CononicalLocation Canoniocalize(World* world, RawLocation location)
 	real32 playerX = location.PlayerX - world->UpperLeftX;
 	real32 playerY = location.PlayerY - world->UpperLeftY;
 
-	result.TileX = FloorReal32ToInt32(playerX / world->TileWidth);
-	result.TileY = FloorReal32ToInt32(playerY / world->TileHeight);
+	result.TileX = FloorReal32ToInt32(playerX / world->TileSideInPixels);
+	result.TileY = FloorReal32ToInt32(playerY / world->TileSideInPixels);
 
-	result.PlayerX = playerX - result.TileX * world->TileWidth;
-	result.PlayerY = playerY - result.TileY * world->TileHeight;
+	result.PlayerX = playerX - result.TileX * world->TileSideInPixels;
+	result.PlayerY = playerY - result.TileY * world->TileSideInPixels;
 
 	Assert(result.PlayerX >= 0);
-	Assert(result.PlayerX < world->TileWidth);
+	Assert(result.PlayerX < world->TileSideInPixels);
 	Assert(result.PlayerY >= 0);
-	Assert(result.PlayerY < world->TileHeight);
+	Assert(result.PlayerY < world->TileSideInPixels);
 
 	if (result.TileX < 0)
 	{
@@ -275,11 +278,11 @@ void DrawTimeMap(World* world, GameScreenBuffer* screenBuffer, TileMap* tileMap)
 
 			(GetTileVAlueUnchecked(tileMap, world->CountX, column, row) == 1) ? colour = { 1.f, 1.f, 1.f } : colour = { 0.7f, 0.7f, 0.7f };
 
-			real32 minX = world->UpperLeftX + ((real32)column * world->TileWidth);
-			real32 maxX = minX + world->TileWidth;
+			real32 minX = world->UpperLeftX + ((real32)column * world->TileSideInPixels);
+			real32 maxX = minX + world->TileSideInPixels;
 
-			real32 minY = world->UpperLeftY + ((real32)row * world->TileHeight);
-			real32 maxY = minY + world->TileHeight;
+			real32 minY = world->UpperLeftY + ((real32)row * world->TileSideInPixels);
+			real32 maxY = minY + world->TileSideInPixels;
 
 			DrawRectangle(screenBuffer, minX, minY, maxX, maxY, colour);
 		}

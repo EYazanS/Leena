@@ -36,12 +36,17 @@ struct World
 {
 	int32 CountX;
 	int32 CountY;
+
+	real32 TileMapSideInMeter;
+
 	int32 UpperLeftX;
 	int32 UpperLeftY;
-	int32 TileWidth;
-	int32 TileHeight;
+	
+	int32 TileSideInPixels;
+	
 	int32 TileMapCountX;
 	int32 TileMapCountY;
+	
 	TileMap* TileMaps;
 };
 
