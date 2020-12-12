@@ -22,10 +22,15 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 
 	if (!gameMemory->IsInitialized)
 	{
-		gameState->PlayerX = 140;
-		gameState->PlayerY = 70;
-		gameState->PlayerTileMapX = 0;
-		gameState->PlayerTileMapY = 0;
+		gameState->PlayerPosition.TileMapX = 0;
+		gameState->PlayerPosition.TileMapX = 0;
+		
+		gameState->PlayerPosition.TileX = 3;
+		gameState->PlayerPosition.TileY = 3;
+
+		gameState->PlayerPosition.PlayerX = 140;
+		gameState->PlayerPosition.PlayerY = 70;
+
 		gameMemory->IsInitialized = true;
 	}
 
@@ -104,7 +109,7 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	tileMaps[1][0].Tiles = (uint32*)tiles10;
 	tileMaps[1][1].Tiles = (uint32*)tiles11;
 
-	TileMap* currentTileMap = GetTileMap(&world, gameState->PlayerTileMapX, gameState->PlayerTileMapY);
+	TileMap* currentTileMap = GetTileMap(&world, gameState->PlayerPosition.TileMapX, gameState->PlayerPosition.TileMapY);
 	Assert(currentTileMap);
 	real32 playerWidth = 0.5f * (real32)world.TileSideInPixels;
 	real32 playerHeight = 1.25f * (real32)world.TileSideInPixels;
@@ -134,15 +139,15 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	{
 		if (controller.IsConnected && controller.IsAnalog)
 		{
-			gameState->PlayerX += static_cast<int>(pixelsToMovePerSec * input->TimeToAdvance * controller.LeftStickAverageX);
-			gameState->PlayerY += static_cast<int>(pixelsToMovePerSec * input->TimeToAdvance * controller.LeftStickAverageY);
+			gameState->PlayerPosition.PlayerX += static_cast<int>(pixelsToMovePerSec * input->TimeToAdvance * controller.LeftStickAverageX);
+			gameState->PlayerPosition.PlayerY += static_cast<int>(pixelsToMovePerSec * input->TimeToAdvance * controller.LeftStickAverageY);
 		}
 	}
 
-	real32 newPlayerX = gameState->PlayerX + (playerMovementX * (real32)input->TimeToAdvance);
-	real32 newPlayerY = gameState->PlayerY + (playerMovementY * (real32)input->TimeToAdvance);
+	real32 newPlayerX = gameState->PlayerPosition.PlayerX + (playerMovementX * (real32)input->TimeToAdvance);
+	real32 newPlayerY = gameState->PlayerPosition.PlayerY + (playerMovementY * (real32)input->TimeToAdvance);
 
-	RawLocation playerLocation = { gameState->PlayerTileMapX, gameState->PlayerTileMapY, newPlayerX, newPlayerY };
+	RawLocation playerLocation = { gameState->PlayerPosition.TileMapX, gameState->PlayerPosition.TileMapY, newPlayerX, newPlayerY };
 
 	RawLocation playerLeftLocation = playerLocation;
 	playerLeftLocation.PlayerX -= 0.5f * playerWidth;
@@ -154,14 +159,14 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	{
 		CononicalLocation canLocation = Canoniocalize(&world, playerLocation);
 
-		gameState->PlayerTileMapX = canLocation.TileMapX;
-		gameState->PlayerTileMapY = canLocation.TileMapY;
-		gameState->PlayerX = world.UpperLeftX + world.TileSideInPixels * canLocation.TileX + TruncateReal32ToInt32(canLocation.PlayerX);
-		gameState->PlayerY = world.UpperLeftY + world.TileSideInPixels * canLocation.TileY + TruncateReal32ToInt32(canLocation.PlayerY);
+		gameState->PlayerPosition.TileMapX = canLocation.TileMapX;
+		gameState->PlayerPosition.TileMapY = canLocation.TileMapY;
+		gameState->PlayerPosition.PlayerX = world.UpperLeftX + world.TileSideInPixels * (real32)canLocation.TileX + TruncateReal32ToInt32(canLocation.PlayerX);
+		gameState->PlayerPosition.PlayerY = world.UpperLeftY + world.TileSideInPixels * (real32)canLocation.TileY + TruncateReal32ToInt32(canLocation.PlayerY);
 	}
 
 	DrawTileMap(&world, screenBuffer, currentTileMap);
-	RenderPlayer(screenBuffer, gameState->PlayerX, gameState->PlayerY, playerWidth, playerHeight);
+	RenderPlayer(screenBuffer, (uint64)gameState->PlayerPosition.PlayerX, (uint64)gameState->PlayerPosition.PlayerY, playerWidth, playerHeight);
 	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
 

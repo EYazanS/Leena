@@ -20,11 +20,7 @@ inline GameControllerInput* GetController(GameInput* input, uint8 index)
 
 struct GameState
 {
-	int PlayerTileMapX;
-	int PlayerTileMapY;
-
-	int PlayerX;
-	int PlayerY;
+	CononicalLocation PlayerPosition;
 };
 
 struct TileMap
