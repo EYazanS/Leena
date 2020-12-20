@@ -1,7 +1,6 @@
 #include "Leena.h"
 
-void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int PlayerX, int PlayerY);
-void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 playerY, real32 playerWidth, real32 playerHeight);
+void RenderPlayer(GameScreenBuffer* gameScreenBuffer, World* world, GameState* gameState, real32 playerX, real32 playerY, real32 playerWidth, real32 playerHeight);
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 
@@ -9,12 +8,15 @@ void DrawRectangle(
 	GameScreenBuffer* gameScreenBuffer,
 	real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY,
 	Colour colour);
-void DrawTileMap(World* world, GameScreenBuffer* screenBuffer, TileMap* tileMap);
-int32 IsTileMapPointEmpty(World* world, TileMap* tileMap, int32 tileTestX, int32 tileTestY);
-bool32 IsWorldPointEmpty(World* world, RawLocation location);
+void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer, TileMap* tileMap);
+int32 IsTileMapPointEmpty(World* world, TileMap* tileMap, uint32 tileTestX, uint32 tileTestY);
+bool32 IsWorldPointEmpty(World* world, CononicalLocation location);
 inline int32 GetTileValueUnchecked(TileMap* tileMap, size_t tileCountX, size_t tileX, size_t tileY);
 inline TileMap* GetTileMap(World* world, size_t tileX, size_t tileY);
-inline CononicalLocation Canoniocalize(World* world, RawLocation location);
+inline CononicalLocation RecanonicalìzeLocation(World* world, CononicalLocation location);
+inline void RecanonicalizeCoord(World* world, int32 tileCount, uint32* tileMap, int32* tile, real32* tileRelative);
+inline real32 MetersToPixels(World* world, int32 meters);
+inline real32 MetersToPixels(World* world, real32 meters);
 
 void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
 {
@@ -22,14 +24,14 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 
 	if (!gameMemory->IsInitialized)
 	{
-		gameState->PlayerPosition.TileMapX = 0;
-		gameState->PlayerPosition.TileMapX = 0;
-		
-		gameState->PlayerPosition.TileX = 3;
-		gameState->PlayerPosition.TileY = 3;
+		gameState->PlayerLocation.TileMapX = 0;
+		gameState->PlayerLocation.TileMapX = 0;
 
-		gameState->PlayerPosition.PlayerX = 140;
-		gameState->PlayerPosition.PlayerY = 70;
+		gameState->PlayerLocation.TileX = 3;
+		gameState->PlayerLocation.TileY = 3;
+
+		gameState->PlayerLocation.TileRelativeX = 0;
+		gameState->PlayerLocation.TileRelativeY = 0;
 
 		gameMemory->IsInitialized = true;
 	}
@@ -41,13 +43,14 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	world.TileMapCountX = 2;
 	world.TileMapCountY = 2;
 
-	world.TileMapSideInMeter = 1.4f;
-
 	world.TileMaps = (TileMap*)&tileMaps;
 	world.CountX = 16;
 	world.CountY = 9;
 
+	world.TileSideInMeters = 1.4f;
 	world.TileSideInPixels = 60;
+
+	world.MetersToPixels = world.TileSideInPixels / world.TileSideInMeters;
 
 	world.UpperLeftX = -world.TileSideInPixels / 2;
 	world.UpperLeftY = 0;
@@ -109,12 +112,12 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	tileMaps[1][0].Tiles = (uint32*)tiles10;
 	tileMaps[1][1].Tiles = (uint32*)tiles11;
 
-	TileMap* currentTileMap = GetTileMap(&world, gameState->PlayerPosition.TileMapX, gameState->PlayerPosition.TileMapY);
+	TileMap* currentTileMap = GetTileMap(&world, gameState->PlayerLocation.TileMapX, gameState->PlayerLocation.TileMapY);
 	Assert(currentTileMap);
-	real32 playerWidth = 0.5f * (real32)world.TileSideInPixels;
-	real32 playerHeight = 1.25f * (real32)world.TileSideInPixels;
 
-	real32 pixelsToMovePerSec = 250.f;
+	// In Meters
+	real32 playerHeight = 1.25f;
+	real32 playerWidth = 0.75f * playerHeight;
 
 	real32 playerMovementX = 0.f; // pixels/second
 	real32 playerMovementY = 0.f; // pixels/second
@@ -131,107 +134,87 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	if (input->Keyboard.S.EndedDown)
 		playerMovementY += 1.f;
 
-	playerMovementY *= pixelsToMovePerSec;
-	playerMovementX *= pixelsToMovePerSec;
+	playerMovementY *= 5;
+	playerMovementX *= 5;
 
-	// TODO: Deal with controller movement
-	for (const GameControllerInput& controller : input->Controllers)
-	{
-		if (controller.IsConnected && controller.IsAnalog)
-		{
-			gameState->PlayerPosition.PlayerX += static_cast<int>(pixelsToMovePerSec * input->TimeToAdvance * controller.LeftStickAverageX);
-			gameState->PlayerPosition.PlayerY += static_cast<int>(pixelsToMovePerSec * input->TimeToAdvance * controller.LeftStickAverageY);
-		}
-	}
+	//// TODO: Deal with controller movement
+	//for (const GameControllerInput& controller : input->Controllers)
+	//{
+	//	if (controller.IsConnected && controller.IsAnalog)
+	//	{
+	//		gameState->PlayerLocation.TileRelativeX += static_cast<int>(pixelsToMovePerSec * input->TimeToAdvance * controller.LeftStickAverageX);
+	//		gameState->PlayerLocation.TileRelativeY += static_cast<int>(pixelsToMovePerSec * input->TimeToAdvance * controller.LeftStickAverageY);
+	//	}
+	//}
 
-	real32 newPlayerX = gameState->PlayerPosition.PlayerX + (playerMovementX * (real32)input->TimeToAdvance);
-	real32 newPlayerY = gameState->PlayerPosition.PlayerY + (playerMovementY * (real32)input->TimeToAdvance);
+	CononicalLocation newPlayerLocation = gameState->PlayerLocation;
 
-	RawLocation playerLocation = { gameState->PlayerPosition.TileMapX, gameState->PlayerPosition.TileMapY, newPlayerX, newPlayerY };
+	newPlayerLocation.TileRelativeX += (real32)(input->TimeToAdvance * playerMovementX);
+	newPlayerLocation.TileRelativeY += (real32)(input->TimeToAdvance * playerMovementY);
 
-	RawLocation playerLeftLocation = playerLocation;
-	playerLeftLocation.PlayerX -= 0.5f * playerWidth;
+	newPlayerLocation = RecanonicalìzeLocation(&world, newPlayerLocation);
 
-	RawLocation playerRightLocation = playerLocation;
-	playerRightLocation.PlayerX += 0.5f * playerWidth;
+	CononicalLocation playerLeftLocation = newPlayerLocation;
+	playerLeftLocation.TileRelativeX -= 0.5f * playerWidth;
+	playerLeftLocation = RecanonicalìzeLocation(&world, playerLeftLocation);
 
-	if (IsWorldPointEmpty(&world, playerLocation) && IsWorldPointEmpty(&world, playerLeftLocation) && IsWorldPointEmpty(&world, playerRightLocation))
-	{
-		CononicalLocation canLocation = Canoniocalize(&world, playerLocation);
+	CononicalLocation playerRightLocation = newPlayerLocation;
+	playerRightLocation.TileRelativeX += 0.5f * playerWidth;
+	playerRightLocation = RecanonicalìzeLocation(&world, playerRightLocation);
 
-		gameState->PlayerPosition.TileMapX = canLocation.TileMapX;
-		gameState->PlayerPosition.TileMapY = canLocation.TileMapY;
-		gameState->PlayerPosition.PlayerX = world.UpperLeftX + world.TileSideInPixels * (real32)canLocation.TileX + TruncateReal32ToInt32(canLocation.PlayerX);
-		gameState->PlayerPosition.PlayerY = world.UpperLeftY + world.TileSideInPixels * (real32)canLocation.TileY + TruncateReal32ToInt32(canLocation.PlayerY);
-	}
+	if (IsWorldPointEmpty(&world, newPlayerLocation) && IsWorldPointEmpty(&world, playerLeftLocation) && IsWorldPointEmpty(&world, playerRightLocation))
+		gameState->PlayerLocation = newPlayerLocation;
 
-	DrawTileMap(&world, screenBuffer, currentTileMap);
-	RenderPlayer(screenBuffer, (uint64)gameState->PlayerPosition.PlayerX, (uint64)gameState->PlayerPosition.PlayerY, playerWidth, playerHeight);
+	DrawTileMap(&world, gameState, screenBuffer, currentTileMap);
+
+	RenderPlayer(screenBuffer, &world, gameState, MetersToPixels(&world, gameState->PlayerLocation.TileRelativeX), MetersToPixels(&world, gameState->PlayerLocation.TileRelativeY), MetersToPixels(&world, playerWidth), MetersToPixels(&world, playerHeight));
+
 	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
 
-inline CononicalLocation Canoniocalize(World* world, RawLocation location)
+inline void RecanonicalizeCoord(World* world, int32 tileCount, uint32* tileMap, int32* tile, real32* tileRelative)
 {
-	CononicalLocation result = {};
+	int32 offset = FloorReal32ToInt32((*tileRelative) / world->TileSideInMeters);
+	*tile += offset;
+	*tileRelative -= offset * world->TileSideInMeters;
 
-	result.TileMapX = location.TileMapX;
-	result.TileMapY = location.TileMapY;
+	Assert(*tileRelative >= 0);
+	Assert(*tileRelative < world->TileSideInMeters);
 
-	real32 playerX = location.PlayerX - world->UpperLeftX;
-	real32 playerY = location.PlayerY - world->UpperLeftY;
-
-	result.TileX = FloorReal32ToInt32(playerX / world->TileSideInPixels);
-	result.TileY = FloorReal32ToInt32(playerY / world->TileSideInPixels);
-
-	result.PlayerX = playerX - result.TileX * world->TileSideInPixels;
-	result.PlayerY = playerY - result.TileY * world->TileSideInPixels;
-
-	Assert(result.PlayerX >= 0);
-	Assert(result.PlayerX < world->TileSideInPixels);
-	Assert(result.PlayerY >= 0);
-	Assert(result.PlayerY < world->TileSideInPixels);
-
-	if (result.TileX < 0)
+	if (*tile < 0)
 	{
-		result.TileX = world->CountX + result.TileX;
-		--result.TileMapX;
+		*tile = tileCount + *tile;
+		--(*tileMap);
 	}
-
-	if (result.TileY < 0)
+	else if (*tile >= tileCount)
 	{
-		result.TileY = world->CountY + result.TileY;
-		--result.TileMapY;
+		*tile = *tile - tileCount;
+		++(*tileMap);
 	}
+}
 
-	if (result.TileX >= world->CountX)
-	{
-		result.TileX = world->CountX - result.TileX;
-		++result.TileMapX;
-	}
+CononicalLocation RecanonicalìzeLocation(World* world, CononicalLocation location)
+{
+	CononicalLocation result = location;
 
-	if (result.TileY >= world->CountY)
-	{
-		result.TileY = world->CountY - result.TileY;
-		++result.TileMapY;
-	}
+	RecanonicalizeCoord(world, world->CountX, &result.TileMapX, &result.TileX, &result.TileRelativeX);
+	RecanonicalizeCoord(world, world->CountY, &result.TileMapY, &result.TileY, &result.TileRelativeY);
 
 	return result;
 }
 
-bool32 IsWorldPointEmpty(World* world, RawLocation location)
+bool32 IsWorldPointEmpty(World* world, CononicalLocation location)
 {
 	int32 isEmpty = 0;
 
-	CononicalLocation canonicalLocation = Canoniocalize(world, location);
+	TileMap* tileMap = GetTileMap(world, location.TileMapX, location.TileMapY);
 
-	TileMap* tileMap = GetTileMap(world, canonicalLocation.TileMapX, canonicalLocation.TileMapY);
-
-	isEmpty = IsTileMapPointEmpty(world, tileMap, canonicalLocation.TileX, canonicalLocation.TileY);
+	isEmpty = IsTileMapPointEmpty(world, tileMap, location.TileX, location.TileY);
 
 	return isEmpty;
 }
 
-int32 IsTileMapPointEmpty(World* world, TileMap* tileMap, int32 testTileX, int32 testTileY)
+int32 IsTileMapPointEmpty(World* world, TileMap* tileMap, uint32 testTileX, uint32 testTileY)
 {
 	int32 isEmpty = 0;
 
@@ -247,33 +230,7 @@ int32 IsTileMapPointEmpty(World* world, TileMap* tileMap, int32 testTileX, int32
 	return isEmpty;
 }
 
-void RenderWirdGradiend(GameScreenBuffer* gameScreenBuffer, int xOffset, int yOffset)
-{
-	uint8* Row = (uint8*)gameScreenBuffer->Memory;
-
-	for (int Y = 0; Y < gameScreenBuffer->Height; ++Y)
-	{
-		uint32* Pixel = (uint32*)Row;
-
-		for (int X = 0; X < gameScreenBuffer->Width; ++X)
-		{
-			uint8 g = static_cast<uint8>(Y + yOffset);
-			uint8 b = static_cast<uint8>(X + xOffset);
-
-			/*
-			Memory:   BB GG RR xx
-			Register: xx RR GG BB
-			Pixel (32-bits)
-			*/
-
-			*Pixel++ = (g << 16) | b;
-		}
-
-		Row += gameScreenBuffer->Pitch;
-	}
-}
-
-void DrawTileMap(World* world, GameScreenBuffer* screenBuffer, TileMap* tileMap)
+void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer, TileMap* tileMap)
 {
 	for (size_t row = 0; row < world->CountY; row++)
 	{
@@ -282,6 +239,10 @@ void DrawTileMap(World* world, GameScreenBuffer* screenBuffer, TileMap* tileMap)
 			Colour colour = {};
 
 			(GetTileValueUnchecked(tileMap, world->CountX, column, row) == 1) ? colour = { 1.f, 1.f, 1.f } : colour = { 0.7f, 0.7f, 0.7f };
+
+			// For debug
+			if (column == gameState->PlayerLocation.TileX && row == gameState->PlayerLocation.TileY)
+				colour = { 0.0f, 0.0f ,0.0f };
 
 			real32 minX = world->UpperLeftX + ((real32)column * world->TileSideInPixels);
 			real32 maxX = minX + world->TileSideInPixels;
@@ -342,12 +303,12 @@ GameAudioBuffer* ReadAudioBufferData(void* memory)
 	return result;
 }
 
-void RenderPlayer(GameScreenBuffer* gameScreenBuffer, uint64 playerX, uint64 playerY, real32 playerWidth, real32 playerHeight)
+void RenderPlayer(GameScreenBuffer* gameScreenBuffer, World* world, GameState* gameState, real32 playerX, real32 playerY, real32 playerWidth, real32 playerHeight)
 {
 	Colour colour = { 1.f, 0.f, 1.f };
 
-	real32 playerTop = playerY - playerHeight;
-	real32 playerLeft = playerX - (0.5f * playerWidth);
+	real32 playerLeft = world->UpperLeftX + (world->TileSideInPixels * gameState->PlayerLocation.TileX) + playerX - (0.5f * playerWidth);
+	real32 playerTop = world->UpperLeftY + (world->TileSideInPixels * gameState->PlayerLocation.TileY) + playerY - playerHeight;
 
 	DrawRectangle(gameScreenBuffer, playerLeft, playerTop, playerLeft + playerWidth, playerTop + playerHeight, colour);
 }
@@ -412,4 +373,14 @@ inline TileMap* GetTileMap(World* world, size_t tileX, size_t tileY)
 		tileMap = &world->TileMaps[tileY * world->TileMapCountX + tileX];
 
 	return tileMap;
+}
+
+inline real32 MetersToPixels(World* world, int32 meters)
+{
+	return world->MetersToPixels * meters;
+}
+
+inline real32 MetersToPixels(World* world, real32 meters)
+{
+	return world->MetersToPixels * meters;
 }

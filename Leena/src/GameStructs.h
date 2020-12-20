@@ -201,25 +201,15 @@ struct Colour
 	real32 Blue;
 };
 
-struct RawLocation
-{
-	int32 TileMapX;
-	int32 TileMapY;
-
-	// Tile map relative
-	real32 PlayerX;
-	real32 PlayerY;
-};
-
 struct CononicalLocation
 {
-	int32 TileMapX;
-	int32 TileMapY;
+	uint32 TileMapX;
+	uint32 TileMapY;
 
 	int32 TileX;
 	int32 TileY;
 
 	// Tile relative
-	real32 PlayerX;
-	real32 PlayerY;
+	real32 TileRelativeX;
+	real32 TileRelativeY;
 };
