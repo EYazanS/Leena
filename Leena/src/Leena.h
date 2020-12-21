@@ -23,29 +23,28 @@ struct GameState
 	WorldPosition PlayerPosition;
 };
 
-struct TileMap
+struct TileChunk
 {
 	uint32* Tiles;
 };
 
 struct World
 {
-	uint32 CountX;
-	uint32 CountY;
+	uint32 ChunkDimension;
 
 	real32 TileSideInMeters;
-
-	int32 LowerLeftX;
-	int32 LowerLeftY;
 	
 	int32 TileSideInPixels;
 
 	real32 MetersToPixels;
 	
-	int32 TileMapCountX;
-	int32 TileMapCountY;
+	uint32 TileChunkCountX;
+	uint32 TileChunkCountY;
 	
-	TileMap* TileMaps;
+	uint32 ChunkShift;
+	uint32 ChunkMask;
+
+	TileChunk* TileChunks;
 };
 
 #define LeenaH
