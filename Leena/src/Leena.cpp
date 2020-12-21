@@ -52,8 +52,8 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 
 	world.MetersToPixels = world.TileSideInPixels / world.TileSideInMeters;
 
-	world.UpperLeftX = -world.TileSideInPixels / 2;
-	world.UpperLeftY = 0;
+	world.LowerLeftX = -world.TileSideInPixels / 2;
+	world.LowerLeftY = screenBuffer->Height;
 
 	uint32 tiles00[16][9] =
 	{
@@ -123,16 +123,16 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	real32 playerMovementY = 0.f; // pixels/second
 
 	if (input->Keyboard.A.EndedDown)
-		playerMovementX += -1.f;
+		playerMovementX -= 1.f;
 
 	if (input->Keyboard.D.EndedDown)
 		playerMovementX += 1.f;
 
 	if (input->Keyboard.W.EndedDown)
-		playerMovementY += -1.f;
+		playerMovementY += 1.f;
 
 	if (input->Keyboard.S.EndedDown)
-		playerMovementY += 1.f;
+		playerMovementY -= 1.f;
 
 	playerMovementY *= 5;
 	playerMovementX *= 5;
@@ -244,13 +244,13 @@ void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuf
 			if (column == gameState->PlayerPosition.TileX && row == gameState->PlayerPosition.TileY)
 				colour = { 0.0f, 0.0f ,0.0f };
 
-			real32 minX = world->UpperLeftX + ((real32)column * world->TileSideInPixels);
+			real32 minX = world->LowerLeftX + ((real32)column * world->TileSideInPixels);
 			real32 maxX = minX + world->TileSideInPixels;
 
-			real32 minY = world->UpperLeftY + ((real32)row * world->TileSideInPixels);
-			real32 maxY = minY + world->TileSideInPixels;
+			real32 minY = world->LowerLeftY - ((real32)row * world->TileSideInPixels);
+			real32 maxY = minY - world->TileSideInPixels;
 
-			DrawRectangle(screenBuffer, minX, minY, maxX, maxY, colour);
+			DrawRectangle(screenBuffer, minX, maxY, maxX, minY, colour);
 		}
 	}
 }
@@ -307,8 +307,8 @@ void RenderPlayer(GameScreenBuffer* gameScreenBuffer, World* world, GameState* g
 {
 	Colour colour = { 1.f, 0.f, 1.f };
 
-	real32 playerLeft = world->UpperLeftX + (world->TileSideInPixels * gameState->PlayerPosition.TileX) + playerX - (0.5f * playerWidth);
-	real32 playerTop = world->UpperLeftY + (world->TileSideInPixels * gameState->PlayerPosition.TileY) + playerY - playerHeight;
+	real32 playerLeft = world->LowerLeftX + (world->TileSideInPixels * gameState->PlayerPosition.TileX) + playerX - (0.5f * playerWidth);
+	real32 playerTop = world->LowerLeftY - (world->TileSideInPixels * gameState->PlayerPosition.TileY) - playerY - playerHeight;
 
 	DrawRectangle(gameScreenBuffer, playerLeft, playerTop, playerLeft + playerWidth, playerTop + playerHeight, colour);
 }

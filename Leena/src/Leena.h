@@ -35,8 +35,8 @@ struct World
 
 	real32 TileSideInMeters;
 
-	int32 UpperLeftX;
-	int32 UpperLeftY;
+	int32 LowerLeftX;
+	int32 LowerLeftY;
 	
 	int32 TileSideInPixels;
 
