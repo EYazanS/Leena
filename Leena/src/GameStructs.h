@@ -201,7 +201,7 @@ struct Colour
 	real32 Blue;
 };
 
-struct CononicalLocation
+struct WorldPosition
 {
 	uint32 TileMapX;
 	uint32 TileMapY;
