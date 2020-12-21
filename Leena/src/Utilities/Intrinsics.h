@@ -41,5 +41,13 @@ inline real32 ATan2(real32 x, real32 y)
 	return result;
 }
 
+inline uint32 AbsoluteInt32ToUInt32(int32 number)
+{
+	if (number < 0)
+		number *= -1;
+
+	return (uint32)number;
+}
+
 #define Leena_Intinsics_h
 #endif // !defined(Leena_Intinsics)

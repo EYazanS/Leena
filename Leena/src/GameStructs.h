@@ -201,15 +201,21 @@ struct Colour
 	real32 Blue;
 };
 
-struct CononicalLocation
+struct WorldPosition
 {
-	uint32 TileMapX;
-	uint32 TileMapY;
-
-	int32 TileX;
-	int32 TileY;
+	uint32 AbsTileX;
+	uint32 AbsTileY;
 
 	// Tile relative
 	real32 TileRelativeX;
 	real32 TileRelativeY;
+};
+
+struct TileChunkPosition
+{
+	int32 TileChunkX;
+	int32 TileChunkY;
+
+	int32 RelativeTileX;
+	int32 RelativeTileY;
 };

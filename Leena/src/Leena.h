@@ -20,32 +20,31 @@ inline GameControllerInput* GetController(GameInput* input, uint8 index)
 
 struct GameState
 {
-	CononicalLocation PlayerLocation;
+	WorldPosition PlayerPosition;
 };
 
-struct TileMap
+struct TileChunk
 {
 	uint32* Tiles;
 };
 
 struct World
 {
-	uint32 CountX;
-	uint32 CountY;
+	uint32 ChunkDimension;
 
 	real32 TileSideInMeters;
-
-	int32 UpperLeftX;
-	int32 UpperLeftY;
 	
 	int32 TileSideInPixels;
 
 	real32 MetersToPixels;
 	
-	int32 TileMapCountX;
-	int32 TileMapCountY;
+	uint32 TileChunkCountX;
+	uint32 TileChunkCountY;
 	
-	TileMap* TileMaps;
+	uint32 ChunkShift;
+	uint32 ChunkMask;
+
+	TileChunk* TileChunks;
 };
 
 #define LeenaH
