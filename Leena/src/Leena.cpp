@@ -1,9 +1,9 @@
 #include "Leena.h"
 
-void RenderPlayer(GameScreenBuffer* gameScreenBuffer, World* world, real32 playerX, real32 playerY, real32 playerWidth, real32 playerHeight);
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
 void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, Colour colour);
-void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer);
+void RenderPlayer(GameScreenBuffer* gameScreenBuffer, World* world, real32 playerWidth, real32 playerHeight);
+void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer, real32 playerX, real32 playerY);
 
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 bool32 IsWorldPointEmpty(World* world, WorldPosition position);
@@ -128,9 +128,9 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	if (IsWorldPointEmpty(&world, newPlayerPosition) && IsWorldPointEmpty(&world, playerLeftPosition) && IsWorldPointEmpty(&world, playerRightPosition))
 		gameState->PlayerPosition = newPlayerPosition;
 
-	DrawTileMap(&world, gameState, screenBuffer);
+	DrawTileMap(&world, gameState, screenBuffer, MetersToPixels(&world, gameState->PlayerPosition.TileRelativeX), MetersToPixels(&world, gameState->PlayerPosition.TileRelativeY));
 
-	RenderPlayer(screenBuffer, &world, MetersToPixels(&world, gameState->PlayerPosition.TileRelativeX), MetersToPixels(&world, gameState->PlayerPosition.TileRelativeY), MetersToPixels(&world, playerWidth), MetersToPixels(&world, playerHeight));
+	RenderPlayer(screenBuffer, &world, MetersToPixels(&world, playerWidth), MetersToPixels(&world, playerHeight));
 
 	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
@@ -205,37 +205,6 @@ inline int32 GetTileValueUnchecked(TileChunk* tileChunk, uint32 tileCountX, uint
 	return tileChunk->Tiles[tileY * tileCountX + tileX];
 }
 
-void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer)
-{
-	real32 centerX = 0.5f * (real32)screenBuffer->Width;
-	real32 centerY = 0.5f * screenBuffer->Height;
-
-	for (int32 relativeRow = -10; relativeRow < 10; relativeRow++)
-	{
-		for (int32 relativeColumn = -20; relativeColumn < 20; relativeColumn++)
-		{
-			uint32 column = relativeColumn + gameState->PlayerPosition.AbsTileX;
-			uint32 row = relativeRow + gameState->PlayerPosition.AbsTileY;
-
-			Colour colour = {};
-
-			(GetTileValue(world, column, row) == 1) ? colour = { 1.f, 1.f, 1.f } : colour = { 0.7f, 0.7f, 0.7f };
-
-			// For debug
-			if (column == gameState->PlayerPosition.AbsTileX && row == gameState->PlayerPosition.AbsTileY)
-				colour = { 0.0f, 0.0f ,0.0f };
-
-			real32 minX = centerX + ((real32)relativeColumn * world->TileSideInPixels);
-			real32 maxX = minX + world->TileSideInPixels;
-
-			real32 minY = centerY - ((real32)relativeRow * world->TileSideInPixels);
-			real32 maxY = minY - world->TileSideInPixels;
-
-			DrawRectangle(screenBuffer, minX, maxY, maxX, minY, colour);
-		}
-	}
-}
-
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer)
 {
 	if (0)
@@ -284,17 +253,48 @@ GameAudioBuffer* ReadAudioBufferData(void* memory)
 	return result;
 }
 
-void RenderPlayer(GameScreenBuffer* screenBuffer, World* world, real32 playerX, real32 playerY, real32 playerWidth, real32 playerHeight)
+void RenderPlayer(GameScreenBuffer* screenBuffer, World* world, real32 playerWidth, real32 playerHeight)
 {
 	Colour colour = { 1.f, 0.f, 1.f };
 
 	real32 centerX = 0.5f * (real32)screenBuffer->Width;
 	real32 centerY = 0.5f * screenBuffer->Height;
 
-	real32 playerLeft = centerX + playerX - (0.5f * playerWidth);
-	real32 playerTop = centerY - playerY - playerHeight;
+	real32 playerLeft = centerX - (0.5f * playerWidth);
+	real32 playerTop = centerY - playerHeight;
 
 	DrawRectangle(screenBuffer, playerLeft, playerTop, playerLeft + playerWidth, playerTop + playerHeight, colour);
+}
+
+void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer, real32 playerX, real32 playerY)
+{
+	real32 centerX = 0.5f * (real32)screenBuffer->Width;
+	real32 centerY = 0.5f * screenBuffer->Height;
+
+	for (int32 relativeRow = -10; relativeRow < 10; relativeRow++)
+	{
+		for (int32 relativeColumn = -20; relativeColumn < 20; relativeColumn++)
+		{
+			uint32 column = relativeColumn + gameState->PlayerPosition.AbsTileX;
+			uint32 row = relativeRow + gameState->PlayerPosition.AbsTileY;
+
+			Colour colour = {};
+
+			(GetTileValue(world, column, row) == 1) ? colour = { 1.f, 1.f, 1.f } : colour = { 0.7f, 0.7f, 0.7f };
+
+			// For debug
+			if (column == gameState->PlayerPosition.AbsTileX && row == gameState->PlayerPosition.AbsTileY)
+				colour = { 0.0f, 0.0f ,0.0f };
+
+			real32 minX = centerX - playerX + ((real32)relativeColumn * world->TileSideInPixels);
+			real32 maxX = minX + world->TileSideInPixels;
+
+			real32 minY = centerY + playerY - ((real32)relativeRow * world->TileSideInPixels);
+			real32 maxY = minY - world->TileSideInPixels;
+
+			DrawRectangle(screenBuffer, minX, maxY, maxX, minY, colour);
+		}
+	}
 }
 
 void DrawRectangle(
