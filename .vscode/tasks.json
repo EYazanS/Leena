@@ -1,0 +1,49 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cppbuild",
+			"label": "Build Linux main",
+			"command": "g++",
+			"args": [
+				"-g",
+				"${workspaceFolder}/Linux/src/main.cpp",
+				"-std=c++17",
+				"-lSDL2",
+				"-lSDL2main",
+				"-o",
+				"${workspaceFolder}/Build/Linux/game"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build",
+			"detail": "compiler: /usr/bin/cpp"
+		},
+		{
+			"type": "cppbuild",
+			"label": "Build Game Files",
+			"command": "g++",
+			"args": [
+				"-g",
+				"${workspaceFolder}/Leena/src/Leena.h",
+				"-std=c++17",
+				"-fPIC",
+				"-shared",
+				"-o",
+				"${workspaceFolder}/Build/Linux/Leena.dll"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build",
+			"detail": "compiler: /usr/bin/cpp"
+		}
+	]
+}
