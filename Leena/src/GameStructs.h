@@ -203,6 +203,7 @@ struct Colour
 
 struct WorldPosition
 {
+	// These are fixed points tile locations, the high bits are for tile chunk index, low bita are for tile index in the chunk
 	uint32 AbsTileX;
 	uint32 AbsTileY;
 

@@ -135,6 +135,16 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
 
+WorldPosition RecanonicalìzePosition(World* world, WorldPosition position)
+{
+	WorldPosition result = position;
+
+	RecanonicalizeCoord(world, &result.AbsTileX, &result.TileRelativeX);
+	RecanonicalizeCoord(world, &result.AbsTileY, &result.TileRelativeY);
+
+	return result;
+}
+
 inline void RecanonicalizeCoord(World* world, uint32* tile, real32* tileRelative)
 {
 	// World is toroidal
@@ -145,16 +155,6 @@ inline void RecanonicalizeCoord(World* world, uint32* tile, real32* tileRelative
 
 	Assert(*tileRelative >= 0);
 	Assert(*tileRelative < world->TileSideInMeters);
-}
-
-WorldPosition RecanonicalìzePosition(World* world, WorldPosition position)
-{
-	WorldPosition result = position;
-
-	RecanonicalizeCoord(world, &result.AbsTileX, &result.TileRelativeX);
-	RecanonicalizeCoord(world, &result.AbsTileY, &result.TileRelativeY);
-
-	return result;
 }
 
 inline TileChunkPosition GetTileChunkPosition(World* world, uint32 absTileX, uint32 absTileY)
@@ -284,7 +284,7 @@ void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuf
 
 			// For debug
 			if (column == gameState->PlayerPosition.AbsTileX && row == gameState->PlayerPosition.AbsTileY)
-				colour = { 0.0f, 0.0f ,0.0f };
+				colour = { 0.0f, 0.0f, 0.0f };
 
 			real32 minX = centerX - playerX + ((real32)relativeColumn * world->TileSideInPixels);
 			real32 maxX = minX + world->TileSideInPixels;
