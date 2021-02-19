@@ -73,6 +73,9 @@ int main(int argc, char **argv)
 
             SDL_UpdateWindowSurface(window);
         }
+
+        // Process the mouse input
+        LinuxGetMouseState(&currentInput->Mouse);
     }
 
     SDL_Quit();
@@ -217,4 +220,11 @@ void LinuxProccessKeyboardMessage(GameButtonState &state, bool32 isPressed, int 
 {
     state.EndedDown = isPressed;
     state.HalfTransitionCount = repeat;
+}
+
+void LinuxGetMouseState(MouseInput *mouse)
+{
+    int mouseState = SDL_GetMouseState((int *)(&mouse->X), (int *)(&mouse->Y));
+    mouse->LeftButton.EndedDown = mouseState & SDL_BUTTON(SDL_BUTTON_LEFT);
+    mouse->RightButton.EndedDown = mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT);
 }
