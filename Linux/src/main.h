@@ -25,3 +25,8 @@ struct GameCode
 SDL_Window *CreateWindow();
 GameCode LinuxLoadGameCode();
 GameMemory InitGameMemory();
+void LinuxUnloadGameCode(GameCode *gameCode);
+
+// Input
+void LinuxProccessKeyboardMessage(GameButtonState &state, bool32 isPressed, int repeat);
+void ProccessKeyboardKeys(LinuxProgramState *state, SDL_Event &event, KeyboardInput *controller);

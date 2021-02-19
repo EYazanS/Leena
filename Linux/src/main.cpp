@@ -2,7 +2,7 @@
 
 int main(int argc, char **argv)
 {
-    LinuxProgramState programState = {true};
+    LinuxProgramState programState = {};
 
     SDL_Window *window = CreateWindow();
 
@@ -20,11 +20,39 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    GameCode gameCode = LinuxLoadGameCode();
+    GameCode game = LinuxLoadGameCode();
     GameMemory gameMemory = InitGameMemory();
+
+    GameInput Input[2] = {};
+
+    GameInput *previousInput = &Input[0];
+    GameInput *currentInput = &Input[1];
+
+    GameAudioBuffer gameaudioBuffer = {};
+
+    programState.IsRunning = true;
+
+    real64 timeTookToRenderLastFrame = 0.0f;
 
     while (programState.IsRunning)
     {
+        if (0)
+        {
+            LinuxUnloadGameCode(&game);
+            game = LinuxLoadGameCode();
+        }
+
+        // Process the keyboard input.
+        KeyboardInput *oldKeyboardInput = &previousInput->Keyboard;
+        KeyboardInput *newKeyboardInput = &currentInput->Keyboard;
+
+        *newKeyboardInput = {};
+        newKeyboardInput->IsConnected = true;
+
+        // Keep the state of the down button from the past frame.
+        for (int buttonIndex = 0; buttonIndex < ArrayCount(newKeyboardInput->Buttons); buttonIndex++)
+            newKeyboardInput->Buttons[buttonIndex].EndedDown = oldKeyboardInput->Buttons[buttonIndex].EndedDown;
+
         SDL_Event e;
 
         while (SDL_PollEvent(&e) > 0)
@@ -34,6 +62,13 @@ int main(int argc, char **argv)
             case SDL_QUIT:
                 programState.IsRunning = false;
                 break;
+
+            case SDL_KEYDOWN:
+            case SDL_KEYUP:
+            {
+                ProccessKeyboardKeys(&programState, e, newKeyboardInput);
+            }
+            break;
             }
 
             SDL_UpdateWindowSurface(window);
@@ -108,7 +143,7 @@ GameMemory InitGameMemory()
 
     uint64 totalSize = gameMemory.PermenantStorageSize + gameMemory.TransiateStorageSize;
 
-    gameMemory.PermenantStorage = mmap(baseAddress, totalSize, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_SHARED, 0, 0);
+    gameMemory.PermenantStorage = mmap(baseAddress, totalSize, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_SHARED, 0, 0);
     gameMemory.TransiateStorage = (uint8 *)gameMemory.PermenantStorage + gameMemory.PermenantStorageSize;
 
     // gameMemory.FreeFile = DebugPlatformFreeFileMemory;
@@ -116,4 +151,70 @@ GameMemory InitGameMemory()
     // gameMemory.WriteFile = DebugPlatformWriteEntireFile;
 
     return gameMemory;
+}
+
+void LinuxUnloadGameCode(GameCode *gameCode)
+{
+    if (gameCode->LibraryHandle)
+        dlclose(gameCode->LibraryHandle);
+
+    gameCode->IsValid = false;
+    gameCode->Update = GameUpdateStub;
+}
+
+void ProccessKeyboardKeys(LinuxProgramState *state, SDL_Event &event, KeyboardInput *controller)
+{
+    uint32 vkCode = static_cast<uint32>(event.key.keysym.sym);
+
+    bool isPressed = event.type == SDL_KEYDOWN;
+
+    switch (vkCode)
+    {
+    case SDLK_w:
+    {
+        LinuxProccessKeyboardMessage(controller->W, isPressed, event.key.repeat);
+    }
+    break;
+
+    case SDLK_a:
+    {
+        LinuxProccessKeyboardMessage(controller->A, isPressed, event.key.repeat);
+    }
+    break;
+
+    case SDLK_d:
+    {
+        LinuxProccessKeyboardMessage(controller->D, isPressed, event.key.repeat);
+    }
+    break;
+
+    case SDLK_s:
+    {
+        LinuxProccessKeyboardMessage(controller->S, isPressed, event.key.repeat);
+    }
+    break;
+
+    case SDLK_q:
+    {
+        LinuxProccessKeyboardMessage(controller->Q, isPressed, event.key.repeat);
+    }
+    break;
+
+    case SDLK_e:
+    {
+        LinuxProccessKeyboardMessage(controller->E, isPressed, event.key.repeat);
+    }
+    break;
+
+    default:
+    {
+    }
+    break;
+    }
+}
+
+void LinuxProccessKeyboardMessage(GameButtonState &state, bool32 isPressed, int repeat)
+{
+    state.EndedDown = isPressed;
+    state.HalfTransitionCount = repeat;
 }
