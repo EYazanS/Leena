@@ -35,14 +35,13 @@
 			"args": [
 				"-g",
 				"-shared",
-				"${workspaceFolder}/Leena/src/Leena.h",
 				"-D Leena_Internal",
+				"-W",
 				"-std=c++17",
-				"-Werror",
 				"-fPIC",
-				"-shared",
 				"-o",
-				"${workspaceFolder}/Build/Linux/Leena.dll"
+				"${workspaceFolder}/Build/Linux/Leena.dll",
+				"${workspaceFolder}/Leena/src/Leena.cpp"
 			],
 			"options": {
 				"cwd": "${workspaceFolder}"

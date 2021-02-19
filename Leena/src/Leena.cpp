@@ -8,7 +8,7 @@ void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuf
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 bool32 IsWorldPointEmpty(World* world, WorldPosition position);
 
-inline WorldPosition RecanonicalìzePosition(World* world, WorldPosition position);
+inline WorldPosition RecanonicalizePosition(World* world, WorldPosition position);
 inline void RecanonicalizeCoord(World* world, uint32* tile, real32* tileRelative);
 inline real32 MetersToPixels(World* world, int32 meters);
 inline real32 MetersToPixels(World* world, real32 meters);
@@ -18,7 +18,7 @@ inline uint32 GetTileValue(World* world, uint32 absTileX, uint32 absTileY);
 inline uint32 GetTileValue(World* world, TileChunk* tileChunk, uint32 testTileX, uint32 testTileY);
 inline int32 GetTileValueUnchecked(TileChunk* tileChunk, uint32 tileCountX, uint32 tileX, uint32 tileY);
 
-void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
+DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
 {
 	GameState* gameState = (GameState*)gameMemory->PermenantStorage;
 
@@ -115,15 +115,15 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	newPlayerPosition.TileRelativeX += (real32)(input->TimeToAdvance * playerMovementX);
 	newPlayerPosition.TileRelativeY += (real32)(input->TimeToAdvance * playerMovementY);
 
-	newPlayerPosition = RecanonicalìzePosition(&world, newPlayerPosition);
+	newPlayerPosition = RecanonicalizePosition(&world, newPlayerPosition);
 
 	WorldPosition playerLeftPosition = newPlayerPosition;
 	playerLeftPosition.TileRelativeX -= 0.5f * playerWidth;
-	playerLeftPosition = RecanonicalìzePosition(&world, playerLeftPosition);
+	playerLeftPosition = RecanonicalizePosition(&world, playerLeftPosition);
 
 	WorldPosition playerRightPosition = newPlayerPosition;
 	playerRightPosition.TileRelativeX += 0.5f * playerWidth;
-	playerRightPosition = RecanonicalìzePosition(&world, playerRightPosition);
+	playerRightPosition = RecanonicalizePosition(&world, playerRightPosition);
 
 	if (IsWorldPointEmpty(&world, newPlayerPosition) && IsWorldPointEmpty(&world, playerLeftPosition) && IsWorldPointEmpty(&world, playerRightPosition))
 		gameState->PlayerPosition = newPlayerPosition;
@@ -135,7 +135,7 @@ void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer*
 	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
 
-WorldPosition RecanonicalìzePosition(World* world, WorldPosition position)
+WorldPosition RecanonicalizePosition(World* world, WorldPosition position)
 {
 	WorldPosition result = position;
 

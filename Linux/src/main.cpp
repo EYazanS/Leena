@@ -37,6 +37,7 @@ int main(int argc, char **argv)
 
             SDL_UpdateWindowSurface(window);
         }
+
     }
 
     SDL_Quit();
@@ -66,12 +67,12 @@ GameCode LinuxLoadGameCode()
 {
     char *error;
 
-    std::ifstream src("./Leena.dll", std::ios::binary);
-    std::ofstream dst("./Tmp.dll", std::ios::binary);
+    std::ifstream src("./Build/Linux/Leena.dll", std::ios::binary);
+    std::ofstream dst("./Build/Linux/Tmp.dll", std::ios::binary);
 
     dst << src.rdbuf();
 
-    void *gameCodeHandle = dlopen("./Leena.dll", RTLD_LAZY);
+    void *gameCodeHandle = dlopen("./Build/Linux/Tmp.dll", RTLD_LAZY);
 
     std::cout << "error: " << dlerror() << std::endl;
 
@@ -81,7 +82,7 @@ GameCode LinuxLoadGameCode()
     {
         result.Update = (GAMEUPDATE *)dlsym(gameCodeHandle, "GameUpdate");
 
-        if ((error = dlerror()) != NULL)
+        if ((error = dlerror()) == NULL)
             result.IsValid = true;
         else
             result.IsValid = false;
