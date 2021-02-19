@@ -3,7 +3,8 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/Leena/src"
             ],
             "defines": [
                 "Leena_Internal"
@@ -12,7 +13,6 @@
             "cppStandard": "c++17",
             "intelliSenseMode": "linux-gcc-x64",
             "compilerPath": "/usr/bin/g++",
-            
             "browse": {
                 "path": [
                     "${workspaceFolder}"

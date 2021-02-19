@@ -1,20 +1,12 @@
-#include <iostream>
-#include <SDL2/SDL.h>
+#include "main.h"
+
+SDL_Window *CreateWindow();
 
 int main(int argc, char **argv)
 {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
-    {
-        std::cout << "Failed to initialize the SDL2 library\n";
-        return -1;
-    }
+    LinuxProgramState programState = {true};
 
-    SDL_Window *window = SDL_CreateWindow(
-        "Leena Game",
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        680, 480,
-        0);
+    SDL_Window *window = CreateWindow();
 
     if (!window)
     {
@@ -30,9 +22,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    bool running = true;
-
-    while (running)
+    while (programState.IsRunning)
     {
         SDL_Event e;
 
@@ -41,10 +31,10 @@ int main(int argc, char **argv)
             switch (e.type)
             {
             case SDL_QUIT:
-                running = false;
+                programState.IsRunning = false;
                 break;
             }
-            
+
             SDL_UpdateWindowSurface(window);
         }
     }
@@ -52,4 +42,50 @@ int main(int argc, char **argv)
     SDL_Quit();
 
     return 0;
+}
+
+SDL_Window *CreateWindow()
+{
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    {
+        std::cout << "Failed to initialize the SDL2 library\n";
+        return 0;
+    }
+
+    SDL_Window *window = SDL_CreateWindow(
+        "Leena Game",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        680, 480,
+        0);
+
+    return window;
+}
+
+GameCode LinuxLoadGameCode()
+{
+    char *error;
+
+    std::ifstream src("Leena.dll", std::ios::binary);
+    std::ofstream dst("Tmp.dll", std::ios::binary);
+
+    dst << src.rdbuf();
+
+    void *gameCodeHandle = dlopen("Tmp.dll", RTLD_LAZY);
+
+    GameCode result = {gameCodeHandle, GameUpdateStub};
+
+    if (gameCodeHandle)
+    {
+        result.Update = (GAMEUPDATE *)dlsym(gameCodeHandle, "GameUpdate");
+
+        if ((error = dlerror()) != NULL)
+            result.IsValid = true;
+        else
+            result.IsValid = false;
+
+        std::cout << "error: " << error << std::endl;
+    }
+
+    return result;
 }
