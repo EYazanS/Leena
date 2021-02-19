@@ -20,6 +20,8 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    ThreadContext thread = {};
+
     GameCode game = LinuxLoadGameCode();
     GameMemory gameMemory = InitGameMemory();
 
@@ -76,6 +78,11 @@ int main(int argc, char **argv)
 
         // Process the mouse input
         LinuxGetMouseState(&currentInput->Mouse);
+
+        // Proccess screen buffer
+        GameScreenBuffer screenBuffer = {};
+
+        game.Update(&thread, &gameMemory, &screenBuffer, &gameaudioBuffer, currentInput);
     }
 
     SDL_Quit();
