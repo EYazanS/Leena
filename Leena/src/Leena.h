@@ -1,12 +1,23 @@
-#pragma once
-
 #if !defined(LeenaH)
 
 #include "GameTypes.h"
 #include "GameStructs.h"
-#include "Utilities\Intrinsics.h"
+#include "Utilities/Intrinsics.h"
 
-#define DllExport extern "C" __declspec(dllexport)
+#if defined(_MSC_VER)
+    //  Microsoft 
+    #define DllEXPORT extern "C" __declspec(dllexport)
+    #define DllIMPORT __declspec(dllimport)
+#elif defined(__GNUC__)
+    //  GCC
+    #define DllExport extern "C" __attribute__((visibility("default")))
+    #define DllIMPORT
+#else
+    //  do nothing and hope for the best?
+    #define DllEXPORT
+    #define DllIMPORT
+    #pragma warning Unknown dynamic link import/export semantics.
+#endif
 
 // Functions provided for the platform layer
 DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameAudioBuffer* soundBuffer, GameInput* input);

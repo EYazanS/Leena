@@ -29,7 +29,9 @@
 			"command": "g++",
 			"args": [
 				"-g",
+				"-shared",
 				"${workspaceFolder}/Leena/src/Leena.h",
+				"-D Leena_Internal",
 				"-std=c++17",
 				"-fPIC",
 				"-shared",
