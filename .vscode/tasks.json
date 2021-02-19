@@ -8,6 +8,9 @@
 			"args": [
 				"-g",
 				"${workspaceFolder}/Linux/src/main.cpp",
+				"-I",
+				"${workspaceFolder}/Leena/src",
+				"-D Leena_Internal",
 				"-std=c++17",
 				"-Werror",
 				"-ldl",

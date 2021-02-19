@@ -1,7 +1,5 @@
 #include "main.h"
 
-SDL_Window *CreateWindow();
-
 int main(int argc, char **argv)
 {
     LinuxProgramState programState = {true};
@@ -21,6 +19,8 @@ int main(int argc, char **argv)
         std::cout << "Failed to get the surface from the window\n";
         return -1;
     }
+
+    GameCode gameCode = LinuxLoadGameCode();
 
     while (programState.IsRunning)
     {
@@ -66,12 +66,14 @@ GameCode LinuxLoadGameCode()
 {
     char *error;
 
-    std::ifstream src("Leena.dll", std::ios::binary);
-    std::ofstream dst("Tmp.dll", std::ios::binary);
+    std::ifstream src("./Leena.dll", std::ios::binary);
+    std::ofstream dst("./Tmp.dll", std::ios::binary);
 
     dst << src.rdbuf();
 
-    void *gameCodeHandle = dlopen("Tmp.dll", RTLD_LAZY);
+    void *gameCodeHandle = dlopen("./Leena.dll", RTLD_LAZY);
+
+    std::cout << "error: " << dlerror() << std::endl;
 
     GameCode result = {gameCodeHandle, GameUpdateStub};
 
