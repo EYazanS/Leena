@@ -142,18 +142,12 @@ GameMemory InitGameMemory()
 {
     GameMemory gameMemory = {};
 
-#if Leena_Internal
-    void *baseAddress = (void *)Terabytes(2);
-#else
-    void *baseAddress = NULL;
-#endif
-
     gameMemory.PermenantStorageSize = Megabytes(64);
     gameMemory.TransiateStorageSize = Gigabytes(1);
 
     uint64 totalSize = gameMemory.PermenantStorageSize + gameMemory.TransiateStorageSize;
 
-    gameMemory.PermenantStorage = mmap(baseAddress, totalSize, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_SHARED, 0, 0);
+    gameMemory.PermenantStorage = malloc(totalSize);
     gameMemory.TransiateStorage = (uint8 *)gameMemory.PermenantStorage + gameMemory.PermenantStorageSize;
 
     // gameMemory.FreeFile = DebugPlatformFreeFileMemory;
