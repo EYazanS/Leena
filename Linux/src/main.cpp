@@ -21,6 +21,7 @@ int main(int argc, char **argv)
     }
 
     GameCode gameCode = LinuxLoadGameCode();
+    GameMemory gameMemory = InitGameMemory();
 
     while (programState.IsRunning)
     {
@@ -37,7 +38,6 @@ int main(int argc, char **argv)
 
             SDL_UpdateWindowSurface(window);
         }
-
     }
 
     SDL_Quit();
@@ -91,4 +91,29 @@ GameCode LinuxLoadGameCode()
     }
 
     return result;
+}
+
+GameMemory InitGameMemory()
+{
+    GameMemory gameMemory = {};
+
+#if Leena_Internal
+    void *baseAddress = (void *)Terabytes(2);
+#else
+    void *baseAddress = NULL;
+#endif
+
+    gameMemory.PermenantStorageSize = Megabytes(64);
+    gameMemory.TransiateStorageSize = Gigabytes(1);
+
+    uint64 totalSize = gameMemory.PermenantStorageSize + gameMemory.TransiateStorageSize;
+
+    gameMemory.PermenantStorage = mmap(baseAddress, totalSize, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_SHARED, 0, 0);
+    gameMemory.TransiateStorage = (uint8 *)gameMemory.PermenantStorage + gameMemory.PermenantStorageSize;
+
+    // gameMemory.FreeFile = DebugPlatformFreeFileMemory;
+    // gameMemory.ReadFile = DebugPlatformReadEntireFile;
+    // gameMemory.WriteFile = DebugPlatformWriteEntireFile;
+
+    return gameMemory;
 }
