@@ -6,8 +6,8 @@
 
 #if defined(_MSC_VER)
     //  Microsoft 
-    #define DllEXPORT extern "C" __declspec(dllexport)
-    #define DllIMPORT __declspec(dllimport)
+    #define DllExport extern "C" __declspec(dllexport)
+    #define DllImport __declspec(dllimport)
 #elif defined(__GNUC__)
     //  GCC
     #define DllExport extern "C" __attribute__((visibility("default")))
