@@ -2,22 +2,21 @@
 
 #include "GameTypes.h"
 #include "GameStructs.h"
-#include "Utilities/Intrinsics.h"
-#include "TileMap.h"
+
 
 #if defined(_MSC_VER)
-    //  Microsoft 
-    #define DllExport extern "C" __declspec(dllexport)
-    #define DllImport __declspec(dllimport)
+//  Microsoft 
+#define DllExport extern "C" __declspec(dllexport)
+#define DllImport __declspec(dllimport)
 #elif defined(__GNUC__)
-    //  GCC
-    #define DllExport extern "C" __attribute__((visibility("default")))
-    #define DllIMPORT
+//  GCC
+#define DllExport extern "C" __attribute__((visibility("default")))
+#define DllIMPORT
 #else
-    //  do nothing and hope for the best?
-    #define DllEXPORT
-    #define DllIMPORT
-    #pragma warning Unknown dynamic link import/export semantics.
+//  do nothing and hope for the best?
+#define DllEXPORT
+#define DllIMPORT
+#pragma warning Unknown dynamic link import/export semantics.
 #endif
 
 // Functions provided for the platform layer
@@ -30,14 +29,17 @@ inline GameControllerInput* GetController(GameInput* input, uint8 index)
 	return result;
 }
 
+#include "Utilities/Intrinsics.h"
+#include "Map/TileMap.h"
+
 struct GameState
 {
-	WorldPosition PlayerPosition;
+	TileMapPosition PlayerPosition;
 };
 
 struct World
 {
-    Map Map;
+	Map* Map;
 };
 
 #define LeenaH

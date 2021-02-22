@@ -35,12 +35,15 @@
     <ClInclude Include="src\Utilities\Intrinsics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\TileMap.h">
+    <ClInclude Include="src\Map\TileMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Leena.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Map\TileMap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
