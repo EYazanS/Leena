@@ -3,6 +3,7 @@
 #include "GameTypes.h"
 #include "GameStructs.h"
 #include "Utilities/Intrinsics.h"
+#include "TileMap.h"
 
 #if defined(_MSC_VER)
     //  Microsoft 
@@ -34,28 +35,9 @@ struct GameState
 	WorldPosition PlayerPosition;
 };
 
-struct TileChunk
-{
-	uint32* Tiles;
-};
-
 struct World
 {
-	uint32 ChunkDimension;
-
-	real32 TileSideInMeters;
-	
-	int32 TileSideInPixels;
-
-	real32 MetersToPixels;
-	
-	uint32 TileChunkCountX;
-	uint32 TileChunkCountY;
-	
-	uint32 ChunkShift;
-	uint32 ChunkMask;
-
-	TileChunk* TileChunks;
+    Map Map;
 };
 
 #define LeenaH

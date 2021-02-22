@@ -4,13 +4,19 @@
 // Math
 inline int32 RoundReal32ToInt32(real32 value)
 {
-	int32 result = (int32)(value + 0.5f);
+	int32 result = (int32)roundf(value);
 	return result;
 }
 
 inline int32 TruncateReal32ToInt32(real32 value)
 {
 	int32 result = (int32)(value);
+	return result;
+}
+
+inline uint32 TruncateReal32ToUint32(real32 value)
+{
+	uint32 result = (uint32)(value);
 	return result;
 }
 

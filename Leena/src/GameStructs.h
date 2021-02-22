@@ -212,11 +212,3 @@ struct WorldPosition
 	real32 TileRelativeY;
 };
 
-struct TileChunkPosition
-{
-	int32 TileChunkX;
-	int32 TileChunkY;
-
-	int32 RelativeTileX;
-	int32 RelativeTileY;
-};

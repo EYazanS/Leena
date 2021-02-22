@@ -2,7 +2,7 @@
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
 void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, Colour colour);
-void RenderPlayer(GameScreenBuffer* gameScreenBuffer, World* world, real32 playerWidth, real32 playerHeight);
+void RenderPlayer(GameScreenBuffer* gameScreenBuffer, real32 playerWidth, real32 playerHeight);
 void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer, real32 playerX, real32 playerY);
 
 GameAudioBuffer* ReadAudioBufferData(void* memory);
@@ -58,24 +58,24 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 
 	World world = {};
 
-	world.TileChunkCountX = 1;
-	world.TileChunkCountY = 1;
+	world.Map.TileChunkCountX = 1;
+	world.Map.TileChunkCountY = 1;
 
 	TileChunk tileChunk = { (uint32*)tempTiles };
 
-	world.TileChunks = &tileChunk;
-	world.ChunkDimension = 256;
+	world.Map.TileChunks = &tileChunk;
+	world.Map.ChunkDimension = 256;
 
-	world.TileSideInMeters = 1.4f;
-	world.TileSideInPixels = 60;
+	world.Map.TileSideInMeters = 1.4f;
+	world.Map.TileSideInPixels = 60;
 
 	// for using 256x256 tile chunks
-	world.ChunkShift = 8;
-	world.ChunkMask = (1 << world.ChunkShift) - 1;
+	world.Map.ChunkShift = 8;
+	world.Map.ChunkMask = (1 << world.Map.ChunkShift) - 1;
 
-	world.MetersToPixels = world.TileSideInPixels / world.TileSideInMeters;
+	world.Map.MetersToPixels = world.Map.TileSideInPixels / world.Map.TileSideInMeters;
 
-	real32 lowerLeftX = -world.TileSideInPixels / 2.0f;
+	real32 lowerLeftX = -world.Map.TileSideInPixels / 2.0f;
 	real32 lowerLeftY = (real32)screenBuffer->Height;
 
 	// In Meters
@@ -118,10 +118,12 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 	newPlayerPosition = RecanonicalizePosition(&world, newPlayerPosition);
 
 	WorldPosition playerLeftPosition = newPlayerPosition;
+
 	playerLeftPosition.TileRelativeX -= 0.5f * playerWidth;
 	playerLeftPosition = RecanonicalizePosition(&world, playerLeftPosition);
 
 	WorldPosition playerRightPosition = newPlayerPosition;
+
 	playerRightPosition.TileRelativeX += 0.5f * playerWidth;
 	playerRightPosition = RecanonicalizePosition(&world, playerRightPosition);
 
@@ -130,7 +132,7 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 
 	DrawTileMap(&world, gameState, screenBuffer, MetersToPixels(&world, gameState->PlayerPosition.TileRelativeX), MetersToPixels(&world, gameState->PlayerPosition.TileRelativeY));
 
-	RenderPlayer(screenBuffer, &world, MetersToPixels(&world, playerWidth), MetersToPixels(&world, playerHeight));
+	RenderPlayer(screenBuffer, MetersToPixels(&world, playerWidth), MetersToPixels(&world, playerHeight));
 
 	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
@@ -148,24 +150,24 @@ WorldPosition RecanonicalizePosition(World* world, WorldPosition position)
 inline void RecanonicalizeCoord(World* world, uint32* tile, real32* tileRelative)
 {
 	// World is toroidal
-	int32 offset = FloorReal32ToInt32((*tileRelative) / world->TileSideInMeters);
+	int32 offset = RoundReal32ToInt32((*tileRelative) / world->Map.TileSideInMeters);
 
 	*tile += offset;
-	*tileRelative -= offset * world->TileSideInMeters;
+	*tileRelative -= offset * world->Map.TileSideInMeters;
 
-	Assert(*tileRelative >= 0);
-	Assert(*tileRelative < world->TileSideInMeters);
+	Assert(*tileRelative >= (-0.5f * world->Map.TileSideInMeters));
+	Assert(*tileRelative <= (0.5f * world->Map.TileSideInMeters));
 }
 
 inline TileChunkPosition GetTileChunkPosition(World* world, uint32 absTileX, uint32 absTileY)
 {
 	TileChunkPosition result = {};
 
-	result.TileChunkX = absTileX >> world->ChunkShift;
-	result.TileChunkY = absTileY >> world->ChunkShift;
+	result.TileChunkX = absTileX >> world->Map.ChunkShift;
+	result.TileChunkY = absTileY >> world->Map.ChunkShift;
 
-	result.RelativeTileX = absTileX & world->ChunkMask;
-	result.RelativeTileY = absTileY & world->ChunkMask;
+	result.RelativeTileX = absTileX & world->Map.ChunkMask;
+	result.RelativeTileY = absTileY & world->Map.ChunkMask;
 
 	return result;
 }
@@ -195,7 +197,7 @@ inline uint32 GetTileValue(World* world, TileChunk* tileChunk, uint32 testTileX,
 	uint32 tileChunkValue = 0;
 
 	if (tileChunk)
-		tileChunkValue = GetTileValueUnchecked(tileChunk, world->ChunkDimension, testTileX, testTileY);
+		tileChunkValue = GetTileValueUnchecked(tileChunk, world->Map.ChunkDimension, testTileX, testTileY);
 
 	return tileChunkValue;
 }
@@ -253,7 +255,13 @@ GameAudioBuffer* ReadAudioBufferData(void* memory)
 	return result;
 }
 
-void RenderPlayer(GameScreenBuffer* screenBuffer, World* world, real32 playerWidth, real32 playerHeight)
+/// <summary>
+/// Put the player sprite in the screen buffer for rendering
+/// </summary>
+/// <param name="screenBuffer">The screen buffer that the function will fill</param>
+/// <param name="playerWidth">Player width in pixels</param>
+/// <param name="playerHeight">Player height in pixels</param>
+void RenderPlayer(GameScreenBuffer* screenBuffer, real32 playerWidth, real32 playerHeight)
 {
 	Colour colour = { 1.f, 0.f, 1.f };
 
@@ -268,8 +276,8 @@ void RenderPlayer(GameScreenBuffer* screenBuffer, World* world, real32 playerWid
 
 void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer, real32 playerX, real32 playerY)
 {
-	real32 centerX = 0.5f * (real32)screenBuffer->Width;
-	real32 centerY = 0.5f * screenBuffer->Height;
+	real32 screenCenterX = 0.5f * (real32)screenBuffer->Width;
+	real32 screenCenterY = 0.5f * screenBuffer->Height;
 
 	for (int32 relativeRow = -10; relativeRow < 10; relativeRow++)
 	{
@@ -286,13 +294,17 @@ void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuf
 			if (column == gameState->PlayerPosition.AbsTileX && row == gameState->PlayerPosition.AbsTileY)
 				colour = { 0.0f, 0.0f, 0.0f };
 
-			real32 minX = centerX - playerX + ((real32)relativeColumn * world->TileSideInPixels);
-			real32 maxX = minX + world->TileSideInPixels;
+			/// TODO: Fix why the tile map y is inverted, like it goes out of boundries from down instead of up
+			real32 tileCenterX = screenCenterX - playerX + ((real32)relativeColumn * world->Map.TileSideInPixels);
+			real32 tileCenterY = screenCenterY + playerY - ((real32)relativeRow * world->Map.TileSideInPixels);
 
-			real32 minY = centerY + playerY - ((real32)relativeRow * world->TileSideInPixels);
-			real32 maxY = minY - world->TileSideInPixels;
+			real32 tileMinX = tileCenterX - (0.5f * world->Map.TileSideInPixels);
+			real32 tileMinY = tileCenterY - (0.5f * world->Map.TileSideInPixels);
 
-			DrawRectangle(screenBuffer, minX, maxY, maxX, minY, colour);
+			real32 tileMaxX = tileCenterX + (0.5f * world->Map.TileSideInPixels);
+			real32 tileMaxY = tileMinY - (world->Map.TileSideInPixels);
+
+			DrawRectangle(screenBuffer, tileMinX, tileMaxY, tileMaxX, tileMinY, colour);
 		}
 	}
 }
@@ -348,18 +360,18 @@ inline TileChunk* GetTileChunk(World* world, uint32 tileChunkX, uint32 tileChunk
 {
 	TileChunk* tileChunk = 0;
 
-	if (tileChunkX <= world->TileChunkCountX && tileChunkY <= world->TileChunkCountY)
-		tileChunk = &world->TileChunks[tileChunkY * world->TileChunkCountX + tileChunkX];
+	if (tileChunkX <= world->Map.TileChunkCountX && tileChunkY <= world->Map.TileChunkCountY)
+		tileChunk = &world->Map.TileChunks[tileChunkY * world->Map.TileChunkCountX + tileChunkX];
 
 	return tileChunk;
 }
 
 inline real32 MetersToPixels(World* world, int32 meters)
 {
-	return world->MetersToPixels * meters;
+	return world->Map.MetersToPixels * meters;
 }
 
 inline real32 MetersToPixels(World* world, real32 meters)
 {
-	return world->MetersToPixels * meters;
+	return world->Map.MetersToPixels * meters;
 }

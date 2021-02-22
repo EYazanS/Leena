@@ -35,6 +35,9 @@
     <ClInclude Include="src\Utilities\Intrinsics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\TileMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Leena.cpp">
