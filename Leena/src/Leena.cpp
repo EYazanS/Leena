@@ -35,24 +35,24 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 		world->Map->TileChunkCountX = 16;
 		world->Map->TileChunkCountY = 16;
 
-		world->Map->TileChunks = PushArray(&gameState->WorldArena, world->Map->TileChunkCountX * world->Map->TileChunkCountY, TileChunk);
-
-		for (uint32 y = 0; y < world->Map->TileChunkCountY; y++)
-		{
-			for (uint32 x = 0; x < world->Map->TileChunkCountX; x++)
-			{
-				world->Map->TileChunks[y * world->Map->TileChunkCountX + x].Tiles = PushArray(&gameState->WorldArena, world->Map->ChunkDimension * world->Map->ChunkDimension, uint32);
-			}
-		}
-
-		world->Map->ChunkDimension = 256;
-
+		world->Map->TileChunks = PushArray(&gameState->WorldArena, static_cast<uint64>(world->Map->TileChunkCountX) * static_cast<uint64>(world->Map->TileChunkCountY), TileChunk);
 		world->Map->TileSideInMeters = 1.4f;
+		
 		world->Map->TileSideInPixels = 60;
 
 		// for using 256x256 tile chunks
 		world->Map->ChunkShift = 8;
 		world->Map->ChunkMask = (1 << world->Map->ChunkShift) - 1;
+		world->Map->ChunkDimension = (1 << world->Map->ChunkShift);
+
+		for (uint32 y = 0; y < world->Map->TileChunkCountY; y++)
+		{
+			for (uint32 x = 0; x < world->Map->TileChunkCountX; x++)
+			{
+				world->Map->TileChunks[y * world->Map->TileChunkCountX + x].Tiles = PushArray(&gameState->WorldArena, static_cast<uint64>(world->Map->ChunkDimension) * static_cast<uint64>(world->Map->ChunkDimension), uint32);
+			}
+		}
+
 
 		world->Map->MetersToPixels = world->Map->TileSideInPixels / world->Map->TileSideInMeters;
 
