@@ -1,5 +1,4 @@
 #include "Leena.h"
-#include <stdlib.h>
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
 void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, Colour colour);
@@ -70,7 +69,7 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 					{
 						uint32 absTileX = screenX * tilerPerScreenWidth + tileX;
 						uint32 absTileY = screenY * tilerPerScreenHeight + tileY;
-						SetTileValue(&gameState->WorldArena, world->Map, absTileX, absTileY, rand() % (1 - 0 + 1) + 0);
+						SetTileValue(&gameState->WorldArena, world->Map, absTileX, absTileY, tileX == tileY && tileY % 2 == 0);
 					}
 				}
 			}
