@@ -178,8 +178,8 @@ struct GameInput
 
 struct GameMemory
 {
-	uint64 PermenantStorageSize;
-	uint64 TransiateStorageSize;
+	MemorySizeIndex PermenantStorageSize;
+	MemorySizeIndex TransiateStorageSize;
 	void* PermenantStorage;
 	void* TransiateStorage;
 	bool32 IsInitialized;
@@ -199,4 +199,11 @@ struct Colour
 	real32 Red;
 	real32 Green;
 	real32 Blue;
+};
+
+struct MemoryArena
+{
+	MemorySizeIndex Size;
+	MemorySizeIndex UsedAmount;
+	uint8* BaseMemory;
 };

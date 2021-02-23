@@ -1,8 +1,10 @@
 #if !defined(LeenaH)
 
+
 #include "GameTypes.h"
 #include "GameStructs.h"
-
+#include "Utilities/Intrinsics.h"
+#include "Map/TileMap.h"
 
 #if defined(_MSC_VER)
 //  Microsoft 
@@ -29,19 +31,17 @@ inline GameControllerInput* GetController(GameInput* input, uint8 index)
 	return result;
 }
 
-#include "Utilities/Intrinsics.h"
-#include "Map/TileMap.h"
-
-struct GameState
-{
-	TileMapPosition PlayerPosition;
-};
-
 struct World
 {
 	Map* Map;
 };
 
+struct GameState
+{
+	MemoryArena WorldArena;
+	World* World;
+	TileMapPosition PlayerPosition;
+};
 #define LeenaH
 
 #endif

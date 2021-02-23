@@ -1,6 +1,6 @@
 #include "TileMap.h"
 
- TileChunk* GetTileChunk(Map* map, uint32 tileChunkX, uint32 tileChunkY)
+TileChunk* GetTileChunk(Map* map, uint32 tileChunkX, uint32 tileChunkY)
 {
 	TileChunk* tileChunk = 0;
 
@@ -10,12 +10,17 @@
 	return tileChunk;
 }
 
- int32 GetTileValueUnchecked(TileChunk* tileChunk, uint32 tileCountX, uint32 tileX, uint32 tileY)
+int32 GetTileValueUnchecked(TileChunk* tileChunk, uint32 tileCountX, uint32 tileX, uint32 tileY)
 {
 	return tileChunk->Tiles[tileY * tileCountX + tileX];
 }
 
- uint32 GetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 testTileY)
+void SetTileValueUnchecked(TileChunk* tileChunk, uint32 tileCountX, uint32 tileX, uint32 tileY, uint32 value)
+{
+	tileChunk->Tiles[tileY * tileCountX + tileX] = value;
+}
+
+uint32 GetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 testTileY)
 {
 	uint32 tileChunkValue = 0;
 
@@ -25,8 +30,13 @@
 	return tileChunkValue;
 }
 
+void SetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 testTileY, uint32 value)
+{
+	SetTileValueUnchecked(tileChunk, map->ChunkDimension, testTileX, testTileY, value);
+}
 
- void RecanonicalizeCoord(Map* map, uint32* tile, real32* tileRelative)
+
+void RecanonicalizeCoord(Map* map, uint32* tile, real32* tileRelative)
 {
 	// Map is toroidal
 	int32 offset = RoundReal32ToInt32((*tileRelative) / map->TileSideInMeters);
@@ -38,7 +48,7 @@
 	Assert(*tileRelative <= (0.5f * map->TileSideInMeters));
 }
 
- TileChunkPosition GetTileChunkPosition(Map* map, uint32 absTileX, uint32 absTileY)
+TileChunkPosition GetTileChunkPosition(Map* map, uint32 absTileX, uint32 absTileY)
 {
 	TileChunkPosition result = {};
 
@@ -51,7 +61,7 @@
 	return result;
 }
 
- uint32 GetTileValue(Map* map, uint32 absTileX, uint32 absTileY)
+uint32 GetTileValue(Map* map, uint32 absTileX, uint32 absTileY)
 {
 	TileChunkPosition chunkPosition = GetTileChunkPosition(map, absTileX, absTileY);
 
@@ -63,7 +73,7 @@
 }
 
 
- TileMapPosition RecanonicalizePosition(Map* map, TileMapPosition position)
+TileMapPosition RecanonicalizePosition(Map* map, TileMapPosition position)
 {
 	TileMapPosition result = position;
 
@@ -82,12 +92,24 @@ bool32 IsMapPointEmpty(Map* map, TileMapPosition position)
 	return isEmpty;
 }
 
- real32 MetersToPixels(Map* map, int32 meters)
+real32 MetersToPixels(Map* map, int32 meters)
 {
 	return map->MetersToPixels * meters;
 }
 
- real32 MetersToPixels(Map* map, real32 meters)
+real32 MetersToPixels(Map* map, real32 meters)
 {
 	return map->MetersToPixels * meters;
+}
+
+void SetTileValue(MemoryArena* arena, Map* map, uint32 tileX, uint32 tileY, uint32 value)
+{
+	TileChunkPosition chunkPosition = GetTileChunkPosition(map, tileX, tileY);
+	TileChunk* chunk = GetTileChunk(map, chunkPosition.TileChunkX, chunkPosition.TileChunkY);
+
+	// TODO: on demand tile chink creation
+	Assert(chunk);
+
+	SetTileValue(map, chunk, chunkPosition.RelativeTileX, chunkPosition.RelativeTileY, value);
+
 }
