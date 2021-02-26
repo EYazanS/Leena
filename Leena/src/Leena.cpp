@@ -81,7 +81,7 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 
 	// In Meters
 	real32 playerHeight = 1.4f;
-	real32 playerWidth = playerHeight;
+	real32 playerWidth = 0.75f * playerHeight;
 
 	real32 playerMovementX = 0.f; // pixels/second
 	real32 playerMovementY = 0.f; // pixels/second
@@ -277,7 +277,7 @@ void DrawRectangle(
 	{
 		uint32* pixel = (uint32*)row;
 
-		for (int32 x = minX; x < maxX + 10; ++x)
+		for (int32 x = minX; x < maxX; ++x)
 		{
 			*pixel++ = finalColour;
 		}
