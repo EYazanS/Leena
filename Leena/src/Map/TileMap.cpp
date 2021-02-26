@@ -109,7 +109,7 @@ real32 MetersToPixels(Map* map, real32 meters)
 	return map->MetersToPixels * meters;
 }
 
-void SetTileValue(MemoryPool* arena, Map* map, uint32 tileX, uint32 tileY, uint32 value)
+void SetTileValue(MemoryPool* pool, Map* map, uint32 tileX, uint32 tileY, uint32 value)
 {
 	TileChunkPosition chunkPosition = GetTileChunkPosition(map, tileX, tileY);
 	TileChunk* chunk = GetTileChunk(map, chunkPosition.TileChunkX, chunkPosition.TileChunkY);
