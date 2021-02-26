@@ -210,8 +210,10 @@ void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuf
 	real32 screenCenterX = 0.5f * (real32)screenBuffer->Width;
 	real32 screenCenterY = 0.5f * (real32)screenBuffer->Height;
 
+	// Relative to the player position, so its current row -10 and +10
 	for (int32 relativeRow = -10; relativeRow < 10; relativeRow++)
 	{
+		// Relative to the player position, so its current column -20 and +20
 		for (int32 relativeColumn = -20; relativeColumn < 20; relativeColumn++)
 		{
 			uint32 column = relativeColumn + gameState->PlayerPosition.AbsTileX;
