@@ -200,7 +200,7 @@ void RenderPlayer(GameScreenBuffer* screenBuffer, real32 playerWidth, real32 pla
 	real32 centerY = 0.5f * screenBuffer->Height;
 
 	real32 playerLeft = centerX - (0.5f * playerWidth);
-	real32 playerTop = centerY - playerHeight;
+	real32 playerTop = centerY - (0.5f * playerHeight);
 
 	DrawRectangle(screenBuffer, playerLeft, playerTop, playerLeft + playerWidth, playerTop + playerHeight, colour);
 }
@@ -208,7 +208,7 @@ void RenderPlayer(GameScreenBuffer* screenBuffer, real32 playerWidth, real32 pla
 void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer, real32 playerX, real32 playerY)
 {
 	real32 screenCenterX = 0.5f * (real32)screenBuffer->Width;
-	real32 screenCenterY = 0.5f * screenBuffer->Height;
+	real32 screenCenterY = 0.5f * (real32)screenBuffer->Height;
 
 	for (int32 relativeRow = -10; relativeRow < 10; relativeRow++)
 	{
@@ -225,7 +225,6 @@ void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuf
 			if (column == gameState->PlayerPosition.AbsTileX && row == gameState->PlayerPosition.AbsTileY)
 				colour = { 0.0f, 0.0f, 0.0f };
 
-			/// TODO: Fix why the tile map y is inverted, like it goes out of boundries from down instead of up
 			real32 tileCenterX = screenCenterX - playerX + ((real32)relativeColumn * world->Map->TileSideInPixels);
 			real32 tileCenterY = screenCenterY + playerY - ((real32)relativeRow * world->Map->TileSideInPixels);
 
@@ -233,9 +232,9 @@ void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuf
 			real32 tileMinY = tileCenterY - (0.5f * world->Map->TileSideInPixels);
 
 			real32 tileMaxX = tileCenterX + (0.5f * world->Map->TileSideInPixels);
-			real32 tileMaxY = tileMinY - (world->Map->TileSideInPixels);
+			real32 tileMaxY = tileCenterY + (0.5f * world->Map->TileSideInPixels);
 
-			DrawRectangle(screenBuffer, tileMinX, tileMaxY, tileMaxX, tileMinY, colour);
+			DrawRectangle(screenBuffer, tileMinX, tileMinY, tileMaxX, tileMaxY, colour);
 		}
 	}
 }

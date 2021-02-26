@@ -49,7 +49,7 @@ bool32 IsMapPointEmpty(Map* map, TileMapPosition position);
 uint32 GetTileValue(Map* map, uint32 absTileX, uint32 absTileY);
 uint32 GetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 testTileY);
 TileMapPosition RecanonicalizePosition(Map* map, TileMapPosition position);
-void RecanonicalizeCoord(Map* map, uint32* tile, real32* tileRelative);
+void RecanonicalizeCoordinant(Map* map, uint32* tile, real32* tileRelative);
 real32 MetersToPixels(Map* map, int32 meters);
 real32 MetersToPixels(Map* map, real32 meters);
 TileChunkPosition GetTileChunkPosition(Map* map, uint32 absTileX, uint32 absTileY);

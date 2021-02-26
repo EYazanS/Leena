@@ -35,10 +35,17 @@ void SetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 testT
 	SetTileValueUnchecked(tileChunk, map->ChunkDimension, testTileX, testTileY, value);
 }
 
-
-void RecanonicalizeCoord(Map* map, uint32* tile, real32* tileRelative)
+/// <summary>
+/// Recalculate where the position should be for the new coordinat, either X or Y side
+/// </summary>
+/// <param name="map">current map to recalculate for</param>
+/// <param name="tile">the current tile that will be recalculated</param>
+/// <param name="tileRelative">Where relatively are we to the tile</param>
+void RecanonicalizeCoordinant(Map* map, uint32* tile, real32* tileRelative)
 {
 	// Map is toroidal
+
+	// Offset from the current tile center, if its above 1 then it means we moved one tile
 	int32 offset = RoundReal32ToInt32((*tileRelative) / map->TileSideInMeters);
 
 	*tile += offset;
@@ -77,8 +84,8 @@ TileMapPosition RecanonicalizePosition(Map* map, TileMapPosition position)
 {
 	TileMapPosition result = position;
 
-	RecanonicalizeCoord(map, &result.AbsTileX, &result.TileRelativeX);
-	RecanonicalizeCoord(map, &result.AbsTileY, &result.TileRelativeY);
+	RecanonicalizeCoordinant(map, &result.AbsTileX, &result.TileRelativeX);
+	RecanonicalizeCoordinant(map, &result.AbsTileY, &result.TileRelativeY);
 
 	return result;
 }
