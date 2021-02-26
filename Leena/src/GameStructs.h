@@ -201,7 +201,7 @@ struct Colour
 	real32 Blue;
 };
 
-struct MemoryArena
+struct MemoryPool
 {
 	MemorySizeIndex Size;
 	MemorySizeIndex UsedAmount;

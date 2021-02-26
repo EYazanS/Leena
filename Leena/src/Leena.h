@@ -38,7 +38,7 @@ struct World
 
 struct GameState
 {
-	MemoryArena WorldArena;
+	MemoryPool WorldArena;
 	World* World;
 	TileMapPosition PlayerPosition;
 };

@@ -6,11 +6,11 @@ void RenderPlayer(GameScreenBuffer* gameScreenBuffer, real32 playerWidth, real32
 void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer, real32 playerX, real32 playerY);
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 
-#define PushArray(arena, size, type) (type*) PushSize_(arena, size +  sizeof(type))
-#define PushSize(arena, type) (type*) PushSize_(arena, sizeof(type))
+#define PushArray(pool, size, type) (type*) PushSize_(pool, size +  sizeof(type))
+#define PushSize(pool, type) (type*) PushSize_(pool, sizeof(type))
 
-void* PushSize_(MemoryArena* arena, MemorySizeIndex size);
-void InitilizeArena(MemoryArena* arena, MemorySizeIndex size, uint8* storage);
+void* PushSize_(MemoryPool* pool, MemorySizeIndex size);
+void InitilizeArena(MemoryPool* pool, MemorySizeIndex size, uint8* storage);
 
 DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
 {
@@ -37,10 +37,10 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 
 		world->Map->TileChunks = PushArray(&gameState->WorldArena, static_cast<uint64>(world->Map->TileChunkCountX) * static_cast<uint64>(world->Map->TileChunkCountY), TileChunk);
 		world->Map->TileSideInMeters = 1.4f;
-		
+
 		world->Map->TileSideInPixels = 60;
 
-		// for using 256x256 tile chunks
+		// For using 256 x 256 tile chunks
 		world->Map->ChunkShift = 8;
 		world->Map->ChunkMask = (1 << world->Map->ChunkShift) - 1;
 		world->Map->ChunkDimension = (1 << world->Map->ChunkShift);
@@ -52,7 +52,6 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 				world->Map->TileChunks[y * world->Map->TileChunkCountX + x].Tiles = PushArray(&gameState->WorldArena, static_cast<uint64>(world->Map->ChunkDimension) * static_cast<uint64>(world->Map->ChunkDimension), uint32);
 			}
 		}
-
 
 		world->Map->MetersToPixels = world->Map->TileSideInPixels / world->Map->TileSideInMeters;
 
@@ -81,7 +80,7 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 	World* world = gameState->World;
 
 	// In Meters
-	real32 playerHeight = 1.25f;
+	real32 playerHeight = 1.4f;
 	real32 playerWidth = 0.75f * playerHeight;
 
 	real32 playerMovementX = 0.f; // pixels/second
@@ -288,17 +287,17 @@ void DrawRectangle(
 	}
 }
 
-void InitilizeArena(MemoryArena* arena, MemorySizeIndex size, uint8* storage)
+void InitilizeArena(MemoryPool* pool, MemorySizeIndex size, uint8* storage)
 {
-	arena->Size = size;
-	arena->BaseMemory = storage;
-	arena->UsedAmount = 0;
+	pool->Size = size;
+	pool->BaseMemory = storage;
+	pool->UsedAmount = 0;
 }
 
-void* PushSize_(MemoryArena* arena, MemorySizeIndex size)
+void* PushSize_(MemoryPool* pool, MemorySizeIndex size)
 {
-	Assert(arena->UsedAmount + arena->UsedAmount <= arena->Size);
-	void* result = arena->BaseMemory + arena->UsedAmount;
-	arena->UsedAmount += size;
+	Assert(pool->UsedAmount + pool->UsedAmount <= pool->Size);
+	void* result = pool->BaseMemory + pool->UsedAmount;
+	pool->UsedAmount += size;
 	return result;
 }

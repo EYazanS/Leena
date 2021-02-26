@@ -55,4 +55,4 @@ real32 MetersToPixels(Map* map, real32 meters);
 TileChunkPosition GetTileChunkPosition(Map* map, uint32 absTileX, uint32 absTileY);
 TileChunk* GetTileChunk(Map* map, uint32 tileChunkX, uint32 tileChunkY);
 int32 GetTileValueUnchecked(TileChunk* tileChunk, uint32 tileCountX, uint32 tileX, uint32 tileY);
-void SetTileValue(MemoryArena* arena, Map* map, uint32 tileX, uint32 tileY, uint32 value);
+void SetTileValue(MemoryPool* arena, Map* map, uint32 tileX, uint32 tileY, uint32 value);
