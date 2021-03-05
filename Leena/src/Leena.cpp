@@ -58,31 +58,39 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 		uint32 tilerPerScreenWidth = 17;
 		uint32 tilerPerScreenHeight = 9;
 
-		for (uint32 screenY = 0; screenY < 32; screenY++)
+		uint32 randomIndex = 0;
+		uint32 screenX = 0;
+		uint32 screenY = 0;
+
+		for (uint32 index = 0; index < 100; index++)
 		{
-			for (uint32 screenX = 0; screenX < 32; screenX++)
+			for (uint32 tileY = 0; tileY < tilerPerScreenHeight; tileY++)
 			{
-				for (uint32 tileY = 0; tileY < tilerPerScreenHeight; tileY++)
+				for (uint32 tileX = 0; tileX < tilerPerScreenWidth; tileX++)
 				{
-					for (uint32 tileX = 0; tileX < tilerPerScreenWidth; tileX++)
-					{
-						uint32 absTileX = screenX * tilerPerScreenWidth + tileX;
-						uint32 absTileY = screenY * tilerPerScreenHeight + tileY;
+					uint32 absTileX = screenX * tilerPerScreenWidth + tileX;
+					uint32 absTileY = screenY * tilerPerScreenHeight + tileY;
 
-						uint32 tileValue = 1;
+					uint32 tileValue = 1;
 
-						if (tileX == 0 || tileX == tilerPerScreenWidth - 1)
-							if (tileY != tilerPerScreenHeight / 2)
-								tileValue = 2;
-
-						if (tileY == 0 || tileY == tilerPerScreenHeight - 1)
-							if (tileX != tilerPerScreenWidth / 2)
+					if (tileX == 0 || tileX == tilerPerScreenWidth - 1)
+						if (tileY != tilerPerScreenHeight / 2)
 							tileValue = 2;
 
-						SetTileValue(&gameState->WorldMemoryPool, world->Map, absTileX, absTileY, tileValue);
-					}
+					if (tileY == 0 || tileY == tilerPerScreenHeight - 1)
+						if (tileX != tilerPerScreenWidth / 2)
+							tileValue = 2;
+
+					SetTileValue(&gameState->WorldMemoryPool, world->Map, absTileX, absTileY, tileValue);
 				}
 			}
+
+			uint32 randomChoice = randomNumberTable[randomIndex++] % 2;
+
+			if (randomChoice == 0)
+				screenX++;
+			else
+				screenY++;
 		}
 
 		gameMemory->IsInitialized = true;
