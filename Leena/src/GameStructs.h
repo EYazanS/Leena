@@ -200,10 +200,3 @@ struct Colour
 	real32 Green;
 	real32 Blue;
 };
-
-struct MemoryPool
-{
-	MemorySizeIndex Size;
-	MemorySizeIndex UsedAmount;
-	uint8* BaseMemory;
-};

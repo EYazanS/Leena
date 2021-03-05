@@ -6,12 +6,6 @@ void RenderPlayer(GameScreenBuffer* gameScreenBuffer, real32 playerWidth, real32
 void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer, real32 playerX, real32 playerY);
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 
-#define PushArray(pool, size, type) (type*) PushSize_(pool, size +  sizeof(type))
-#define PushSize(pool, type) (type*) PushSize_(pool, sizeof(type))
-
-void* PushSize_(MemoryPool* pool, MemorySizeIndex size);
-void InitilizePool(MemoryPool* pool, MemorySizeIndex size, uint8* storage);
-
 DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
 {
 	GameState* gameState = (GameState*)gameMemory->PermenantStorage;
@@ -38,20 +32,12 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 		world->Map->TileChunks = PushArray(&gameState->WorldMemoryPool, static_cast<uint64>(world->Map->TileChunkCountX) * static_cast<uint64>(world->Map->TileChunkCountY), TileChunk);
 		world->Map->TileSideInMeters = 1.4f;
 
-		world->Map->TileSideInPixels = 60;
+		world->Map->TileSideInPixels = 6;
 
 		// For using 256 x 256 tile chunks
 		world->Map->ChunkShift = 8;
 		world->Map->ChunkMask = (1 << world->Map->ChunkShift) - 1;
 		world->Map->ChunkDimension = (1 << world->Map->ChunkShift);
-
-		for (uint32 y = 0; y < world->Map->TileChunkCountY; y++)
-		{
-			for (uint32 x = 0; x < world->Map->TileChunkCountX; x++)
-			{
-				world->Map->TileChunks[y * world->Map->TileChunkCountX + x].Tiles = PushArray(&gameState->WorldMemoryPool, static_cast<uint64>(world->Map->ChunkDimension) * static_cast<uint64>(world->Map->ChunkDimension), uint32);
-			}
-		}
 
 		world->Map->MetersToPixels = world->Map->TileSideInPixels / world->Map->TileSideInMeters;
 
@@ -62,7 +48,7 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 		uint32 screenX = 0;
 		uint32 screenY = 0;
 
-		for (uint32 index = 0; index < 100; index++)
+		for (uint32 screenIndex = 0; screenIndex < 100; screenIndex++)
 		{
 			for (uint32 tileY = 0; tileY < tilerPerScreenHeight; tileY++)
 			{
@@ -73,13 +59,11 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 
 					uint32 tileValue = 1;
 
-					if (tileX == 0 || tileX == tilerPerScreenWidth - 1)
-						if (tileY != tilerPerScreenHeight / 2)
-							tileValue = 2;
+					if ((tileX == 0 || tileX == tilerPerScreenWidth - 1) && (tileY != tilerPerScreenHeight / 2))
+						tileValue = 2;
 
-					if (tileY == 0 || tileY == tilerPerScreenHeight - 1)
-						if (tileX != tilerPerScreenWidth / 2)
-							tileValue = 2;
+					if ((tileY == 0 || tileY == tilerPerScreenHeight - 1) && (tileX != tilerPerScreenWidth / 2))
+						tileValue = 2;
 
 					SetTileValue(&gameState->WorldMemoryPool, world->Map, absTileX, absTileY, tileValue);
 				}
@@ -226,16 +210,16 @@ void RenderPlayer(GameScreenBuffer* screenBuffer, real32 playerWidth, real32 pla
 
 void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer, real32 playerX, real32 playerY)
 {
-	DrawRectangle(screenBuffer, 0.0f, 0.0f, (real32)screenBuffer->Width, (real32)screenBuffer->Height, { 0.8f, 0.8f ,0.0f });
+	DrawRectangle(screenBuffer, 0.0f, 0.0f, (real32)screenBuffer->Width, (real32)screenBuffer->Height, { 0.8f, 0.0f ,0.0f });
 
 	real32 screenCenterX = 0.5f * (real32)screenBuffer->Width;
 	real32 screenCenterY = 0.5f * (real32)screenBuffer->Height;
 
 	// Relative to the player position, so its current row -10 and +10
-	for (int32 relativeRow = -10; relativeRow < 10; relativeRow++)
+	for (int32 relativeRow = -20; relativeRow < 20; relativeRow++)
 	{
 		// Relative to the player position, so its current column -20 and +20
-		for (int32 relativeColumn = -20; relativeColumn < 20; relativeColumn++)
+		for (int32 relativeColumn = -40; relativeColumn < 40; relativeColumn++)
 		{
 			uint32 column = relativeColumn + gameState->PlayerPosition.AbsTileX;
 			uint32 row = relativeRow + gameState->PlayerPosition.AbsTileY;
@@ -312,19 +296,4 @@ void DrawRectangle(
 
 		row += gameScreenBuffer->Pitch;
 	}
-}
-
-void InitilizePool(MemoryPool* pool, MemorySizeIndex size, uint8* storage)
-{
-	pool->Size = size;
-	pool->BaseMemory = storage;
-	pool->UsedAmount = 0;
-}
-
-void* PushSize_(MemoryPool* pool, MemorySizeIndex size)
-{
-	Assert(pool->UsedAmount + pool->UsedAmount <= pool->Size);
-	void* result = pool->BaseMemory + pool->UsedAmount;
-	pool->UsedAmount += size;
-	return result;
 }

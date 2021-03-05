@@ -24,7 +24,7 @@ uint32 GetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 tes
 {
 	uint32 tileChunkValue = 0;
 
-	if (tileChunk)
+	if (tileChunk && tileChunk->Tiles)
 		tileChunkValue = GetTileValueUnchecked(tileChunk, map->ChunkDimension, testTileX, testTileY);
 
 	return tileChunkValue;
@@ -32,7 +32,8 @@ uint32 GetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 tes
 
 void SetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 testTileY, uint32 value)
 {
-	SetTileValueUnchecked(tileChunk, map->ChunkDimension, testTileX, testTileY, value);
+	if (tileChunk && tileChunk->Tiles)
+		SetTileValueUnchecked(tileChunk, map->ChunkDimension, testTileX, testTileY, value);
 }
 
 /// <summary>
@@ -116,6 +117,18 @@ void SetTileValue(MemoryPool* pool, Map* map, uint32 tileX, uint32 tileY, uint32
 
 	// TODO: on demand tile chink creation
 	Assert(chunk);
+
+	if (chunk && !chunk->Tiles)
+	{
+		uint64 tilesCount = static_cast<uint64>(map->ChunkDimension) * static_cast<uint64>(map->ChunkDimension);
+
+		chunk->Tiles = PushArray(pool, tilesCount, uint32);
+
+		for (uint32 tileIndex = 0; tileIndex < tilesCount; tileIndex++)
+		{
+			chunk->Tiles[tileIndex] = 1;
+		}
+	}
 
 	SetTileValue(map, chunk, chunkPosition.RelativeTileX, chunkPosition.RelativeTileY, value);
 

@@ -27,12 +27,14 @@
     <ClInclude Include="src\GameTypes.h" />
     <ClInclude Include="src\Leena.h" />
     <ClInclude Include="src\Map\TileMap.h" />
+    <ClInclude Include="src\Memory\Memory.h" />
     <ClInclude Include="src\RandomNumbers.h" />
     <ClInclude Include="src\Utilities\Intrinsics.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Leena.cpp" />
     <ClCompile Include="src\Map\TileMap.cpp" />
+    <ClCompile Include="src\Memory\Memory.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

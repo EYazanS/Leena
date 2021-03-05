@@ -3,6 +3,7 @@
 #include "GameTypes.h"
 #include "Utilities/Intrinsics.h"
 #include "GameStructs.h"
+#include "Memory/Memory.h"
 
 struct TileChunkPosition
 {

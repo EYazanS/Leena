@@ -41,12 +41,18 @@
     <ClInclude Include="src\RandomNumbers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Memory\Memory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Leena.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Map\TileMap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Memory\Memory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

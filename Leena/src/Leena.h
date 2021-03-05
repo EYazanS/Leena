@@ -4,6 +4,7 @@
 #include "GameTypes.h"
 #include "GameStructs.h"
 #include "RandomNumbers.h"
+#include "Memory/Memory.h"
 
 #if defined(_MSC_VER)
 //  Microsoft 
