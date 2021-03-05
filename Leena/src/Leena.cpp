@@ -89,6 +89,8 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 	real32 playerMovementX = 0.f; // pixels/second
 	real32 playerMovementY = 0.f; // pixels/second
 
+	real32 playerSpeed = 5;
+
 	if (input->Keyboard.A.EndedDown)
 		playerMovementX -= 1.f;
 
@@ -101,8 +103,11 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 	if (input->Keyboard.S.EndedDown)
 		playerMovementY -= 1.f;
 
-	playerMovementY *= 5;
-	playerMovementX *= 5;
+	if (input->Keyboard.Shift.EndedDown)
+		playerSpeed = 30;
+
+	playerMovementY *= playerSpeed;
+	playerMovementX *= playerSpeed;
 
 	//// TODO: Deal with controller movement
 	//for (const GameControllerInput& controller : input->Controllers)

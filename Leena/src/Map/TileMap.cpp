@@ -120,7 +120,7 @@ void SetTileValue(MemoryPool* pool, Map* map, uint32 tileX, uint32 tileY, uint32
 
 	if (chunk && !chunk->Tiles)
 	{
-		uint64 tilesCount = static_cast<uint64>(map->ChunkDimension) * static_cast<uint64>(map->ChunkDimension);
+		uint32 tilesCount = map->ChunkDimension * map->ChunkDimension;
 
 		chunk->Tiles = PushArray(pool, tilesCount, uint32);
 

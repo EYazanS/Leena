@@ -103,7 +103,7 @@ struct KeyboardInput
 
 	union
 	{
-		GameButtonState Buttons[6];
+		GameButtonState Buttons[7];
 
 		struct
 		{
@@ -111,6 +111,8 @@ struct KeyboardInput
 			GameButtonState A;
 			GameButtonState S;
 			GameButtonState D;
+
+			GameButtonState Shift;
 
 			GameButtonState E;
 			GameButtonState Q;

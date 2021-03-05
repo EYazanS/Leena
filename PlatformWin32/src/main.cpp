@@ -562,6 +562,11 @@ internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, Keybo
 				Win32ProccessKeyboardMessage(controller->E, isDown);
 			} break;
 
+			case VK_SHIFT:
+			{
+				Win32ProccessKeyboardMessage(controller->Shift, isDown);
+			} break;
+
 			case 'L':
 			{
 				if (isDown)
