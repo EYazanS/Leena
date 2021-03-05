@@ -207,6 +207,8 @@ void RenderPlayer(GameScreenBuffer* screenBuffer, real32 playerWidth, real32 pla
 
 void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer, real32 playerX, real32 playerY)
 {
+	DrawRectangle(screenBuffer, 0.0f, 0.0f, (real32)screenBuffer->Width, (real32)screenBuffer->Height, { 0.8f, 0.8f ,0.0f });
+
 	real32 screenCenterX = 0.5f * (real32)screenBuffer->Width;
 	real32 screenCenterY = 0.5f * (real32)screenBuffer->Height;
 
