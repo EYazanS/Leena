@@ -3,8 +3,7 @@
 
 #include "GameTypes.h"
 #include "GameStructs.h"
-#include "Utilities/Intrinsics.h"
-#include "Map/TileMap.h"
+#include "RandomNumbers.h"
 
 #if defined(_MSC_VER)
 //  Microsoft 
@@ -23,6 +22,9 @@
 
 // Functions provided for the platform layer
 DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameAudioBuffer* soundBuffer, GameInput* input);
+
+#include "Utilities/Intrinsics.h"
+#include "Map/TileMap.h"
 
 inline GameControllerInput* GetController(GameInput* input, uint8 index)
 {
