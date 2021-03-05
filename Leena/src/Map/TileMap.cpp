@@ -94,7 +94,7 @@ bool32 IsMapPointEmpty(Map* map, TileMapPosition position)
 {
 	uint32 tileValue = GetTileValue(map, position.AbsTileX, position.AbsTileY);
 
-	int32 isEmpty = tileValue == 0;
+	int32 isEmpty = tileValue == 1;
 
 	return isEmpty;
 }

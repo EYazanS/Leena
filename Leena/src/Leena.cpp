@@ -68,7 +68,10 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 					{
 						uint32 absTileX = screenX * tilerPerScreenWidth + tileX;
 						uint32 absTileY = screenY * tilerPerScreenHeight + tileY;
-						SetTileValue(&gameState->WorldMemoryPool, world->Map, absTileX, absTileY, tileX == tileY && tileY % 2 == 0);
+
+						uint32 tileValue = tileX == tileY && tileY % 2 == 0 ? 2 : 1;
+
+						SetTileValue(&gameState->WorldMemoryPool, world->Map, absTileX, absTileY, tileValue);
 					}
 				}
 			}
@@ -223,22 +226,27 @@ void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuf
 
 			Colour colour = {};
 
-			(GetTileValue(world->Map, column, row) == 1) ? colour = { 1.f, 1.f, 1.f } : colour = { 0.7f, 0.7f, 0.7f };
+			uint32 tileValue = GetTileValue(world->Map, column, row);
 
-			// For debug
-			if (column == gameState->PlayerPosition.AbsTileX && row == gameState->PlayerPosition.AbsTileY)
-				colour = { 0.0f, 0.0f, 0.0f };
+			if (tileValue > 0)
+			{
+				(tileValue == 2) ? colour = { 1.f, 1.f, 1.f } : colour = { 0.7f, 0.7f, 0.7f };
 
-			real32 tileCenterX = screenCenterX - playerX + ((real32)relativeColumn * world->Map->TileSideInPixels);
-			real32 tileCenterY = screenCenterY + playerY - ((real32)relativeRow * world->Map->TileSideInPixels);
+				// For debug
+				if (column == gameState->PlayerPosition.AbsTileX && row == gameState->PlayerPosition.AbsTileY)
+					colour = { 0.0f, 0.0f, 0.0f };
 
-			real32 tileMinX = tileCenterX - (0.5f * world->Map->TileSideInPixels);
-			real32 tileMinY = tileCenterY - (0.5f * world->Map->TileSideInPixels);
+				real32 tileCenterX = screenCenterX - playerX + ((real32)relativeColumn * world->Map->TileSideInPixels);
+				real32 tileCenterY = screenCenterY + playerY - ((real32)relativeRow * world->Map->TileSideInPixels);
 
-			real32 tileMaxX = tileCenterX + (0.5f * world->Map->TileSideInPixels);
-			real32 tileMaxY = tileCenterY + (0.5f * world->Map->TileSideInPixels);
+				real32 tileMinX = tileCenterX - (0.5f * world->Map->TileSideInPixels);
+				real32 tileMinY = tileCenterY - (0.5f * world->Map->TileSideInPixels);
 
-			DrawRectangle(screenBuffer, tileMinX, tileMinY, tileMaxX, tileMaxY, colour);
+				real32 tileMaxX = tileCenterX + (0.5f * world->Map->TileSideInPixels);
+				real32 tileMaxY = tileCenterY + (0.5f * world->Map->TileSideInPixels);
+
+				DrawRectangle(screenBuffer, tileMinX, tileMinY, tileMaxX, tileMaxY, colour);
+			}
 		}
 	}
 }
