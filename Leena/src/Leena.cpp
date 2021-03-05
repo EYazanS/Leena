@@ -69,7 +69,15 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 						uint32 absTileX = screenX * tilerPerScreenWidth + tileX;
 						uint32 absTileY = screenY * tilerPerScreenHeight + tileY;
 
-						uint32 tileValue = tileX == tileY && tileY % 2 == 0 ? 2 : 1;
+						uint32 tileValue = 1;
+
+						if (tileX == 0 || tileX == tilerPerScreenWidth - 1)
+							if (tileY != tilerPerScreenHeight / 2)
+								tileValue = 2;
+
+						if (tileY == 0 || tileY == tilerPerScreenHeight - 1)
+							if (tileX != tilerPerScreenWidth / 2)
+							tileValue = 2;
 
 						SetTileValue(&gameState->WorldMemoryPool, world->Map, absTileX, absTileY, tileValue);
 					}
