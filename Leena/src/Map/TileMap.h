@@ -29,8 +29,6 @@ struct Map
 	uint32 ChunkDimension;
 
 	real32 TileSideInMeters;
-	int32 TileSideInPixels;
-	real32 MetersToPixels;
 
 	TileChunk* TileChunks;
 };
@@ -51,8 +49,6 @@ uint32 GetTileValue(Map* map, uint32 absTileX, uint32 absTileY);
 uint32 GetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 testTileY);
 TileMapPosition RecanonicalizePosition(Map* map, TileMapPosition position);
 void RecanonicalizeCoordinant(Map* map, uint32* tile, real32* tileRelative);
-real32 MetersToPixels(Map* map, int32 meters);
-real32 MetersToPixels(Map* map, real32 meters);
 TileChunkPosition GetTileChunkPosition(Map* map, uint32 absTileX, uint32 absTileY);
 TileChunk* GetTileChunk(Map* map, uint32 tileChunkX, uint32 tileChunkY);
 int32 GetTileValueUnchecked(TileChunk* tileChunk, uint32 tileCountX, uint32 tileX, uint32 tileY);

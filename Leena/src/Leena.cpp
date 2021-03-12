@@ -4,6 +4,9 @@ void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuf
 void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, Colour colour);
 void RenderPlayer(GameScreenBuffer* gameScreenBuffer, real32 playerWidth, real32 playerHeight);
 void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer, real32 playerX, real32 playerY);
+real32 MetersToPixels(real32 ratio, int32 meters);
+real32 MetersToPixels(real32 ratio, real32 meters);
+
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 
 DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
@@ -32,14 +35,10 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 		world->Map->TileChunks = PushArray(&gameState->WorldMemoryPool, static_cast<uint64>(world->Map->TileChunkCountX) * static_cast<uint64>(world->Map->TileChunkCountY), TileChunk);
 		world->Map->TileSideInMeters = 1.4f;
 
-		world->Map->TileSideInPixels = 60;
-
 		// For using 256 x 256 tile chunks
 		world->Map->ChunkShift = 8;
 		world->Map->ChunkMask = (1 << world->Map->ChunkShift) - 1;
 		world->Map->ChunkDimension = (1 << world->Map->ChunkShift);
-
-		world->Map->MetersToPixels = world->Map->TileSideInPixels / world->Map->TileSideInMeters;
 
 		uint32 tilerPerScreenWidth = 17;
 		uint32 tilerPerScreenHeight = 9;
@@ -172,9 +171,12 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 	if (IsMapPointEmpty(world->Map, newPlayerPosition) && IsMapPointEmpty(world->Map, playerLeftPosition) && IsMapPointEmpty(world->Map, playerRightPosition))
 		gameState->PlayerPosition = newPlayerPosition;
 
-	DrawTileMap(world, gameState, screenBuffer, MetersToPixels(world->Map, gameState->PlayerPosition.TileRelativeX), MetersToPixels(world->Map, gameState->PlayerPosition.TileRelativeY));
+	int32 tileSideInPixels = 60;
+	real32 metersToPixels = tileSideInPixels / world->Map->TileSideInMeters;
 
-	RenderPlayer(screenBuffer, MetersToPixels(world->Map, playerWidth), MetersToPixels(world->Map, playerHeight));
+	DrawTileMap(world, gameState, screenBuffer, MetersToPixels(metersToPixels, gameState->PlayerPosition.TileRelativeX), MetersToPixels(metersToPixels, gameState->PlayerPosition.TileRelativeY));
+
+	RenderPlayer(screenBuffer, MetersToPixels(metersToPixels, playerWidth), MetersToPixels(metersToPixels, playerHeight));
 
 	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
@@ -250,6 +252,8 @@ void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuf
 {
 	DrawRectangle(screenBuffer, 0.0f, 0.0f, (real32)screenBuffer->Width, (real32)screenBuffer->Height, { 0.8f, 0.0f ,0.0f });
 
+	int32 tileSideInPixels = 60;
+
 	real32 screenCenterX = 0.5f * (real32)screenBuffer->Width;
 	real32 screenCenterY = 0.5f * (real32)screenBuffer->Height;
 
@@ -274,14 +278,14 @@ void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuf
 				if (column == gameState->PlayerPosition.AbsTileX && row == gameState->PlayerPosition.AbsTileY)
 					colour = { 0.0f, 0.0f, 0.0f };
 
-				real32 tileCenterX = screenCenterX - playerX + ((real32)relativeColumn * world->Map->TileSideInPixels);
-				real32 tileCenterY = screenCenterY + playerY - ((real32)relativeRow * world->Map->TileSideInPixels);
+				real32 tileCenterX = screenCenterX - playerX + ((real32)relativeColumn * tileSideInPixels);
+				real32 tileCenterY = screenCenterY + playerY - ((real32)relativeRow * tileSideInPixels);
 
-				real32 tileMinX = tileCenterX - (0.5f * world->Map->TileSideInPixels);
-				real32 tileMinY = tileCenterY - (0.5f * world->Map->TileSideInPixels);
+				real32 tileMinX = tileCenterX - (0.5f * tileSideInPixels);
+				real32 tileMinY = tileCenterY - (0.5f * tileSideInPixels);
 
-				real32 tileMaxX = tileCenterX + (0.5f * world->Map->TileSideInPixels);
-				real32 tileMaxY = tileCenterY + (0.5f * world->Map->TileSideInPixels);
+				real32 tileMaxX = tileCenterX + (0.5f * tileSideInPixels);
+				real32 tileMaxY = tileCenterY + (0.5f * tileSideInPixels);
 
 				DrawRectangle(screenBuffer, tileMinX, tileMinY, tileMaxX, tileMaxY, colour);
 			}
@@ -334,4 +338,14 @@ void DrawRectangle(
 
 		row += gameScreenBuffer->Pitch;
 	}
+}
+
+real32 MetersToPixels(real32 ratio, int32 meters)
+{
+	return ratio * meters;
+}
+
+real32 MetersToPixels(real32 ratio, real32 meters)
+{
+	return ratio * meters;
 }

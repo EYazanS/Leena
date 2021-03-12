@@ -100,16 +100,6 @@ bool32 IsMapPointEmpty(Map* map, TileMapPosition position)
 	return isEmpty;
 }
 
-real32 MetersToPixels(Map* map, int32 meters)
-{
-	return map->MetersToPixels * meters;
-}
-
-real32 MetersToPixels(Map* map, real32 meters)
-{
-	return map->MetersToPixels * meters;
-}
-
 void SetTileValue(MemoryPool* pool, Map* map, uint32 tileX, uint32 tileY, uint32 value)
 {
 	TileChunkPosition chunkPosition = GetTileChunkPosition(map, tileX, tileY);
