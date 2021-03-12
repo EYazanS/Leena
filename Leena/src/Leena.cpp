@@ -32,7 +32,7 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 		world->Map->TileChunks = PushArray(&gameState->WorldMemoryPool, static_cast<uint64>(world->Map->TileChunkCountX) * static_cast<uint64>(world->Map->TileChunkCountY), TileChunk);
 		world->Map->TileSideInMeters = 1.4f;
 
-		world->Map->TileSideInPixels = 6;
+		world->Map->TileSideInPixels = 60;
 
 		// For using 256 x 256 tile chunks
 		world->Map->ChunkShift = 8;
@@ -48,8 +48,22 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 		uint32 screenX = 0;
 		uint32 screenY = 0;
 
+		bool32 doorRight = false;
+		bool32 doorTop = false;
+		bool32 doorLeft = false;
+		bool32 doorBottom = false;
+
+		// Draw all screens
 		for (uint32 screenIndex = 0; screenIndex < 100; screenIndex++)
 		{
+			uint32 randomChoice = randomNumberTable[randomIndex++] % 2;
+
+			if (randomChoice == 0)
+				doorRight = true;
+			else
+				doorTop = true;
+
+			// Draw single screen
 			for (uint32 tileY = 0; tileY < tilerPerScreenHeight; tileY++)
 			{
 				for (uint32 tileX = 0; tileX < tilerPerScreenWidth; tileX++)
@@ -59,17 +73,36 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 
 					uint32 tileValue = 1;
 
-					if ((tileX == 0 || tileX == tilerPerScreenWidth - 1) && (tileY != tilerPerScreenHeight / 2))
+					if (tileX == 0 && (!doorLeft || (tileY != (tilerPerScreenHeight / 2))))
+					{
 						tileValue = 2;
+					}
 
-					if ((tileY == 0 || tileY == tilerPerScreenHeight - 1) && (tileX != tilerPerScreenWidth / 2))
+					if ((tileX == (tilerPerScreenWidth - 1)) && (!doorRight || (tileY != (tilerPerScreenHeight / 2))))
+					{
 						tileValue = 2;
+					}
+
+					if (tileY == 0 && (!doorBottom || (tileX != (tilerPerScreenWidth / 2))))
+					{
+						tileValue = 2;
+					}
+
+					if ((tileY == (tilerPerScreenHeight - 1)) && (!doorTop || (tileX != (tilerPerScreenWidth / 2))))
+					{
+						tileValue = 2;
+					}
 
 					SetTileValue(&gameState->WorldMemoryPool, world->Map, absTileX, absTileY, tileValue);
 				}
 			}
 
-			uint32 randomChoice = randomNumberTable[randomIndex++] % 2;
+			doorLeft = doorRight;
+			doorBottom = doorTop;
+
+			doorRight = false;
+			doorTop = false;
+
 
 			if (randomChoice == 0)
 				screenX++;
@@ -221,10 +254,10 @@ void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuf
 	real32 screenCenterY = 0.5f * (real32)screenBuffer->Height;
 
 	// Relative to the player position, so its current row -10 and +10
-	for (int32 relativeRow = -20; relativeRow < 20; relativeRow++)
+	for (int32 relativeRow = -5; relativeRow < 5; relativeRow++)
 	{
 		// Relative to the player position, so its current column -20 and +20
-		for (int32 relativeColumn = -40; relativeColumn < 40; relativeColumn++)
+		for (int32 relativeColumn = -20; relativeColumn < 20; relativeColumn++)
 		{
 			uint32 column = relativeColumn + gameState->PlayerPosition.AbsTileX;
 			uint32 row = relativeRow + gameState->PlayerPosition.AbsTileY;
