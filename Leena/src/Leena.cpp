@@ -5,7 +5,7 @@ void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 r
 
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 
-DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
+DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameInput* input)
 {
 	GameState* gameState = (GameState*)gameMemory->PermanentStorage;
 
@@ -32,7 +32,7 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 		map->TileChunkCountY = 128;
 		map->TileChunkCountZ = 2;
 
-		map->TileChunks = PushArray(&gameState->WorldMemoryPool, map->TileChunkCountX * map->TileChunkCountY * map->TileChunkCountZ, TileChunk);
+		map->TileChunks = PushArray(&gameState->WorldMemoryPool, (uint64)map->TileChunkCountX * (uint64)map->TileChunkCountY * (uint64)map->TileChunkCountZ, TileChunk);
 
 		map->TileSideInMeters = 1.4f;
 
@@ -318,8 +318,6 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 		PlayerLeft + MetersToPixels * playerWidth,
 		PlayerTop + MetersToPixels * playerHeight,
 		{ playerR, playerG, playerB });
-
-	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer)

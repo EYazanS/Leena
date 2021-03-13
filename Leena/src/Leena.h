@@ -22,7 +22,7 @@
 #endif
 
 // Functions provided for the platform layer
-DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameAudioBuffer* soundBuffer, GameInput* input);
+DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameInput* input);
 
 #include "Utilities/Intrinsics.h"
 #include "Map/TileMap.h"

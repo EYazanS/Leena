@@ -147,7 +147,7 @@ int WINAPI wWinMain(
 				Win32PlaybackInput(&programState.RecordingState, currentInput);
 
 			// Process game update. the game returns both a sound and draw buffer so we can use.
-			game.Update(&thread, &gameMemory, &screenBuffer, &gameaudioBuffer, currentInput);
+			game.UpdateAndRender(&thread, &gameMemory, &screenBuffer, currentInput);
 
 			int64 workCounter = Win32GetWallClock();
 			real64 workSecondsElapsed = GetSecondsElapsed(lastCounter, workCounter, programState.PerformanceFrequence);
@@ -230,9 +230,9 @@ internal GameCode Win32LoadGameCode()
 
 	if (gameCodeHandle)
 	{
-		result.Update = (GAMEUPDATE*)GetProcAddress(gameCodeHandle, "GameUpdate");
+		result.UpdateAndRender = (GAMEUPDATE*)GetProcAddress(gameCodeHandle, "GameUpdate");
 
-		if (result.Update)
+		if (result.UpdateAndRender)
 			result.IsValid = true;
 		else
 			result.IsValid = false;
@@ -246,7 +246,7 @@ internal void Win32UnloadGameCode(GameCode* gameCode)
 		FreeLibrary(gameCode->LibraryHandle);
 
 	gameCode->IsValid = false;
-	gameCode->Update = GameUpdateStub;
+	gameCode->UpdateAndRender = GameUpdateStub;
 }
 
 // Windows
