@@ -13,5 +13,5 @@ struct GameCode
 };
 
 // Game
-internal GameCode Win32LoadGameCode();
+internal GameCode Win32LoadGameCode(char* sourceDLLName, char* tempDLLName);
 internal void Win32UnloadGameCode(GameCode* gameCode);

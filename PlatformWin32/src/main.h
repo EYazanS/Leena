@@ -32,8 +32,12 @@ struct Win32ProgramState
 	Win32RecordState RecordingState;
 	Win32BitmapBuffer BitmapBuffer;
 	int64 PerformanceFrequence;
+
 	char* CurrentExcutableDirectory;
 	char* WriteToCurrentDir;
+
+	char ExeFileName[MAX_PATH];
+	char* OnePastLastEXEFileNameSlash;
 };
 
 #define LocalPersist static
@@ -52,6 +56,8 @@ internal inline int64 Win32GetWallClock();
 internal real32 GetSecondsElapsed(uint64 start, uint64 end, uint64 frequency);
 internal FILETIME GetFileLastWriteDate(const char* fileName);
 internal void Win32GetCurrentExcutableDirectory(Win32ProgramState* state);
+internal void Win32BuildEXEPathFileName(Win32ProgramState* State, const char* FileName, int DestCount, char* Dest);
+internal void Win32GetExeFileName(Win32ProgramState* State);
 
 // Audio
 internal HRESULT Wind32InitializeXAudio(IXAudio2*& xAudio);
@@ -88,3 +94,11 @@ internal BOOL Win32PlaybackInput(Win32RecordState* state, GameInput* input);
 bool32 DebugPlatformWriteEntireFile(ThreadContext* thread, const char* fileName, uint32 memorySize, void* memory);
 void DebugPlatformFreeFileMemory(ThreadContext* thread, void* memory);
 DebugFileResult DebugPlatformReadEntireFile(ThreadContext* thread, const char* fileName);
+
+
+// Utilities
+internal int StringLength(const char* string);
+internal void ConCatStrings(
+	size_t sourceACount, const char* sourceA,
+	size_t sourceBCount, const char* sourceB,
+	size_t destCount, char* dest);

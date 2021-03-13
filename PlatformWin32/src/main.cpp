@@ -12,6 +12,16 @@ int WINAPI wWinMain(
 {
 	Win32ProgramState programState = { };
 
+	Win32GetExeFileName(&programState);
+
+	char sourceGameCodeDLLFullPath[MAX_PATH];
+
+	Win32BuildEXEPathFileName(&programState, "Leena.dll", sizeof(sourceGameCodeDLLFullPath), sourceGameCodeDLLFullPath);
+
+	char tempGameCodeDLLFullPath[MAX_PATH];
+
+	Win32BuildEXEPathFileName(&programState, "LeenaTmp.dll", sizeof(tempGameCodeDLLFullPath), tempGameCodeDLLFullPath);
+
 	HWND windowHandle = Win32InitWindow(instance, &programState);
 
 	if (windowHandle)
@@ -43,7 +53,7 @@ int WINAPI wWinMain(
 		programState.RecordingState.InputPlayingIndex = 0;
 
 		Win32GetCurrentExcutableDirectory(&programState);
-		GameCode game = Win32LoadGameCode();
+		GameCode game = Win32LoadGameCode(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath);
 		game.LastWriteTime = GetFileLastWriteDate("Leena.dll");
 
 		GameMemory gameMemory = InitGameMemory();
@@ -87,7 +97,7 @@ int WINAPI wWinMain(
 			if (CompareFileTime(&newLastWriteTIme, &game.LastWriteTime) != 0)
 			{
 				Win32UnloadGameCode(&game);
-				game = Win32LoadGameCode();
+				game = Win32LoadGameCode(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath);
 				game.LastWriteTime = newLastWriteTIme;
 			}
 
@@ -220,11 +230,11 @@ int WINAPI wWinMain(
 }
 
 // Game
-internal GameCode Win32LoadGameCode()
+internal GameCode Win32LoadGameCode(char* sourceDLLName, char* tempDLLName)
 {
-	CopyFileA("Leena.dll", "Tmp.dll", FALSE);
+	CopyFileA(sourceDLLName, tempDLLName, FALSE);
 
-	HMODULE gameCodeHandle = LoadLibraryA("Tmp.dll");
+	HMODULE gameCodeHandle = LoadLibraryA(tempDLLName);
 
 	GameCode result = { gameCodeHandle, GameUpdateStub };
 
@@ -809,4 +819,59 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 	}
 
 	return result;
+}
+
+internal void Win32GetExeFileName(Win32ProgramState* State)
+{
+	DWORD SizeOfFilename = GetModuleFileNameA(0, State->ExeFileName, sizeof(State->ExeFileName));
+
+	State->OnePastLastEXEFileNameSlash = State->ExeFileName;
+
+	for (char* Scan = State->ExeFileName; *Scan; ++Scan)
+	{
+		if (*Scan == '\\')
+		{
+			State->OnePastLastEXEFileNameSlash = Scan + 1;
+		}
+	}
+}
+
+internal void Win32BuildEXEPathFileName(Win32ProgramState* State, const char* FileName, int DestCount, char* Dest)
+{
+	ConCatStrings(State->OnePastLastEXEFileNameSlash - State->ExeFileName, State->ExeFileName,
+		StringLength(FileName), FileName,
+		DestCount, Dest);
+}
+
+
+internal void ConCatStrings(
+	size_t sourceACount, const char* sourceA,
+	size_t sourceBCount, const char* sourceB,
+	size_t destCount, char* dest)
+{
+	Assert(sourceACount + sourceBCount < destCount);
+
+	for (int index = 0; index < sourceACount; ++index)
+	{
+		*dest++ = *sourceA++;
+	}
+
+	for (int index = 0; index < sourceBCount; ++index)
+	{
+		*dest++ = *sourceB++;
+	}
+
+	*dest++ = 0;
+}
+
+internal int StringLength(const char* string)
+{
+	int count = 0;
+
+	while (*string++)
+	{
+		++count;
+	}
+
+	return count;
 }
