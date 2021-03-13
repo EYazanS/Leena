@@ -48,8 +48,8 @@ int WINAPI wWinMain(
 
 		GameMemory gameMemory = InitGameMemory();
 
-		programState.RecordingState.TotalMemorySize = gameMemory.PermenantStorageSize + gameMemory.TransiateStorageSize;
-		programState.RecordingState.GameMemory = gameMemory.PermenantStorage;
+		programState.RecordingState.TotalMemorySize = gameMemory.PermanentStorageSize + gameMemory.TransiateStorageSize;
+		programState.RecordingState.GameMemory = gameMemory.PermanentStorage;
 
 		IXAudio2* xAudio = {};
 		Wind32InitializeXAudio(xAudio);
@@ -94,8 +94,8 @@ int WINAPI wWinMain(
 			MSG message = Win32ProcessMessage();
 
 			// Process the keyboard input.
-			KeyboardInput* oldKeyboardInput = &previousInput->Keyboard;
-			KeyboardInput* newKeyboardInput = &currentInput->Keyboard;
+			GameControllerInput* oldKeyboardInput = GetController(previousInput, 0);
+			GameControllerInput* newKeyboardInput = GetController(currentInput, 0);
 
 			*newKeyboardInput = {};
 
@@ -107,21 +107,21 @@ int WINAPI wWinMain(
 
 			switch (message.message)
 			{
-				case WM_QUIT:
-				{
-					programState.IsRunning = false;
-				} break;
+			case WM_QUIT:
+			{
+				programState.IsRunning = false;
+			} break;
 
-				case WM_SYSKEYDOWN:
-				case WM_SYSKEYUP:
-				case WM_KEYDOWN:
-				case WM_KEYUP:
-				{
-					ProccessKeyboardKeys(&programState, message, newKeyboardInput);
-				} break;
+			case WM_SYSKEYDOWN:
+			case WM_SYSKEYUP:
+			case WM_KEYDOWN:
+			case WM_KEYUP:
+			{
+				ProccessKeyboardKeys(&programState, message, newKeyboardInput);
+			} break;
 
-				default:
-					break;
+			default:
+				break;
 			}
 
 			// Process the mouse input
@@ -302,19 +302,19 @@ internal GameMemory InitGameMemory()
 {
 	GameMemory gameMemory = {};
 
-	#if Leena_Internal
+#if Leena_Internal
 	LPVOID baseAddress = (LPVOID)Terabytes(2);
-	#else
+#else
 	LPVOID baseAddress = 0;
-	#endif
+#endif
 
-	gameMemory.PermenantStorageSize = Megabytes(64);
+	gameMemory.PermanentStorageSize = Megabytes(64);
 	gameMemory.TransiateStorageSize = Gigabytes(1);
 
-	uint64 totalSize = gameMemory.PermenantStorageSize + gameMemory.TransiateStorageSize;
+	uint64 totalSize = gameMemory.PermanentStorageSize + gameMemory.TransiateStorageSize;
 
-	gameMemory.PermenantStorage = VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-	gameMemory.TransiateStorage = (uint8*)gameMemory.PermenantStorage + gameMemory.PermenantStorageSize;
+	gameMemory.PermanentStorage = VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	gameMemory.TransiateStorage = (uint8*)gameMemory.PermanentStorage + gameMemory.PermanentStorageSize;
 
 	gameMemory.FreeFile = DebugPlatformFreeFileMemory;
 	gameMemory.ReadFile = DebugPlatformReadEntireFile;
@@ -522,7 +522,7 @@ internal real32 Win32CalculateTriggerValue(real32 triggerValue)
 {
 	return triggerValue > XINPUT_GAMEPAD_TRIGGER_THRESHOLD ? triggerValue / 255 : 0;
 }
-internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, KeyboardInput* controller)
+internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, GameControllerInput* controller)
 {
 	uint32 vkCode = static_cast<uint32>(message.wParam);
 
@@ -532,78 +532,72 @@ internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, Keybo
 	if (isDown != wasDown)
 		switch (vkCode)
 		{
-			case 'W':
-			{
-				Win32ProccessKeyboardMessage(controller->W, isDown);
-			} break;
+		case 'W':
+		{
+			Win32ProccessKeyboardMessage(controller->MoveUp, isDown);
+		} break;
 
-			case 'A':
-			{
-				Win32ProccessKeyboardMessage(controller->A, isDown);
-			} break;
+		case 'A':
+		{
+			Win32ProccessKeyboardMessage(controller->MoveLeft, isDown);
+		} break;
 
-			case 'D':
-			{
-				Win32ProccessKeyboardMessage(controller->D, isDown);
-			} break;
+		case 'D':
+		{
+			Win32ProccessKeyboardMessage(controller->MoveRight, isDown);
+		} break;
 
-			case 'S':
-			{
-				Win32ProccessKeyboardMessage(controller->S, isDown);
-			} break;
+		case 'S':
+		{
+			Win32ProccessKeyboardMessage(controller->MoveDown, isDown);
+		} break;
 
-			case 'Q':
-			{
-				Win32ProccessKeyboardMessage(controller->Q, isDown);
-			} break;
+		case VK_SPACE:
+		{
+			Win32ProccessKeyboardMessage(controller->A, isDown);
+		} break;
 
-			case 'E':
-			{
-				Win32ProccessKeyboardMessage(controller->E, isDown);
-			} break;
+		case VK_SHIFT:
+		{
+			Win32ProccessKeyboardMessage(controller->X, isDown);
+		} break;
 
-			case VK_SHIFT:
+		case 'L':
+		{
+			if (isDown)
 			{
-				Win32ProccessKeyboardMessage(controller->Shift, isDown);
-			} break;
-
-			case 'L':
-			{
-				if (isDown)
+				if (state->RecordingState.InputRecordingIndex)
 				{
-					if (state->RecordingState.InputRecordingIndex)
-					{
-						Win32EndRecordingInput(&state->RecordingState);
-						Win32BeginPlaybackInput(&state->RecordingState);
-					}
-					else
-					{
-						Win32BeginRecordingInput(&state->RecordingState);
-					}
-				}
-			} break;
-
-			case 'K':
-			{
-				if (isDown)
-				{
-					Win32EndPlaybackInput(&state->RecordingState);
-				}
-			} break;
-
-
-			case 'P':
-			{
-				if (isDown && !state->RecordingState.InputRecordingIndex)
-				{
+					Win32EndRecordingInput(&state->RecordingState);
 					Win32BeginPlaybackInput(&state->RecordingState);
 				}
-			} break;
+				else
+				{
+					Win32BeginRecordingInput(&state->RecordingState);
+				}
+			}
+		} break;
 
-			default:
+		case 'K':
+		{
+			if (isDown)
 			{
+				Win32EndPlaybackInput(&state->RecordingState);
+			}
+		} break;
 
-			} break;
+		case 'P':
+		{
+			if (isDown && !state->RecordingState.InputRecordingIndex)
+			{
+				Win32BeginPlaybackInput(&state->RecordingState);
+			}
+		} break;
+
+		default:
+		{
+
+		} break;
 		}
 }
 internal void Win32ProccessKeyboardMessage(GameButtonState& state, bool32 isPressed)
@@ -749,69 +743,69 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 
 	switch (message)
 	{
-		case WM_CREATE:
+	case WM_CREATE:
+	{
+		CREATESTRUCT* pCreate = reinterpret_cast<CREATESTRUCT*>(lParam);
+		programState = reinterpret_cast<Win32ProgramState*>(pCreate->lpCreateParams);
+		SetWindowLongPtr(windowHandle, GWLP_USERDATA, (LONG_PTR)programState);
+	} break;
+
+	case WM_CLOSE:
+	{
+		programState->IsRunning = false;
+	} break;
+
+	case WM_DESTROY:
+	{
+		programState->IsRunning = false;
+	} break;
+
+	case WM_SIZE:
+	{
+	} break;
+
+	case WM_ACTIVATEAPP:
+	{
+	} break;
+
+	case WM_SYSKEYDOWN:
+	case WM_SYSKEYUP:
+	case WM_KEYDOWN:
+	case WM_KEYUP:
+	{
+		uint32 vkCode = static_cast<uint32>(wParam);
+
+		bool wasDown = ((lParam & (1 << 30)) != 0);
+		bool isDown = ((lParam & (static_cast<uint32>(1) << 31)) == 0);
+
+		switch (vkCode)
 		{
-			CREATESTRUCT* pCreate = reinterpret_cast<CREATESTRUCT*>(lParam);
-			programState = reinterpret_cast<Win32ProgramState*>(pCreate->lpCreateParams);
-			SetWindowLongPtr(windowHandle, GWLP_USERDATA, (LONG_PTR)programState);
-		} break;
-
-		case WM_CLOSE:
+		case VK_F4:
 		{
-			programState->IsRunning = false;
-		} break;
-
-		case WM_DESTROY:
-		{
-			programState->IsRunning = false;
-		} break;
-
-		case WM_SIZE:
-		{
-		} break;
-
-		case WM_ACTIVATEAPP:
-		{
-		} break;
-
-		case WM_SYSKEYDOWN:
-		case WM_SYSKEYUP:
-		case WM_KEYDOWN:
-		case WM_KEYUP:
-		{
-			uint32 vkCode = static_cast<uint32>(wParam);
-
-			bool wasDown = ((lParam & (1 << 30)) != 0);
-			bool isDown = ((lParam & (static_cast<uint32>(1) << 31)) == 0);
-
-			switch (vkCode)
-			{
-				case VK_F4:
-				{
-					// Is alt button held down
-					//if (programState->KeysPressed[Key::Alt])
-					//	programState->IsRunning = false;
-				} break;
-
-				default:
-				{
-
-				} break;
-			}
-		} break;
-
-		case WM_PAINT:
-		{
-			PAINTSTRUCT paint;
-			HDC deviceContext = BeginPaint(windowHandle, &paint);
-			Win32DisplayBufferInWindow(&programState->BitmapBuffer, deviceContext);
-			EndPaint(windowHandle, &paint);
+			// Is alt button held down
+			//if (programState->KeysPressed[Key::Alt])
+			//	programState->IsRunning = false;
 		} break;
 
 		default:
 		{
-			result = DefWindowProc(windowHandle, message, wParam, lParam);
+
 		} break;
+		}
+	} break;
+
+	case WM_PAINT:
+	{
+		PAINTSTRUCT paint;
+		HDC deviceContext = BeginPaint(windowHandle, &paint);
+		Win32DisplayBufferInWindow(&programState->BitmapBuffer, deviceContext);
+		EndPaint(windowHandle, &paint);
+	} break;
+
+	default:
+	{
+		result = DefWindowProc(windowHandle, message, wParam, lParam);
+	} break;
 	}
 
 	return result;

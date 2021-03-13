@@ -65,7 +65,7 @@ internal void Win32ProcessDigitalButton(DWORD button, DWORD buttonBit, GameButto
 internal real32 Win32ProcessXInputStickValues(real32 value, int16 deadZoneThreshold);
 internal void ProccessControllerInput(GameInput* newInput, GameInput* oldInput);
 internal real32 Win32CalculateTriggerValue(real32 triggerValue);
-internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, KeyboardInput* input);
+internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, GameControllerInput* input);
 internal void Win32ProccessKeyboardMessage(GameButtonState& state, bool32 isPressed);
 internal void Win32GetMousePosition(HWND windowHandle, MouseInput* mouse);
 internal void Win32GetMouseButtonsState(MouseInput* mouse);

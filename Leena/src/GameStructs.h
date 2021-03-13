@@ -97,32 +97,6 @@ struct MouseInput
 	};
 };
 
-struct KeyboardInput
-{
-	bool32 IsConnected;
-
-	union
-	{
-		GameButtonState Buttons[7];
-
-		struct
-		{
-			GameButtonState W;
-			GameButtonState A;
-			GameButtonState S;
-			GameButtonState D;
-
-			GameButtonState Shift;
-
-			GameButtonState E;
-			GameButtonState Q;
-
-			// Add button before this line so the assertion about the buttons array == the struct can hit properly 
-			GameButtonState Terminator;
-		};
-	};
-};
-
 struct GameControllerInput
 {
 	bool32 IsConnected;
@@ -174,15 +148,14 @@ struct GameInput
 {
 	real64 TimeToAdvance;
 	MouseInput Mouse;
-	KeyboardInput Keyboard;
-	GameControllerInput Controllers[4];
+	GameControllerInput Controllers[5];
 };
 
 struct GameMemory
 {
-	MemorySizeIndex PermenantStorageSize;
+	MemorySizeIndex PermanentStorageSize;
 	MemorySizeIndex TransiateStorageSize;
-	void* PermenantStorage;
+	void* PermanentStorage;
 	void* TransiateStorage;
 	bool32 IsInitialized;
 

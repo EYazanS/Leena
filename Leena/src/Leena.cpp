@@ -2,181 +2,322 @@
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
 void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, Colour colour);
-void RenderPlayer(GameScreenBuffer* gameScreenBuffer, real32 playerWidth, real32 playerHeight);
-void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer, real32 playerX, real32 playerY);
-real32 MetersToPixels(real32 ratio, int32 meters);
-real32 MetersToPixels(real32 ratio, real32 meters);
 
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 
 DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameAudioBuffer* soundBuffer, GameInput* input)
 {
-	GameState* gameState = (GameState*)gameMemory->PermenantStorage;
+	GameState* gameState = (GameState*)gameMemory->PermanentStorage;
 
 	if (!gameMemory->IsInitialized)
 	{
-		gameState->PlayerPosition.AbsTileX = 3;
-		gameState->PlayerPosition.AbsTileY = 5;
+		gameState->PlayerPosition.AbsTileX = 1;
+		gameState->PlayerPosition.AbsTileY = 4;
+		gameState->PlayerPosition.TileRelativeX = 0.0f;
+		gameState->PlayerPosition.TileRelativeY = 0.0f;
 
-		gameState->PlayerPosition.TileRelativeX = 0;
-		gameState->PlayerPosition.TileRelativeY = 0;
-
-		InitilizePool(&gameState->WorldMemoryPool, gameMemory->PermenantStorageSize - sizeof(GameState), (uint8*)gameMemory->PermenantStorage + sizeof(GameState));
+		InitilizePool(&gameState->WorldMemoryPool, gameMemory->PermanentStorageSize - sizeof(GameState), (uint8*)gameMemory->PermanentStorage + sizeof(GameState));
 
 		gameState->World = PushSize(&gameState->WorldMemoryPool, World);
-
 		World* world = gameState->World;
-
 		world->Map = PushSize(&gameState->WorldMemoryPool, Map);
 
-		world->Map->TileChunkCountX = 16;
-		world->Map->TileChunkCountY = 16;
+		Map* map = world->Map;
 
-		world->Map->TileChunks = PushArray(&gameState->WorldMemoryPool, static_cast<uint64>(world->Map->TileChunkCountX) * static_cast<uint64>(world->Map->TileChunkCountY), TileChunk);
-		world->Map->TileSideInMeters = 1.4f;
+		map->ChunkShift = 4;
+		map->ChunkMask = (1 << map->ChunkShift) - 1;
+		map->ChunkDimension = (1 << map->ChunkShift);
 
-		// For using 256 x 256 tile chunks
-		world->Map->ChunkShift = 8;
-		world->Map->ChunkMask = (1 << world->Map->ChunkShift) - 1;
-		world->Map->ChunkDimension = (1 << world->Map->ChunkShift);
+		map->TileChunkCountX = 128;
+		map->TileChunkCountY = 128;
+		map->TileChunkCountZ = 2;
 
-		uint32 tilerPerScreenWidth = 17;
-		uint32 tilerPerScreenHeight = 9;
+		map->TileChunks = PushArray(&gameState->WorldMemoryPool, map->TileChunkCountX * map->TileChunkCountY * map->TileChunkCountZ, TileChunk);
 
-		uint32 randomIndex = 0;
+		map->TileSideInMeters = 1.4f;
+
+		uint32 sandomNumberIndex = 0;
+
+		uint32 tilesPerWidth = 17;
+		uint32 tilesPerHeight = 9;
 		uint32 screenX = 0;
 		uint32 screenY = 0;
+		uint32 absTileZ = 0;
 
+		bool32 doorLeft = false;
 		bool32 doorRight = false;
 		bool32 doorTop = false;
-		bool32 doorLeft = false;
 		bool32 doorBottom = false;
+		bool32 doorUp = false;
+		bool32 doorDown = false;
 
-		// Draw all screens
-		for (uint32 screenIndex = 0; screenIndex < 100; screenIndex++)
+		for (uint32 screenIndex = 0; screenIndex < 100; ++screenIndex)
 		{
-			uint32 randomChoice = randomNumberTable[randomIndex++] % 2;
+			Assert(sandomNumberIndex < ArrayCount(randomNumberTable));
 
-			if (randomChoice == 0)
-				doorRight = true;
-			else
-				doorTop = true;
+			uint32 randomChoice;
 
-			// Draw single screen
-			for (uint32 tileY = 0; tileY < tilerPerScreenHeight; tileY++)
+			if (doorUp || doorDown)
 			{
-				for (uint32 tileX = 0; tileX < tilerPerScreenWidth; tileX++)
+				randomChoice = randomNumberTable[sandomNumberIndex++] % 2;
+			}
+			else
+			{
+				randomChoice = randomNumberTable[sandomNumberIndex++] % 3;
+			}
+
+			if (randomChoice == 2)
+			{
+				if (absTileZ == 0)
 				{
-					uint32 absTileX = screenX * tilerPerScreenWidth + tileX;
-					uint32 absTileY = screenY * tilerPerScreenHeight + tileY;
+					doorUp = true;
+				}
+				else
+				{
+					doorDown = true;
+				}
+			}
+			else if (randomChoice == 1)
+			{
+				doorRight = true;
+			}
+			else
+			{
+				doorTop = true;
+			}
+
+			for (uint32 tileY = 0; tileY < tilesPerHeight; ++tileY)
+			{
+				for (uint32 tileX = 0; tileX < tilesPerWidth; ++tileX)
+				{
+					uint32 absTileX = screenX * tilesPerWidth + tileX;
+					uint32 absTileY = screenY * tilesPerHeight + tileY;
 
 					uint32 tileValue = 1;
 
-					if (tileX == 0 && (!doorLeft || (tileY != (tilerPerScreenHeight / 2))))
+					if (tileX == 0 && (!doorLeft || (tileY != (tilesPerHeight / 2))))
 					{
 						tileValue = 2;
 					}
 
-					if ((tileX == (tilerPerScreenWidth - 1)) && (!doorRight || (tileY != (tilerPerScreenHeight / 2))))
+					if ((tileX == (tilesPerWidth - 1)) && (!doorRight || (tileY != (tilesPerHeight / 2))))
 					{
 						tileValue = 2;
 					}
 
-					if (tileY == 0 && (!doorBottom || (tileX != (tilerPerScreenWidth / 2))))
+					if (tileY == 0 && (!doorBottom || (tileX != (tilesPerWidth / 2))))
 					{
 						tileValue = 2;
 					}
 
-					if ((tileY == (tilerPerScreenHeight - 1)) && (!doorTop || (tileX != (tilerPerScreenWidth / 2))))
+					if ((tileY == (tilesPerHeight - 1)) && (!doorTop || (tileX != (tilesPerWidth / 2))))
 					{
 						tileValue = 2;
 					}
 
-					SetTileValue(&gameState->WorldMemoryPool, world->Map, absTileX, absTileY, tileValue);
+					if (tileX == 10 && tileY == 6)
+					{
+						if (doorUp)
+						{
+							tileValue = 3;
+						}
+
+						if (doorDown)
+						{
+							tileValue = 4;
+						}
+					}
+
+					SetTileValue(&gameState->WorldMemoryPool, world->Map, absTileX, absTileY, absTileZ, tileValue);
 				}
 			}
 
 			doorLeft = doorRight;
+
 			doorBottom = doorTop;
+
+			if (doorUp)
+			{
+				doorDown = true;
+				doorUp = false;
+			}
+			else if (doorDown)
+			{
+				doorUp = true;
+				doorDown = false;
+			}
+			else
+			{
+				doorUp = false;
+				doorDown = false;
+			}
 
 			doorRight = false;
 			doorTop = false;
 
+			if (randomChoice == 2)
+			{
+				if (absTileZ == 0)
+				{
+					absTileZ = 1;
+				}
+				else
+				{
+					absTileZ = 0;
+				}
 
-			if (randomChoice == 0)
+			}
+			else if (randomChoice == 1)
+			{
 				screenX++;
+			}
 			else
+			{
 				screenY++;
+			}
 		}
 
 		gameMemory->IsInitialized = true;
 	}
 
 	World* world = gameState->World;
+	Map* map = gameState->World->Map;
 
 	// In Meters
 	real32 playerHeight = 1.4f;
 	real32 playerWidth = 0.75f * playerHeight;
 
-	real32 playerMovementX = 0.f; // pixels/second
-	real32 playerMovementY = 0.f; // pixels/second
+	// Handle input
+	for (uint8 controllerIndex = 0; controllerIndex < ArrayCount(input->Controllers); ++controllerIndex)
+	{
+		GameControllerInput* controller = GetController(input, controllerIndex);
 
-	real32 playerSpeed = 5;
+		if (controller->IsAnalog)
+		{
+			//NOTE: Use analog movement tuning
+		}
+		else
+		{
+			//NOTE: Use digital movement tuning
+			real32 dPlayerX = 0.0f;
+			real32 dPlayerY = 0.0f;
 
-	if (input->Keyboard.A.EndedDown)
-		playerMovementX -= 1.f;
+			if (controller->MoveUp.EndedDown)
+			{
+				dPlayerY = 1.0f;
+			}
+			if (controller->MoveDown.EndedDown)
+			{
+				dPlayerY = -1.0f;
+			}
+			if (controller->MoveLeft.EndedDown)
+			{
+				dPlayerX = -1.0f;
+			}
+			if (controller->MoveRight.EndedDown)
+			{
+				dPlayerX = 1.0f;
+			}
 
-	if (input->Keyboard.D.EndedDown)
-		playerMovementX += 1.f;
+			real32 PlayerSpeed = 5.0f;
 
-	if (input->Keyboard.W.EndedDown)
-		playerMovementY += 1.f;
+			if (controller->X.EndedDown)
+			{
+				PlayerSpeed = 30.0f;
+			}
 
-	if (input->Keyboard.S.EndedDown)
-		playerMovementY -= 1.f;
+			if (controller->Start.EndedDown)
+			{
+				gameMemory->IsInitialized = false;
+			}
 
-	if (input->Keyboard.Shift.EndedDown)
-		playerSpeed = 30;
+			dPlayerX *= PlayerSpeed;
+			dPlayerY *= PlayerSpeed;
 
-	playerMovementY *= playerSpeed;
-	playerMovementX *= playerSpeed;
+			TileMapPosition newPlayerPosition = gameState->PlayerPosition;
+			newPlayerPosition.TileRelativeX += (real32)input->TimeToAdvance * dPlayerX;
+			newPlayerPosition.TileRelativeY += (real32)input->TimeToAdvance * dPlayerY;
+			newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
 
-	//// TODO: Deal with controller movement
-	//for (const GameControllerInput& controller : input->Controllers)
-	//{
-	//	if (controller.IsConnected && controller.IsAnalog)
-	//	{
-	//		gameState->PlayerPosition.TileRelativeX += static_cast<int>(pixelsToMovePerSec * input->TimeToAdvance * controller.LeftStickAverageX);
-	//		gameState->PlayerPosition.TileRelativeY += static_cast<int>(pixelsToMovePerSec * input->TimeToAdvance * controller.LeftStickAverageY);
-	//	}
-	//}
+			TileMapPosition playerLeft = newPlayerPosition;
+			playerLeft.TileRelativeX -= 0.5f * playerWidth;
+			playerLeft = RecanonicalizePosition(map, playerLeft);
 
-	TileMapPosition newPlayerPosition = gameState->PlayerPosition;
+			TileMapPosition playerRight = newPlayerPosition;
+			playerRight.TileRelativeX += 0.5f * playerWidth;
+			playerRight = RecanonicalizePosition(map, playerRight);
 
-	newPlayerPosition.TileRelativeX += (real32)(input->TimeToAdvance * playerMovementX);
-	newPlayerPosition.TileRelativeY += (real32)(input->TimeToAdvance * playerMovementY);
 
-	newPlayerPosition = RecanonicalizePosition(world->Map, newPlayerPosition);
+			if (IsMapPointEmpty(map, newPlayerPosition) &&
+				IsMapPointEmpty(map, playerLeft) &&
+				IsMapPointEmpty(map, playerRight))
+			{
+				gameState->PlayerPosition = newPlayerPosition;
+			}
+		}
+	}
 
-	TileMapPosition playerLeftPosition = newPlayerPosition;
+	int32 TileSideInPixels = 6;
+	real32 MetersToPixels = (real32)TileSideInPixels / (real32)map->TileSideInMeters;
 
-	playerLeftPosition.TileRelativeX -= 0.5f * playerWidth;
-	playerLeftPosition = RecanonicalizePosition(world->Map, playerLeftPosition);
+	DrawRectangle(screenBuffer, 0, 0, (real32)screenBuffer->Width, (real32)screenBuffer->Height, { 1.0f, 0.0f, 0.0f });
 
-	TileMapPosition playerRightPosition = newPlayerPosition;
+	real32 screenCenterX = 0.5f * (real32)screenBuffer->Width;
+	real32 screenCenterY = 0.5f * (real32)screenBuffer->Height;
 
-	playerRightPosition.TileRelativeX += 0.5f * playerWidth;
-	playerRightPosition = RecanonicalizePosition(world->Map, playerRightPosition);
+	for (int32 relRow = -10; relRow < 10; ++relRow)
+	{
+		for (int32 relColumn = -20; relColumn < 20; ++relColumn)
+		{
+			uint32 column = gameState->PlayerPosition.AbsTileX + relColumn;
+			uint32 row = gameState->PlayerPosition.AbsTileY + relRow;
+			uint32 floor = gameState->PlayerPosition.AbsTileZ;
 
-	if (IsMapPointEmpty(world->Map, newPlayerPosition) && IsMapPointEmpty(world->Map, playerLeftPosition) && IsMapPointEmpty(world->Map, playerRightPosition))
-		gameState->PlayerPosition = newPlayerPosition;
+			uint32 tileValue = GetTileValue(map, column, row, floor);
 
-	int32 tileSideInPixels = 60;
-	real32 metersToPixels = tileSideInPixels / world->Map->TileSideInMeters;
+			if (tileValue > 0)
+			{
+				real32 colour = 0.5f;
 
-	DrawTileMap(world, gameState, screenBuffer, MetersToPixels(metersToPixels, gameState->PlayerPosition.TileRelativeX), MetersToPixels(metersToPixels, gameState->PlayerPosition.TileRelativeY));
+				if (tileValue == 2)
+				{
+					colour = 1.0f;
+				}
 
-	RenderPlayer(screenBuffer, MetersToPixels(metersToPixels, playerWidth), MetersToPixels(metersToPixels, playerHeight));
+				if (tileValue > 2)
+				{
+					colour = 0.25f;
+				}
+
+				if ((column == gameState->PlayerPosition.AbsTileX) &&
+					(row == gameState->PlayerPosition.AbsTileY))
+				{
+					colour = 0;
+				}
+
+				real32 centerX = (screenCenterX - MetersToPixels * gameState->PlayerPosition.TileRelativeX) + ((real32)relColumn) * TileSideInPixels;
+				real32 centerY = (screenCenterY + MetersToPixels * gameState->PlayerPosition.TileRelativeY) - ((real32)relRow) * TileSideInPixels;
+				real32 minX = centerX - 0.5f * TileSideInPixels;
+				real32 minY = centerY - 0.5f * TileSideInPixels;
+				real32 maxX = centerX + 0.5f * TileSideInPixels;
+				real32 maxY = centerY + 0.5f * TileSideInPixels;
+
+				DrawRectangle(screenBuffer, minX, minY, maxX, maxY, { colour, colour, colour });
+			}
+		}
+	}
+
+	real32 playerR = 1.0f;
+	real32 playerG = 1.0f;
+	real32 playerB = 0.0f;
+
+	real32 PlayerLeft = screenCenterX - 0.5f * MetersToPixels * playerWidth;
+	real32 PlayerTop = screenCenterY - MetersToPixels * playerHeight;
+
+	DrawRectangle(screenBuffer, PlayerLeft, PlayerTop,
+		PlayerLeft + MetersToPixels * playerWidth,
+		PlayerTop + MetersToPixels * playerHeight,
+		{ playerR, playerG, playerB });
 
 	FillAudioBuffer(thread, gameMemory, soundBuffer);
 }
@@ -229,70 +370,6 @@ GameAudioBuffer* ReadAudioBufferData(void* memory)
 	return result;
 }
 
-/// <summary>
-/// Put the player sprite in the screen buffer for rendering
-/// </summary>
-/// <param name="screenBuffer">The screen buffer that the function will fill</param>
-/// <param name="playerWidth">Player width in pixels</param>
-/// <param name="playerHeight">Player height in pixels</param>
-void RenderPlayer(GameScreenBuffer* screenBuffer, real32 playerWidth, real32 playerHeight)
-{
-	Colour colour = { 1.f, 0.f, 1.f };
-
-	real32 centerX = 0.5f * (real32)screenBuffer->Width;
-	real32 centerY = 0.5f * screenBuffer->Height;
-
-	real32 playerLeft = centerX - (0.5f * playerWidth);
-	real32 playerTop = centerY - (0.5f * playerHeight);
-
-	DrawRectangle(screenBuffer, playerLeft, playerTop, playerLeft + playerWidth, playerTop + playerHeight, colour);
-}
-
-void DrawTileMap(World* world, GameState* gameState, GameScreenBuffer* screenBuffer, real32 playerX, real32 playerY)
-{
-	DrawRectangle(screenBuffer, 0.0f, 0.0f, (real32)screenBuffer->Width, (real32)screenBuffer->Height, { 0.8f, 0.0f ,0.0f });
-
-	int32 tileSideInPixels = 60;
-
-	real32 screenCenterX = 0.5f * (real32)screenBuffer->Width;
-	real32 screenCenterY = 0.5f * (real32)screenBuffer->Height;
-
-	// Relative to the player position, so its current row -10 and +10
-	for (int32 relativeRow = -5; relativeRow < 5; relativeRow++)
-	{
-		// Relative to the player position, so its current column -20 and +20
-		for (int32 relativeColumn = -20; relativeColumn < 20; relativeColumn++)
-		{
-			uint32 column = relativeColumn + gameState->PlayerPosition.AbsTileX;
-			uint32 row = relativeRow + gameState->PlayerPosition.AbsTileY;
-
-			Colour colour = {};
-
-			uint32 tileValue = GetTileValue(world->Map, column, row);
-
-			if (tileValue > 0)
-			{
-				(tileValue == 2) ? colour = { 1.f, 1.f, 1.f } : colour = { 0.7f, 0.7f, 0.7f };
-
-				// For debug
-				if (column == gameState->PlayerPosition.AbsTileX && row == gameState->PlayerPosition.AbsTileY)
-					colour = { 0.0f, 0.0f, 0.0f };
-
-				real32 tileCenterX = screenCenterX - playerX + ((real32)relativeColumn * tileSideInPixels);
-				real32 tileCenterY = screenCenterY + playerY - ((real32)relativeRow * tileSideInPixels);
-
-				real32 tileMinX = tileCenterX - (0.5f * tileSideInPixels);
-				real32 tileMinY = tileCenterY - (0.5f * tileSideInPixels);
-
-				real32 tileMaxX = tileCenterX + (0.5f * tileSideInPixels);
-				real32 tileMaxY = tileCenterY + (0.5f * tileSideInPixels);
-
-				DrawRectangle(screenBuffer, tileMinX, tileMinY, tileMaxX, tileMaxY, colour);
-			}
-		}
-	}
-}
-
 void DrawRectangle(
 	GameScreenBuffer* gameScreenBuffer,
 	real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY,
@@ -338,14 +415,4 @@ void DrawRectangle(
 
 		row += gameScreenBuffer->Pitch;
 	}
-}
-
-real32 MetersToPixels(real32 ratio, int32 meters)
-{
-	return ratio * meters;
-}
-
-real32 MetersToPixels(real32 ratio, real32 meters)
-{
-	return ratio * meters;
 }
