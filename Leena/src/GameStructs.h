@@ -61,6 +61,7 @@ struct GameScreenBuffer
 	int Width;
 	int Height;
 	int Pitch;
+	int BytesPerPixel;
 };
 
 struct GameButtonState

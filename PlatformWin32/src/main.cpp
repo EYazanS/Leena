@@ -146,6 +146,7 @@ int WINAPI wWinMain(
 				programState.BitmapBuffer.Width,
 				programState.BitmapBuffer.Height,
 				programState.BitmapBuffer.Pitch,
+				programState.BitmapBuffer.BytesPerPixel,
 			};
 
 			// See if we need to record or playback recording
@@ -320,7 +321,7 @@ internal GameMemory InitGameMemory()
 	gameMemory.PermanentStorageSize = Megabytes(64);
 	gameMemory.TransiateStorageSize = Gigabytes(1);
 
-	uint64 totalSize = gameMemory.PermanentStorageSize + gameMemory.TransiateStorageSize;
+	size_t totalSize = gameMemory.PermanentStorageSize + gameMemory.TransiateStorageSize;
 
 	gameMemory.PermanentStorage = VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	gameMemory.TransiateStorage = (uint8*)gameMemory.PermanentStorage + gameMemory.PermanentStorageSize;
