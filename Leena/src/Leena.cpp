@@ -257,7 +257,7 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 		}
 	}
 
-	int32 TileSideInPixels = 6;
+	int32 TileSideInPixels = 60;
 	real32 MetersToPixels = (real32)TileSideInPixels / (real32)map->TileSideInMeters;
 
 	DrawRectangle(screenBuffer, 0, 0, (real32)screenBuffer->Width, (real32)screenBuffer->Height, { 1.0f, 0.0f, 0.0f });

@@ -33,9 +33,6 @@ struct Win32ProgramState
 	Win32BitmapBuffer BitmapBuffer;
 	int64 PerformanceFrequence;
 
-	char* CurrentExcutableDirectory;
-	char* WriteToCurrentDir;
-
 	char ExeFileName[MAX_PATH];
 	char* OnePastLastEXEFileNameSlash;
 };
@@ -55,7 +52,6 @@ internal inline int64 Win32GetPerformanceFrequence();
 internal inline int64 Win32GetWallClock();
 internal real32 GetSecondsElapsed(uint64 start, uint64 end, uint64 frequency);
 internal FILETIME GetFileLastWriteDate(const char* fileName);
-internal void Win32GetCurrentExcutableDirectory(Win32ProgramState* state);
 internal void Win32BuildEXEPathFileName(Win32ProgramState* State, const char* FileName, int DestCount, char* Dest);
 internal void Win32GetExeFileName(Win32ProgramState* State);
 

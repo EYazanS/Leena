@@ -12,20 +12,20 @@ int WINAPI wWinMain(
 {
 	Win32ProgramState programState = { };
 
-	Win32GetExeFileName(&programState);
-
-	char sourceGameCodeDLLFullPath[MAX_PATH];
-
-	Win32BuildEXEPathFileName(&programState, "Leena.dll", sizeof(sourceGameCodeDLLFullPath), sourceGameCodeDLLFullPath);
-
-	char tempGameCodeDLLFullPath[MAX_PATH];
-
-	Win32BuildEXEPathFileName(&programState, "LeenaTmp.dll", sizeof(tempGameCodeDLLFullPath), tempGameCodeDLLFullPath);
-
 	HWND windowHandle = Win32InitWindow(instance, &programState);
 
 	if (windowHandle)
 	{
+		Win32GetExeFileName(&programState);
+
+		char sourceGameCodeDLLFullPath[MAX_PATH];
+
+		Win32BuildEXEPathFileName(&programState, "Leena.dll", sizeof(sourceGameCodeDLLFullPath), sourceGameCodeDLLFullPath);
+
+		char tempGameCodeDLLFullPath[MAX_PATH];
+
+		Win32BuildEXEPathFileName(&programState, "LeenaTmp.dll", sizeof(tempGameCodeDLLFullPath), tempGameCodeDLLFullPath);
+
 		ThreadContext thread;
 		// Get Window just so we dont have to remove the function for the current time
 		auto [width, height] = GetWindowDimensions(windowHandle);
@@ -52,9 +52,8 @@ int WINAPI wWinMain(
 		programState.RecordingState.InputRecordingIndex = 0;
 		programState.RecordingState.InputPlayingIndex = 0;
 
-		Win32GetCurrentExcutableDirectory(&programState);
 		GameCode game = Win32LoadGameCode(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath);
-		game.LastWriteTime = GetFileLastWriteDate("Leena.dll");
+		game.LastWriteTime = GetFileLastWriteDate(sourceGameCodeDLLFullPath);
 
 		GameMemory gameMemory = InitGameMemory();
 
@@ -92,7 +91,7 @@ int WINAPI wWinMain(
 		{
 			currentInput->TimeToAdvance = targetSecondsToAdvanceBy;
 
-			FILETIME newLastWriteTIme = GetFileLastWriteDate("Leena.dll");
+			FILETIME newLastWriteTIme = GetFileLastWriteDate(sourceGameCodeDLLFullPath);
 
 			if (CompareFileTime(&newLastWriteTIme, &game.LastWriteTime) != 0)
 			{
@@ -355,20 +354,6 @@ internal FILETIME GetFileLastWriteDate(const char* fileName)
 	if (GetFileAttributesExA(fileName, GetFileExInfoStandard, &result))
 		lastWriteTime = result.ftLastWriteTime;
 	return lastWriteTime;
-}
-internal void Win32GetCurrentExcutableDirectory(Win32ProgramState* state)
-{
-	if (!state->CurrentExcutableDirectory)
-	{
-		char* exeFilePath = new char[MAX_PATH];
-		DWORD sizeOfFile = GetModuleFileNameA(NULL, exeFilePath, MAX_PATH);
-		state->CurrentExcutableDirectory = exeFilePath;
-		state->WriteToCurrentDir = exeFilePath;
-
-		for (char* scan = exeFilePath; *scan; scan++)
-			if (*scan == '\\')
-				state->WriteToCurrentDir = scan + 1;
-	}
 }
 
 // Audio
