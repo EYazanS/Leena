@@ -25,6 +25,18 @@ struct TileChunkPosition
 	int32 RelativeTileY;
 };
 
+struct TileMapPosition
+{
+	// These are fixed points tile locations, the high bits are for tile chunk index, low bita are for tile index in the chunk
+	uint32 AbsTileX;
+	uint32 AbsTileY;
+	uint32 AbsTileZ;
+
+	// Tile relative
+	real32 TileRelativeX;
+	real32 TileRelativeY;
+};
+
 struct TileChunk
 {
 	TileValue* Tiles;
@@ -44,19 +56,6 @@ struct Map
 
 	TileChunk* TileChunks;
 };
-
-struct TileMapPosition
-{
-	// These are fixed points tile locations, the high bits are for tile chunk index, low bita are for tile index in the chunk
-	uint32 AbsTileX;
-	uint32 AbsTileY;
-	uint32 AbsTileZ;
-
-	// Tile relative
-	real32 TileRelativeX;
-	real32 TileRelativeY;
-};
-
 
 bool32 IsMapPointEmpty(Map* map, TileMapPosition position);
 TileValue GetTileValue(Map* map, uint32 absTileX, uint32 absTileY, uint32 absTileZ);
