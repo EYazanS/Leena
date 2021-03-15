@@ -47,21 +47,21 @@ TileChunk* GetTileChunk(Map* map, uint32 tileChunkX, uint32 tileChunkY, uint32 t
 	return tileChunk;
 }
 
-int32 GetTileValueUnchecked(Map* map, TileChunk* tileChunk, uint32 tileX, uint32 tileY)
+TileValue GetTileValueUnchecked(Map* map, TileChunk* tileChunk, uint32 tileX, uint32 tileY)
 {
 	Assert(tileChunk);
 	Assert(tileX < map->ChunkDimension);
 	Assert(tileY < map->ChunkDimension);
 
 	if (!tileChunk || !map)
-		return 0;
+		return TileValue::Invalid;
 
-	uint32 tileValue = tileChunk->Tiles[tileY * map->ChunkDimension + tileX];
+	TileValue tileValue = tileChunk->Tiles[tileY * map->ChunkDimension + tileX];
 
 	return tileValue;
 }
 
-void SetTileValueUnchecked(Map* map, TileChunk* tileChunk, uint32 tileX, uint32 tileY, uint32 value)
+void SetTileValueUnchecked(Map* map, TileChunk* tileChunk, uint32 tileX, uint32 tileY, TileValue value)
 {
 	Assert(tileChunk);
 	Assert(tileX < map->ChunkDimension);
@@ -73,9 +73,9 @@ void SetTileValueUnchecked(Map* map, TileChunk* tileChunk, uint32 tileX, uint32 
 	tileChunk->Tiles[tileY * map->ChunkDimension + tileX] = value;
 }
 
-uint32 GetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 testTileY)
+TileValue GetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 testTileY)
 {
-	uint32 tileChunkValue = 0;
+	TileValue tileChunkValue = TileValue::Invalid;
 
 	if (tileChunk && tileChunk->Tiles)
 		tileChunkValue = GetTileValueUnchecked(map, tileChunk, testTileX, testTileY);
@@ -83,7 +83,7 @@ uint32 GetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 tes
 	return tileChunkValue;
 }
 
-void SetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 testTileY, uint32 value)
+void SetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 testTileY, TileValue value)
 {
 	if (tileChunk && tileChunk->Tiles)
 		SetTileValueUnchecked(map, tileChunk, testTileX, testTileY, value);
@@ -104,13 +104,13 @@ TileChunkPosition GetTileChunkPosition(Map* map, uint32 absTileX, uint32 absTile
 	return result;
 }
 
-uint32 GetTileValue(Map* map, uint32 absTileX, uint32 absTileY, uint32 absTileZ)
+TileValue GetTileValue(Map* map, uint32 absTileX, uint32 absTileY, uint32 absTileZ)
 {
 	TileChunkPosition chunkPosition = GetTileChunkPosition(map, absTileX, absTileY, absTileZ);
 
 	TileChunk* tileChunk = GetTileChunk(map, chunkPosition.TileChunkX, chunkPosition.TileChunkY, chunkPosition.TileChunkZ);
 
-	uint32 tileValue = GetTileValue(map, tileChunk, chunkPosition.RelativeTileX, chunkPosition.RelativeTileY);
+	TileValue tileValue = GetTileValue(map, tileChunk, chunkPosition.RelativeTileX, chunkPosition.RelativeTileY);
 
 	return tileValue;
 }
@@ -118,14 +118,14 @@ uint32 GetTileValue(Map* map, uint32 absTileX, uint32 absTileY, uint32 absTileZ)
 
 bool32 IsMapPointEmpty(Map* map, TileMapPosition position)
 {
-	uint32 tileValue = GetTileValue(map, position.AbsTileX, position.AbsTileY, position.AbsTileZ);
+	TileValue tileValue = GetTileValue(map, position.AbsTileX, position.AbsTileY, position.AbsTileZ);
 
-	int32 isEmpty = tileValue == 1;
+	int32 isEmpty = tileValue == TileValue::Empty;
 
 	return isEmpty;
 }
 
-void SetTileValue(MemoryPool* pool, Map* map, uint32 tileX, uint32 tileY, uint32 tileZ, uint32 value)
+void SetTileValue(MemoryPool* pool, Map* map, uint32 tileX, uint32 tileY, uint32 tileZ, TileValue value)
 {
 	TileChunkPosition chunkPosistion = GetTileChunkPosition(map, tileX, tileY, tileZ);
 
@@ -137,11 +137,11 @@ void SetTileValue(MemoryPool* pool, Map* map, uint32 tileX, uint32 tileY, uint32
 	{
 		uint32 tileCount = map->ChunkDimension * map->ChunkDimension;
 
-		tileChunk->Tiles = PushArray(pool, tileCount, uint32);
+		tileChunk->Tiles = PushArray(pool, tileCount, TileValue);
 
 		for (uint32 TileIndex = 0; TileIndex < tileCount; ++TileIndex)
 		{
-			tileChunk->Tiles[TileIndex] = 1;
+			tileChunk->Tiles[TileIndex] = TileValue::Empty;
 		}
 	}
 

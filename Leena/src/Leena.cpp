@@ -93,38 +93,38 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 					uint32 absTileX = screenX * tilesPerWidth + tileX;
 					uint32 absTileY = screenY * tilesPerHeight + tileY;
 
-					uint32 tileValue = 1;
+					TileValue tileValue = TileValue::Empty;
 
 					if (tileX == 0 && (!doorLeft || (tileY != (tilesPerHeight / 2))))
 					{
-						tileValue = 2;
+						tileValue = TileValue::Wall;
 					}
 
 					if ((tileX == (tilesPerWidth - 1)) && (!doorRight || (tileY != (tilesPerHeight / 2))))
 					{
-						tileValue = 2;
+						tileValue = TileValue::Wall;
 					}
 
 					if (tileY == 0 && (!doorBottom || (tileX != (tilesPerWidth / 2))))
 					{
-						tileValue = 2;
+						tileValue = TileValue::Wall;
 					}
 
 					if ((tileY == (tilesPerHeight - 1)) && (!doorTop || (tileX != (tilesPerWidth / 2))))
 					{
-						tileValue = 2;
+						tileValue = TileValue::Wall;
 					}
 
 					if (tileX == 10 && tileY == 6)
 					{
 						if (doorUp)
 						{
-							tileValue = 3;
+							tileValue = TileValue::DoorUp;
 						}
 
 						if (doorDown)
 						{
-							tileValue = 4;
+							tileValue = TileValue::DoorDown;
 						}
 					}
 
@@ -273,18 +273,18 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 			uint32 row = gameState->PlayerPosition.AbsTileY + relRow;
 			uint32 floor = gameState->PlayerPosition.AbsTileZ;
 
-			uint32 tileValue = GetTileValue(map, column, row, floor);
+			TileValue tileValue = GetTileValue(map, column, row, floor);
 
-			if (tileValue > 0)
+			if (tileValue != TileValue::Invalid)
 			{
 				real32 colour = 0.5f;
 
-				if (tileValue == 2)
+				if (tileValue == TileValue::Wall)
 				{
 					colour = 1.0f;
 				}
 
-				if (tileValue > 2)
+				if (tileValue > TileValue::Wall)
 				{
 					colour = 0.25f;
 				}

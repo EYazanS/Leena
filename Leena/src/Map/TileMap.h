@@ -5,11 +5,14 @@
 #include "GameStructs.h"
 #include "Memory/Memory.h"
 
-enum TileValue
+enum class TileValue
 {
+	Invalid = 0,
 	Empty = 1,
 	Wall = 2,
-	Water = 3
+	Water = 3,
+	DoorUp = 4,
+	DoorDown = 5
 };
 
 struct TileChunkPosition
@@ -24,7 +27,7 @@ struct TileChunkPosition
 
 struct TileChunk
 {
-	uint32* Tiles;
+	TileValue* Tiles;
 };
 
 struct Map
@@ -56,11 +59,11 @@ struct TileMapPosition
 
 
 bool32 IsMapPointEmpty(Map* map, TileMapPosition position);
-uint32 GetTileValue(Map* map, uint32 absTileX, uint32 absTileY, uint32 absTileZ);
-uint32 GetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 testTileY);
+TileValue GetTileValue(Map* map, uint32 absTileX, uint32 absTileY, uint32 absTileZ);
+TileValue GetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 testTileY);
 TileMapPosition RecanonicalizePosition(Map* map, TileMapPosition position);
 void RecanonicalizeCoordinant(Map* map, uint32* tile, real32* tileRelative);
 TileChunkPosition GetTileChunkPosition(Map* map, uint32 absTileX, uint32 absTileY, uint32 absTileZ);
 TileChunk* GetTileChunk(Map* map, uint32 tileChunkX, uint32 tileChunkY, uint32 tileChunkZ);
-int32 GetTileValueUnchecked(Map* map, TileChunk* tileChunk, uint32 tileX, uint32 tileY);
-void SetTileValue(MemoryPool* pool, Map* map, uint32 tileX, uint32 tileY, uint32 tileZ, uint32 value);
+TileValue GetTileValueUnchecked(Map* map, TileChunk* tileChunk, uint32 tileX, uint32 tileY);
+void SetTileValue(MemoryPool* pool, Map* map, uint32 tileX, uint32 tileY, uint32 tileZ, TileValue value);
