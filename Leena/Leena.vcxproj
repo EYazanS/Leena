@@ -36,6 +36,9 @@
     <ClCompile Include="src\Map\TileMap.cpp" />
     <ClCompile Include="src\Memory\Memory.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="src\Map\Map.md" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{D02B5852-69DA-4F11-B309-3EACA6E1BC10}</ProjectGuid>

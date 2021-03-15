@@ -5,6 +5,13 @@
 #include "GameStructs.h"
 #include "Memory/Memory.h"
 
+enum TileValue
+{
+	Empty = 1,
+	Wall = 2,
+	Water = 3
+};
+
 struct TileChunkPosition
 {
 	int32 TileChunkX;
@@ -46,6 +53,7 @@ struct TileMapPosition
 	real32 TileRelativeX;
 	real32 TileRelativeY;
 };
+
 
 bool32 IsMapPointEmpty(Map* map, TileMapPosition position);
 uint32 GetTileValue(Map* map, uint32 absTileX, uint32 absTileY, uint32 absTileZ);
