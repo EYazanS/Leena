@@ -42,6 +42,9 @@ struct Map
 
 	real32 TileSideInMeters;
 };
+
+
+// TODO: Add function to load map from file and set its value
 void initializeMap(MemoryPool* pool, Map* map);
 bool32 IsMapPointEmpty(Map* map, MapPosition position);
 TileValue GetTileValue(Map* map, uint32 absTileX, uint32 absTileY, uint32 absTileZ);
