@@ -56,11 +56,18 @@ TileValue GetTileValue(Map* map, uint32 x, uint32 y, uint32 z)
 	return tileValue;
 }
 
+TileValue GetTileValue(Map* map, MapPosition position)
+{
+	TileValue tileValue = GetTileValue(map, position.X, position.Y, position.Z);
+
+	return tileValue;
+}
+
 bool32 IsMapPointEmpty(Map* map, MapPosition position)
 {
 	TileValue tileValue = GetTileValue(map, position.X, position.Y, position.Z);
 
-	int32 isEmpty = tileValue == TileValue::Empty;
+	int32 isEmpty = tileValue == TileValue::Empty || tileValue == TileValue::DoorUp || tileValue == TileValue::DoorDown;
 
 	return isEmpty;
 }
@@ -73,4 +80,11 @@ void SetTileValue(Map* map, uint32 x, uint32 y, uint32 z, TileValue value)
 	{
 		map->Tiles[(z * map->TileCountY * map->TileCountX) + (y * map->TileCountX) + x] = value;
 	}
+}
+
+bool32 AreOnSameTile(MapPosition position1, MapPosition position2)
+{
+	bool32 result = position1.X == position2.X && position1.Y == position2.Y && position1.Z == position2.Z;
+
+	return result;
 }

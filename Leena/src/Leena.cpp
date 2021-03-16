@@ -57,8 +57,11 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 				randomChoice = randomNumberTable[sandomNumberIndex++] % 3;
 			}
 
+			bool32 createdZDoor = false;
+
 			if (randomChoice == 2)
 			{
+				createdZDoor = true;
 				if (absTileZ == 0)
 				{
 					doorUp = true;
@@ -127,15 +130,10 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 
 			doorBottom = doorTop;
 
-			if (doorUp)
+			if (createdZDoor)
 			{
-				doorDown = true;
-				doorUp = false;
-			}
-			else if (doorDown)
-			{
-				doorUp = true;
-				doorDown = false;
+				doorDown = !doorDown;
+				doorUp = !doorUp;
 			}
 			else
 			{
@@ -243,6 +241,15 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 				IsMapPointEmpty(map, playerLeft) &&
 				IsMapPointEmpty(map, playerRight))
 			{
+				if (!AreOnSameTile(gameState->PlayerPosition, newPlayerPosition))
+				{
+					TileValue newTileValue = GetTileValue(map, newPlayerPosition);
+					if (newTileValue == TileValue::DoorUp)
+						newPlayerPosition.Z++;
+					else if (newTileValue == TileValue::DoorDown)
+						newPlayerPosition.Z--;
+				}
+
 				gameState->PlayerPosition = newPlayerPosition;
 			}
 		}

@@ -47,7 +47,9 @@ struct Map
 // TODO: Add function to load map from file and set its value
 void initializeMap(MemoryPool* pool, Map* map);
 bool32 IsMapPointEmpty(Map* map, MapPosition position);
-TileValue GetTileValue(Map* map, uint32 absTileX, uint32 absTileY, uint32 absTileZ);
+TileValue GetTileValue(Map* map, uint32 x, uint32 y, uint32 z);
+TileValue GetTileValue(Map* map, MapPosition position);
 void SetTileValue(Map* map, uint32 tileX, uint32 tileY, uint32 tileZ, TileValue value);
 MapPosition RecanonicalizePosition(Map* map, MapPosition position);
 void RecanonicalizeCoordinant(Map* map, uint32* tile, real32* tileRelative);
+bool32 AreOnSameTile(MapPosition position1, MapPosition position2);
