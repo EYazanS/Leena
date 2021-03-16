@@ -11,8 +11,9 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 
 	if (!gameMemory->IsInitialized)
 	{
-		gameState->PlayerPosition.AbsTileX = 1;
-		gameState->PlayerPosition.AbsTileY = 4;
+		gameState->PlayerPosition.X = 1;
+		gameState->PlayerPosition.Y = 4;
+		gameState->PlayerPosition.Z = 0;
 		gameState->PlayerPosition.TileRelativeX = 0.0f;
 		gameState->PlayerPosition.TileRelativeY = 0.0f;
 
@@ -24,17 +25,7 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 
 		Map* map = world->Map;
 
-		map->ChunkShift = 4;
-		map->ChunkMask = (1 << map->ChunkShift) - 1;
-		map->ChunkDimension = (1 << map->ChunkShift);
-
-		map->TileChunkCountX = 128;
-		map->TileChunkCountY = 128;
-		map->TileChunkCountZ = 2;
-
-		map->TileChunks = PushArray(&gameState->WorldMemoryPool, (uint64)map->TileChunkCountX * (uint64)map->TileChunkCountY * (uint64)map->TileChunkCountZ, TileChunk);
-
-		map->TileSideInMeters = 1.4f;
+		initializeMap(&gameState->WorldMemoryPool, map);
 
 		uint32 sandomNumberIndex = 0;
 
@@ -128,7 +119,7 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 						}
 					}
 
-					SetTileValue(&gameState->WorldMemoryPool, world->Map, absTileX, absTileY, absTileZ, tileValue);
+					SetTileValue(world->Map, absTileX, absTileY, absTileZ, tileValue);
 				}
 			}
 
@@ -234,16 +225,16 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 			dPlayerX *= PlayerSpeed;
 			dPlayerY *= PlayerSpeed;
 
-			TileMapPosition newPlayerPosition = gameState->PlayerPosition;
+			MapPosition newPlayerPosition = gameState->PlayerPosition;
 			newPlayerPosition.TileRelativeX += (real32)input->TimeToAdvance * dPlayerX;
 			newPlayerPosition.TileRelativeY += (real32)input->TimeToAdvance * dPlayerY;
 			newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
 
-			TileMapPosition playerLeft = newPlayerPosition;
+			MapPosition playerLeft = newPlayerPosition;
 			playerLeft.TileRelativeX -= 0.5f * playerWidth;
 			playerLeft = RecanonicalizePosition(map, playerLeft);
 
-			TileMapPosition playerRight = newPlayerPosition;
+			MapPosition playerRight = newPlayerPosition;
 			playerRight.TileRelativeX += 0.5f * playerWidth;
 			playerRight = RecanonicalizePosition(map, playerRight);
 
@@ -269,9 +260,9 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 	{
 		for (int32 relColumn = -20; relColumn < 20; ++relColumn)
 		{
-			uint32 column = gameState->PlayerPosition.AbsTileX + relColumn;
-			uint32 row = gameState->PlayerPosition.AbsTileY + relRow;
-			uint32 floor = gameState->PlayerPosition.AbsTileZ;
+			uint32 column = gameState->PlayerPosition.X + relColumn;
+			uint32 row = gameState->PlayerPosition.Y + relRow;
+			uint32 floor = gameState->PlayerPosition.Z;
 
 			TileValue tileValue = GetTileValue(map, column, row, floor);
 
@@ -289,8 +280,7 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 					colour = 0.25f;
 				}
 
-				if ((column == gameState->PlayerPosition.AbsTileX) &&
-					(row == gameState->PlayerPosition.AbsTileY))
+				if ((column == gameState->PlayerPosition.X) && (row == gameState->PlayerPosition.Y))
 				{
 					colour = 0;
 				}

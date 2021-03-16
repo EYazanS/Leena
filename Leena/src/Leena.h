@@ -43,7 +43,7 @@ struct GameState
 {
 	MemoryPool WorldMemoryPool;
 	World* World;
-	TileMapPosition PlayerPosition;
+	MapPosition PlayerPosition;
 };
 #define LeenaH
 
