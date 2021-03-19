@@ -469,19 +469,24 @@ LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFil
 
 		uint32* source = pixels;
 
-		uint32 redShift = BitScaneForward(header->RedMask);
-		uint32 greenShift = BitScaneForward(header->GreeenMask);
-		uint32 blueShift = BitScaneForward(header->BlueMask);
-		uint32 alphaShift = BitScaneForward(header->AlphaMask);
+		BitScanResult redShift = FindLeastSigifigantSetBit(header->RedMask);
+		BitScanResult greenShift = FindLeastSigifigantSetBit(header->GreeenMask);
+		BitScanResult blueShift = FindLeastSigifigantSetBit(header->BlueMask);
+		BitScanResult alphaShift = FindLeastSigifigantSetBit(header->AlphaMask);
+
+		Assert(redShift.Found);
+		Assert(greenShift.Found);
+		Assert(blueShift.Found);
+		Assert(alphaShift.Found);
 
 		for (int32 y = 0; y < header->Height; y++)
 		{
 			for (int32 x = 0; x < header->Width; x++)
 			{
-				uint32 alpha = (*source >> alphaShift) << 24;
-				uint32 red = (*source >> redShift) << 16;
-				uint32 green =  (*source >> greenShift) << 8;
-				uint32 blue = (*source >> blueShift) << 0;
+				uint32 alpha = (*source >> alphaShift.Index) << 24;
+				uint32 red = (*source >> redShift.Index) << 16;
+				uint32 green =  (*source >> greenShift.Index) << 8;
+				uint32 blue = (*source >> blueShift.Index) << 0;
 
 				uint32 r = alpha | red | green | blue;
 

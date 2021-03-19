@@ -61,20 +61,29 @@ inline uint32 AbsoluteInt32ToUInt32(int32 number)
 	return (uint32)number;
 }
 
-inline uint32 BitScaneForward(uint32 value)
+struct BitScanResult
 {
-	uint32 index = 0;
+	bool32 Found;
+	uint32 Index;
+};
 
-	for (uint32 test = 0; test < 32; test++)
+inline BitScanResult FindLeastSigifigantSetBit(uint32 value)
+{
+	BitScanResult result = {};
+#if COMPILER_MSVC
+	result.Found = _BitScanForward((unsigned long*)&result.Index, value);
+#else
+	for (uint32 currentScanningIndex = 0; currentScanningIndex < 32; currentScanningIndex++)
 	{
-		if (value & 1 << test)
+		if (value & 1 << currentScanningIndex)
 		{
-			index = test;
+			result.Found = true;
+			result.Index = currentScanningIndex;
 			break;
 		}
 	}
-
-	return index;
+#endif
+	return result;
 }
 
 #define Leena_Intinsics_h

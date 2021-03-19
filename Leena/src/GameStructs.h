@@ -1,178 +1,211 @@
 #pragma once
 
-struct ThreadContext
-{
-	int PlaceHolder;
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#if Leena_Internal
-struct DebugFileResult
-{
-	void* Memory;
-	uint32 FileSize;
-};
+	// TO Set the compilers if not set
+#if !defined(COMPILER_MSVC)
+#define COMPILER_MSVC 0
+#endif
 
-#define Debug_Platform_Free_File_Memory(name) void name(ThreadContext* thread, void* memory)
-typedef Debug_Platform_Free_File_Memory(PlatformFreeFileMemory);
+#if !defined(COMPILER_LLVM)
+#define COMPILER_LLVM 0
+#endif
 
-#define Debug_Platform_Read_Entire_File(name) DebugFileResult name(ThreadContext* thread, const char* fileName)
-typedef Debug_Platform_Read_Entire_File(PlatformReadEntireFile);
 
-#define Debug_Platform_Write_Entire_File(name) bool32 name(ThreadContext* thread, const char* fileName, uint32 memorySize, void* memory)
-typedef Debug_Platform_Write_Entire_File(PlatformWriteEntireFile);
+#if !COMPILER_MSVC && !COMPILER_LLVM
+#if _MSC_VER
+#undef COMPILER_MSVC
+#define COMPILER_MSVC 1
+#else
+#undef COMPILER_LLVM
+#define COMPILER_LLVM 1
+#endif // _MSC_VER
 
 #endif
 
-enum class Key
-{
-	A,
-	S,
-	W,
-	D,
-	E,
-	Q,
-	R,
-	Space,
-	Esc,
-	Ctrl,
-	Alt,
-	Enter,
-	MoveUp,
-	MoveRight,
-	MoveDown,
-	MoveLeft
-};
+#if COMPILER_MSVC
+#include <intrin.h>
+#pragma intrinsic(_BitScanForward)
+#endif // COMPILER_MSVC
 
-struct GameAudioBuffer
-{
-	uint16 FormatTag;
-	uint16 Channels;
-	uint32 SamplesPerSec;
-	uint32 AvgBytesPerSec;
-	uint16 BlockAlign;
-	uint16 BitsPerSample;
-	uint32 BufferSize;
-	void* BufferData;
-};
-
-struct GameScreenBuffer
-{
-	void* Memory;
-	int Width;
-	int Height;
-	int Pitch;
-	int BytesPerPixel;
-};
-
-struct GameButtonState
-{
-	bool32 EndedDown;
-	int HalfTransitionCount;
-};
-
-struct WindowDimensions
-{
-	int32 Width;
-	int32 Height;
-};
-
-struct MouseInput
-{
-	bool32 IsConnected;
-
-	uint64 X;
-	uint64 Y;
-
-	union
+	struct ThreadContext
 	{
-		GameButtonState Buttons[2];
+		int PlaceHolder;
+	};
 
-		struct
+#if Leena_Internal
+	struct DebugFileResult
+	{
+		void* Memory;
+		uint32 FileSize;
+	};
+
+#define Debug_Platform_Free_File_Memory(name) void name(ThreadContext* thread, void* memory)
+	typedef Debug_Platform_Free_File_Memory(PlatformFreeFileMemory);
+
+#define Debug_Platform_Read_Entire_File(name) DebugFileResult name(ThreadContext* thread, const char* fileName)
+	typedef Debug_Platform_Read_Entire_File(PlatformReadEntireFile);
+
+#define Debug_Platform_Write_Entire_File(name) bool32 name(ThreadContext* thread, const char* fileName, uint32 memorySize, void* memory)
+	typedef Debug_Platform_Write_Entire_File(PlatformWriteEntireFile);
+#endif
+
+	enum class Key
+	{
+		A,
+		S,
+		W,
+		D,
+		E,
+		Q,
+		R,
+		Space,
+		Esc,
+		Ctrl,
+		Alt,
+		Enter,
+		MoveUp,
+		MoveRight,
+		MoveDown,
+		MoveLeft
+	};
+
+	struct GameAudioBuffer
+	{
+		uint16 FormatTag;
+		uint16 Channels;
+		uint32 SamplesPerSec;
+		uint32 AvgBytesPerSec;
+		uint16 BlockAlign;
+		uint16 BitsPerSample;
+		uint32 BufferSize;
+		void* BufferData;
+	};
+
+	struct GameScreenBuffer
+	{
+		void* Memory;
+		int Width;
+		int Height;
+		int Pitch;
+		int BytesPerPixel;
+	};
+
+	struct GameButtonState
+	{
+		bool32 EndedDown;
+		int HalfTransitionCount;
+	};
+
+	struct WindowDimensions
+	{
+		int32 Width;
+		int32 Height;
+	};
+
+	struct MouseInput
+	{
+		bool32 IsConnected;
+
+		uint64 X;
+		uint64 Y;
+
+		union
 		{
-			GameButtonState RightButton;
-			GameButtonState LeftButton;
+			GameButtonState Buttons[2];
 
-			// Add button before this line so the assertion about the buttons array == the struct can hit properly 
-			GameButtonState Terminator;
+			struct
+			{
+				GameButtonState RightButton;
+				GameButtonState LeftButton;
+
+				// Add button before this line so the assertion about the buttons array == the struct can hit properly 
+				GameButtonState Terminator;
+			};
 		};
 	};
-};
 
-struct GameControllerInput
-{
-	bool32 IsConnected;
-	bool32 IsAnalog;
-
-	real32 LeftStickAverageX;
-	real32 LeftStickAverageY;
-
-	real32 RightStickAverageX;
-	real32 RightStickAverageY;
-
-	real32 RightTrigger;
-	real32 LeftTrigger;
-
-	union
+	struct GameControllerInput
 	{
-		GameButtonState Buttons[16];
+		bool32 IsConnected;
+		bool32 IsAnalog;
 
-		struct
+		real32 LeftStickAverageX;
+		real32 LeftStickAverageY;
+
+		real32 RightStickAverageX;
+		real32 RightStickAverageY;
+
+		real32 RightTrigger;
+		real32 LeftTrigger;
+
+		union
 		{
-			GameButtonState A;
-			GameButtonState X;
-			GameButtonState Y;
-			GameButtonState B;
+			GameButtonState Buttons[16];
 
-			GameButtonState MoveUp;
-			GameButtonState MoveDown;
-			GameButtonState MoveRight;
-			GameButtonState MoveLeft;
+			struct
+			{
+				GameButtonState A;
+				GameButtonState X;
+				GameButtonState Y;
+				GameButtonState B;
 
-			GameButtonState DpadUp;
-			GameButtonState DpadDown;
-			GameButtonState DpadRight;
-			GameButtonState DpadLeft;
+				GameButtonState MoveUp;
+				GameButtonState MoveDown;
+				GameButtonState MoveRight;
+				GameButtonState MoveLeft;
 
-			GameButtonState LeftShoulder;
-			GameButtonState RightShoulder;
+				GameButtonState DpadUp;
+				GameButtonState DpadDown;
+				GameButtonState DpadRight;
+				GameButtonState DpadLeft;
 
-			GameButtonState Start;
-			GameButtonState Back;
+				GameButtonState LeftShoulder;
+				GameButtonState RightShoulder;
 
-			// Add button before this line so the assertion about the buttons array == the struct can hit properly 
-			GameButtonState Terminator;
+				GameButtonState Start;
+				GameButtonState Back;
+
+				// Add button before this line so the assertion about the buttons array == the struct can hit properly 
+				GameButtonState Terminator;
+			};
 		};
 	};
-};
 
-struct GameInput
-{
-	real64 TimeToAdvance;
-	MouseInput Mouse;
-	GameControllerInput Controllers[5];
-};
+	struct GameInput
+	{
+		real64 TimeToAdvance;
+		MouseInput Mouse;
+		GameControllerInput Controllers[5];
+	};
 
-struct GameMemory
-{
-	MemorySizeIndex PermanentStorageSize;
-	MemorySizeIndex TransiateStorageSize;
-	void* PermanentStorage;
-	void* TransiateStorage;
-	bool32 IsInitialized;
+	struct GameMemory
+	{
+		MemorySizeIndex PermanentStorageSize;
+		MemorySizeIndex TransiateStorageSize;
+		void* PermanentStorage;
+		void* TransiateStorage;
+		bool32 IsInitialized;
 
-	PlatformFreeFileMemory* FreeFile;
-	PlatformReadEntireFile* ReadFile;
-	PlatformWriteEntireFile* WriteFile;
-};
+		PlatformFreeFileMemory* FreeFile;
+		PlatformReadEntireFile* ReadFile;
+		PlatformWriteEntireFile* WriteFile;
+	};
 
-struct GameClock
-{
-	real32 TimeElapsed;
-};
+	struct GameClock
+	{
+		real32 TimeElapsed;
+	};
 
-struct Colour
-{
-	real32 Red;
-	real32 Green;
-	real32 Blue;
-};
+	struct Colour
+	{
+		real32 Red;
+		real32 Green;
+		real32 Blue;
+	};
+
+#ifdef __cplusplus
+}
+#endif
