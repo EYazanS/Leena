@@ -473,10 +473,10 @@ LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFil
 		{
 			for (int32 x = 0; x < header->Width; x++)
 			{
-				uint8 red = *source & header->RedMask;
-				uint8 green = *source & header->GreeenMask;
-				uint8 blue = *source & header->BlueMask;
-				uint8 alpha = *source & header->AlphaMask;
+				uint32 red = *source & header->RedMask;
+				uint32 green = *source & header->GreeenMask;
+				uint32 blue = *source & header->BlueMask;
+				uint32 alpha = *source & header->AlphaMask;
 
 				uint32 r = alpha | red | green | blue;
 
