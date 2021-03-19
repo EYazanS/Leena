@@ -61,5 +61,22 @@ inline uint32 AbsoluteInt32ToUInt32(int32 number)
 	return (uint32)number;
 }
 
+inline uint32 BitScaneForward(uint32 value)
+{
+	uint32 index = 0;
+
+	for (uint32 test = 0; test < 32; test++)
+	{
+		if (value & 1 << test)
+		{
+			index = test;
+			break;
+		}
+	}
+
+	return index;
+}
+
 #define Leena_Intinsics_h
+
 #endif // !defined(Leena_Intinsics)

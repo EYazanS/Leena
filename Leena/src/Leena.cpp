@@ -469,14 +469,19 @@ LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFil
 
 		uint32* source = pixels;
 
+		uint32 redShift = BitScaneForward(header->RedMask);
+		uint32 greenShift = BitScaneForward(header->GreeenMask);
+		uint32 blueShift = BitScaneForward(header->BlueMask);
+		uint32 alphaShift = BitScaneForward(header->AlphaMask);
+
 		for (int32 y = 0; y < header->Height; y++)
 		{
 			for (int32 x = 0; x < header->Width; x++)
 			{
-				uint32 red = *source & header->RedMask;
-				uint32 green = *source & header->GreeenMask;
-				uint32 blue = *source & header->BlueMask;
-				uint32 alpha = *source & header->AlphaMask;
+				uint32 alpha = (*source >> alphaShift) << 24;
+				uint32 red = (*source >> redShift) << 16;
+				uint32 green =  (*source >> greenShift) << 8;
+				uint32 blue = (*source >> blueShift) << 0;
 
 				uint32 r = alpha | red | green | blue;
 
