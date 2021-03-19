@@ -39,11 +39,22 @@ struct World
 	Map* Map;
 };
 
+struct LoadedBitmap
+{
+	int32 Width;
+	int32 Height;
+	uint32* Data;
+};
+
 struct GameState
 {
 	MemoryPool WorldMemoryPool;
 	World* World;
 	MapPosition PlayerPosition;
+	LoadedBitmap Background;
+	LoadedBitmap PlayerHead;
+	LoadedBitmap PlayerTorso;
+	LoadedBitmap PlayerCape;
 };
 #define LeenaH
 

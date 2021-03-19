@@ -2,8 +2,41 @@
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
 void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, Colour colour);
+LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFile, const char* fileName);
 
+
+void DrawBitmap(LoadedBitmap* bitmap, GameScreenBuffer* screenBuffer, real32 realX, real32 realY);
 GameAudioBuffer* ReadAudioBufferData(void* memory);
+
+
+// To pack the struct tightly and prevent combiler from 
+// aligning the fields 
+#pragma pack(push, 1)
+struct BitmapHeader
+{
+	uint16 FileType;
+	uint32 FileSize;
+	uint16 Reserved1;
+	uint16 Reserved2;
+	uint32 BitmapOffset;
+	uint32 Size;
+	int32 Width;
+	int32 Height;
+	uint16 Planes;
+	uint16 BitsPerPixel;
+	uint32 Compression;
+	uint32 SizeOfBitmap;
+	int32 HorzResoloution;
+	int32 VertResoloution;
+	uint32 ColoursUsed;
+	uint32 ColoursImportant;
+
+	uint32 RedMask;
+	uint32 GreeenMask;
+	uint32 BlueMask;
+	uint32 AlphaMask;
+};
+#pragma pack(pop)
 
 DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameInput* input)
 {
@@ -11,6 +44,11 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 
 	if (!gameMemory->IsInitialized)
 	{
+		gameState->Background = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_background.bmp");
+		gameState->PlayerHead = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_head.bmp");
+		gameState->PlayerCape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_cape.bmp");
+		gameState->PlayerTorso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_torso.bmp");
+
 		gameState->PlayerPosition.X = 1;
 		gameState->PlayerPosition.Y = 4;
 		gameState->PlayerPosition.Z = 0;
@@ -255,13 +293,13 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 		}
 	}
 
-	int32 TileSideInPixels = 60;
-	real32 MetersToPixels = (real32)TileSideInPixels / (real32)map->TileSideInMeters;
-
-	DrawRectangle(screenBuffer, 0, 0, (real32)screenBuffer->Width, (real32)screenBuffer->Height, { 1.0f, 0.0f, 0.0f });
+	int32 tileSideInPixels = 60;
+	real32 MetersToPixels = (real32)tileSideInPixels / (real32)map->TileSideInMeters;
 
 	real32 screenCenterX = 0.5f * (real32)screenBuffer->Width;
 	real32 screenCenterY = 0.5f * (real32)screenBuffer->Height;
+
+	DrawBitmap(&gameState->Background, screenBuffer, 0, 0);
 
 	for (int32 relRow = -10; relRow < 10; ++relRow)
 	{
@@ -273,7 +311,7 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 
 			TileValue tileValue = GetTileValue(map, column, row, floor);
 
-			if (tileValue != TileValue::Invalid)
+			if (tileValue != TileValue::Invalid && tileValue != TileValue::Empty)
 			{
 				real32 colour = 0.5f;
 
@@ -292,12 +330,12 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 					colour = 0;
 				}
 
-				real32 centerX = (screenCenterX - MetersToPixels * gameState->PlayerPosition.TileRelativeX) + ((real32)relColumn) * TileSideInPixels;
-				real32 centerY = (screenCenterY + MetersToPixels * gameState->PlayerPosition.TileRelativeY) - ((real32)relRow) * TileSideInPixels;
-				real32 minX = centerX - 0.5f * TileSideInPixels;
-				real32 minY = centerY - 0.5f * TileSideInPixels;
-				real32 maxX = centerX + 0.5f * TileSideInPixels;
-				real32 maxY = centerY + 0.5f * TileSideInPixels;
+				real32 centerX = (screenCenterX - MetersToPixels * gameState->PlayerPosition.TileRelativeX) + ((real32)relColumn) * tileSideInPixels;
+				real32 centerY = (screenCenterY + MetersToPixels * gameState->PlayerPosition.TileRelativeY) - ((real32)relRow) * tileSideInPixels;
+				real32 minX = centerX - 0.5f * tileSideInPixels;
+				real32 minY = centerY - 0.5f * tileSideInPixels;
+				real32 maxX = centerX + 0.5f * tileSideInPixels;
+				real32 maxY = centerY + 0.5f * tileSideInPixels;
 
 				DrawRectangle(screenBuffer, minX, minY, maxX, maxY, { colour, colour, colour });
 			}
@@ -308,13 +346,18 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 	real32 playerG = 1.0f;
 	real32 playerB = 0.0f;
 
-	real32 PlayerLeft = screenCenterX - 0.5f * MetersToPixels * playerWidth;
-	real32 PlayerTop = screenCenterY - MetersToPixels * playerHeight;
+	real32 playerLeft = screenCenterX - 0.5f * MetersToPixels * playerWidth;
+	real32 playerTop = screenCenterY - MetersToPixels * playerHeight;
 
-	DrawRectangle(screenBuffer, PlayerLeft, PlayerTop,
-		PlayerLeft + MetersToPixels * playerWidth,
-		PlayerTop + MetersToPixels * playerHeight,
+	DrawRectangle(screenBuffer, playerLeft, playerTop,
+		playerLeft + MetersToPixels * playerWidth,
+		playerTop + MetersToPixels * playerHeight,
 		{ playerR, playerG, playerB });
+
+	DrawBitmap(&gameState->PlayerHead, screenBuffer, playerLeft, playerTop);
+	//DrawBitmap(&gameState->PlayerCape, screenBuffer, playerLeft, playerTop);
+	//DrawBitmap(&gameState->PlayerTorso, screenBuffer, playerLeft, playerTop);
+
 }
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer)
@@ -409,5 +452,83 @@ void DrawRectangle(
 		}
 
 		row += gameScreenBuffer->Pitch;
+	}
+}
+
+LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFile, const char* fileName)
+{
+	LoadedBitmap result = {};
+
+	DebugFileResult bmp = readFile(thread, fileName);
+
+	if (bmp.FileSize != 0)
+	{
+		BitmapHeader* header = (BitmapHeader*)bmp.Memory;
+
+		uint32* pixels = (uint32*)((uint8*)bmp.Memory + header->BitmapOffset);
+
+		uint32* source = pixels;
+
+		for (int32 y = 0; y < header->Height; y++)
+		{
+			for (int32 x = 0; x < header->Width; x++)
+			{
+				uint8 red = *source & header->RedMask;
+				uint8 green = *source & header->GreeenMask;
+				uint8 blue = *source & header->BlueMask;
+				uint8 alpha = *source & header->AlphaMask;
+
+				uint32 r = alpha | red | green | blue;
+
+				*source = r;
+
+				source++;
+			}
+		}
+
+		result.Data = pixels;
+		result.Width = header->Width;
+		result.Height = header->Height;
+	}
+
+	return result;
+}
+
+void DrawBitmap(LoadedBitmap* bitmap, GameScreenBuffer* screenBuffer, real32 realX, real32 realY)
+{
+	int32 minX = RoundReal32ToInt32(realX);
+	int32 minY = RoundReal32ToInt32(realY);
+	int32 maxX = RoundReal32ToInt32(realX + (real32)bitmap->Width);
+	int32 maxY = RoundReal32ToInt32(realY + (real32)bitmap->Height);
+
+	// Clip to the nearest valid pixel
+	if (minX < 0)
+		minX = 0;
+
+	if (minY < 0)
+		minY = 0;
+
+	if (maxX > screenBuffer->Width)
+		maxX = screenBuffer->Width;
+
+	if (maxY > screenBuffer->Height)
+		maxY = screenBuffer->Height;
+
+	uint32* sourceRow = bitmap->Data + (int64)bitmap->Width * ((int64)bitmap->Height - 1);
+
+	uint8* destRow = (((uint8*)screenBuffer->Memory) + (int64)minX * screenBuffer->BytesPerPixel + (int64)minY * screenBuffer->Pitch);
+
+	for (int32 y = minY; y < maxY; y++)
+	{
+		uint32* source = (uint32*)sourceRow;
+		uint32* dest = (uint32*)destRow;
+
+		for (int32 x = minX; x < maxX; x++)
+		{
+			*dest++ = *source++;
+		}
+
+		destRow += screenBuffer->Pitch;
+		sourceRow -= bitmap->Width;
 	}
 }
