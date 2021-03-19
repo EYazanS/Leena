@@ -8,6 +8,12 @@ inline int32 RoundReal32ToInt32(real32 value)
 	return result;
 }
 
+inline uint32 RoundReal32ToUInt32(real32 val)
+{
+	uint32 Result = (uint32)roundf(val);
+	return Result;
+}
+
 inline int32 TruncateReal32ToInt32(real32 value)
 {
 	int32 result = (int32)(value);

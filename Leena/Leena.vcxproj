@@ -36,6 +36,9 @@
     <ClCompile Include="src\Map\TileMap.cpp" />
     <ClCompile Include="src\Memory\Memory.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="src\Map\Map.md" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{D02B5852-69DA-4F11-B309-3EACA6E1BC10}</ProjectGuid>
@@ -93,6 +96,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Build\</OutDir>
+    <IntDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>

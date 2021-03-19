@@ -5,51 +5,51 @@
 #include "GameStructs.h"
 #include "Memory/Memory.h"
 
-struct TileChunkPosition
+enum class TileValue
 {
-	int32 TileChunkX;
-	int32 TileChunkY;
-
-	int32 RelativeTileX;
-	int32 RelativeTileY;
+	Invalid = 0,
+	Empty = 1,
+	Wall = 2,
+	Water = 3,
+	DoorUp = 4,
+	DoorDown = 5
 };
 
-struct TileChunk
-{
-	uint32* Tiles;
-};
 
-struct Map
-{
-	uint32 TileChunkCountX;
-	uint32 TileChunkCountY;
-
-	uint32 ChunkShift;
-	uint32 ChunkMask;
-	uint32 ChunkDimension;
-
-	real32 TileSideInMeters;
-
-	TileChunk* TileChunks;
-};
-
-struct TileMapPosition
+struct MapPosition
 {
 	// These are fixed points tile locations, the high bits are for tile chunk index, low bita are for tile index in the chunk
-	uint32 AbsTileX;
-	uint32 AbsTileY;
+	uint32 X;
+	uint32 Y;
+	uint32 Z;
 
-	// Tile relative
+	// Relative to the tile 
 	real32 TileRelativeX;
 	real32 TileRelativeY;
 };
 
-bool32 IsMapPointEmpty(Map* map, TileMapPosition position);
-uint32 GetTileValue(Map* map, uint32 absTileX, uint32 absTileY);
-uint32 GetTileValue(Map* map, TileChunk* tileChunk, uint32 testTileX, uint32 testTileY);
-TileMapPosition RecanonicalizePosition(Map* map, TileMapPosition position);
+struct Map
+{
+	TileValue* Tiles;
+
+	// How many tiles we have in each direction
+	// it's unsinged so it's always positive
+	// Max tiles in any direction is 65535
+	// Max memory usage is 4 bytes * 65535 tiles * 3 direction = 786,420 bytes aka 768kb
+	uint16 TileCountX;
+	uint16 TileCountY;
+	uint16 TileCountZ;
+
+	real32 TileSideInMeters;
+};
+
+
+// TODO: Add function to load map from file and set its value
+void initializeMap(MemoryPool* pool, Map* map);
+bool32 IsMapPointEmpty(Map* map, MapPosition position);
+TileValue GetTileValue(Map* map, uint32 x, uint32 y, uint32 z);
+TileValue GetTileValue(Map* map, MapPosition position);
+void SetTileValue(Map* map, uint32 tileX, uint32 tileY, uint32 tileZ, TileValue value);
+MapPosition RecanonicalizePosition(Map* map, MapPosition position);
 void RecanonicalizeCoordinant(Map* map, uint32* tile, real32* tileRelative);
-TileChunkPosition GetTileChunkPosition(Map* map, uint32 absTileX, uint32 absTileY);
-TileChunk* GetTileChunk(Map* map, uint32 tileChunkX, uint32 tileChunkY);
-int32 GetTileValueUnchecked(TileChunk* tileChunk, uint32 tileCountX, uint32 tileX, uint32 tileY);
-void SetTileValue(MemoryPool* pool, Map* map, uint32 tileX, uint32 tileY, uint32 value);
+bool32 AreOnSameTile(MapPosition position1, MapPosition position2);

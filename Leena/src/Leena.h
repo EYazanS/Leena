@@ -22,7 +22,7 @@
 #endif
 
 // Functions provided for the platform layer
-DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameAudioBuffer* soundBuffer, GameInput* input);
+DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameInput* input);
 
 #include "Utilities/Intrinsics.h"
 #include "Map/TileMap.h"
@@ -39,11 +39,22 @@ struct World
 	Map* Map;
 };
 
+struct LoadedBitmap
+{
+	int32 Width;
+	int32 Height;
+	uint32* Data;
+};
+
 struct GameState
 {
 	MemoryPool WorldMemoryPool;
 	World* World;
-	TileMapPosition PlayerPosition;
+	MapPosition PlayerPosition;
+	LoadedBitmap Background;
+	LoadedBitmap PlayerHead;
+	LoadedBitmap PlayerTorso;
+	LoadedBitmap PlayerCape;
 };
 #define LeenaH
 

@@ -72,6 +72,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Build\</OutDir>
+    <IntDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
@@ -180,10 +181,6 @@
   <ItemGroup>
     <ClInclude Include="src\GameFunctions.h" />
     <ClInclude Include="src\main.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Media Include="src\resources\WaterPipe_Smoke_Fienup_003.wav" />
-    <Media Include="src\resources\Water_Splash_SeaLion_Fienup_001.wav" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
