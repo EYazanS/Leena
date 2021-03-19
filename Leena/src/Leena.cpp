@@ -355,8 +355,8 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 		{ playerR, playerG, playerB });
 
 	DrawBitmap(&gameState->PlayerHead, screenBuffer, playerLeft, playerTop);
-	//DrawBitmap(&gameState->PlayerCape, screenBuffer, playerLeft, playerTop);
-	//DrawBitmap(&gameState->PlayerTorso, screenBuffer, playerLeft, playerTop);
+	DrawBitmap(&gameState->PlayerCape, screenBuffer, playerLeft, playerTop);
+	DrawBitmap(&gameState->PlayerTorso, screenBuffer, playerLeft, playerTop);
 
 }
 
@@ -485,7 +485,7 @@ LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFil
 			{
 				uint32 alpha = (*source >> alphaShift.Index) << 24;
 				uint32 red = (*source >> redShift.Index) << 16;
-				uint32 green =  (*source >> greenShift.Index) << 8;
+				uint32 green = (*source >> greenShift.Index) << 8;
 				uint32 blue = (*source >> blueShift.Index) << 0;
 
 				uint32 r = alpha | red | green | blue;
@@ -535,7 +535,34 @@ void DrawBitmap(LoadedBitmap* bitmap, GameScreenBuffer* screenBuffer, real32 rea
 
 		for (int32 x = minX; x < maxX; x++)
 		{
-			*dest++ = *source++;
+			// Enabling this cause game to crash becasue too much calculation for the cpu
+#if 0
+			real32 a = (real32)((*source >> 24) & 0xFF) / 255.0f;
+			real32 sr = (real32)((*source >> 16) & 0xFF);
+			real32 sg = (real32)((*source >> 8) & 0xFF);
+			real32 sb = (real32)((*source >> 0) & 0xFF);
+
+			real32 dr = (real32)((*dest >> 16) & 0xFF);
+			real32 dg = (real32)((*dest >> 8) & 0xFF);
+			real32 db = (real32)((*dest >> 0) & 0xFF);
+
+			real32 r = (1.0f - a) * dr + a * sr;
+			real32 g = (1.0f - a) * dg + a * sg;
+			real32 b = (1.0f - a) * db + a * sb;
+
+			uint32 result = (((uint32)(r + 0.5f) << 16) | ((uint32)(g + 0.5f) << 8) | ((uint32)(b + 0.5f)) << 0);
+
+			*dest = result;
+#else
+			if (*source >> 24 > 124)
+			{
+				*dest = *source;
+			}
+#endif // 0
+
+
+			dest++;
+			source++;
 		}
 
 		destRow += screenBuffer->Pitch;
