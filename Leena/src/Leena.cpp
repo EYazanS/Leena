@@ -535,8 +535,10 @@ void DrawBitmap(LoadedBitmap* bitmap, GameScreenBuffer* screenBuffer, real32 rea
 
 		for (int32 x = minX; x < maxX; x++)
 		{
-			// Enabling this cause game to crash becasue too much calculation for the cpu
-#if 0
+			// Enabling this cause game to crash becasue too much calculation for the cpu on 60fps
+
+#if 1
+			// Linear blend
 			real32 a = (real32)((*source >> 24) & 0xFF) / 255.0f;
 			real32 sr = (real32)((*source >> 16) & 0xFF);
 			real32 sg = (real32)((*source >> 8) & 0xFF);
