@@ -30,6 +30,9 @@ int WINAPI wWinMain(
 		// Get Window just so we dont have to remove the function for the current time
 		auto [width, height] = GetWindowDimensions(windowHandle);
 
+		programState.WindowHeight = height;
+		programState.WindowWidth = width;
+
 		// Get the performance frequence
 		programState.PerformanceFrequence = Win32GetPerformanceFrequence();
 
@@ -172,7 +175,7 @@ int WINAPI wWinMain(
 					// We substract 2 ms from the sleep incase the os doesnt wake us on time
 					DWORD sleepMs = (DWORD)(1000.f * (targetSecondsToAdvanceBy - timeTakenOnFrame)) - 2;
 
-					if (sleepMs > 0)
+					if (sleepMs > 0 && sleepMs < 40)
 						Sleep(sleepMs);
 				}
 
@@ -208,7 +211,7 @@ int WINAPI wWinMain(
 
 			Win32PlayAudio(gameSourceVoice);
 
-			Win32DrawBuffer(windowHandle, &programState.BitmapBuffer);
+			Win32DrawBuffer(windowHandle, &programState.BitmapBuffer, &programState);
 
 			// Register last counter we got
 			real32 FPS = (1000.0f / msPerFrame);
@@ -265,7 +268,7 @@ internal void Win32UnloadGameCode(GameCode* gameCode)
 // Windows
 internal inline Win32ProgramState* GetAppState(HWND handle)
 {
-	return reinterpret_cast<Win32ProgramState*>(GetWindowLongPtr(handle, GWLP_USERDATA));
+	return (Win32ProgramState*)GetWindowLongPtr(handle, GWLP_USERDATA);
 }
 internal HWND Win32InitWindow(const HINSTANCE& instance, Win32ProgramState* state)
 {
@@ -276,6 +279,7 @@ internal HWND Win32InitWindow(const HINSTANCE& instance, Win32ProgramState* stat
 	window.lpfnWndProc = Win32WindowCallback;
 	window.hInstance = instance;
 	window.lpszClassName = className;
+	window.hCursor = LoadCursor(0, IDC_ARROW);
 	window.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
 
 	RegisterClass(&window);
@@ -294,6 +298,12 @@ internal HWND Win32InitWindow(const HINSTANCE& instance, Win32ProgramState* stat
 		instance,
 		state
 	);
+
+#if Leena_Internal
+	state->ShowCursor = true;
+#endif
+
+	state->PrevWP = { sizeof(state->PrevWP) };
 
 	return windowHandle;
 }
@@ -523,10 +533,11 @@ internal real32 Win32CalculateTriggerValue(real32 triggerValue)
 }
 internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, GameControllerInput* controller)
 {
-	uint32 vkCode = static_cast<uint32>(message.wParam);
+	uint32 vkCode = (uint32)message.wParam;
 
-	bool wasDown = ((message.lParam & (1 << 30)) != 0);
-	bool isDown = ((message.lParam & (static_cast<uint32>(1) << 31)) == 0);
+	bool32 wasDown = ((message.lParam & (1 << 30)) != 0);
+	bool32 isDown = ((message.lParam & ((uint32)1 << 31)) == 0);
+	bool32 altDown = message.lParam & (1 << 29);
 
 	if (isDown != wasDown)
 		switch (vkCode)
@@ -585,6 +596,14 @@ internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, GameC
 			}
 		} break;
 
+		case VK_RETURN:
+		{
+			if (altDown && isDown)
+			{
+				ToggleFullScreen(state, message.hwnd, &state->PrevWP);
+			}
+		} break;
+
 		case 'P':
 		{
 			if (isDown && !state->RecordingState.InputRecordingIndex)
@@ -637,7 +656,7 @@ internal WindowDimensions GetWindowDimensions(HWND windowHandle)
 	int height = clientRect.bottom - clientRect.top;
 	return { width, height };
 }
-internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height)
+internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int32 width, int32 height)
 {
 	if (bitmapBuffer->Memory)
 		VirtualFree(bitmapBuffer->Memory, NULL, MEM_RELEASE);
@@ -659,24 +678,49 @@ internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, 
 
 	bitmapBuffer->Memory = VirtualAlloc(0, bitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
 }
-internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext)
+internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, Win32ProgramState* state)
 {
-	StretchDIBits(
-		deviceContext,
-		// Window Size - Destination
-		0, 0, bitmapBuffer->Width, bitmapBuffer->Height,
-		// Buffer Size - Source 
-		0, 0, bitmapBuffer->Width, bitmapBuffer->Height,
-		bitmapBuffer->Memory,
-		&bitmapBuffer->Info,
-		DIB_RGB_COLORS,
-		SRCCOPY
-	);
+	if (state->IsFullScreen)
+	{
+		StretchDIBits(
+			deviceContext,
+			// Window Size - Destination
+			0, 0, state->WindowWidth, state->WindowHeight,
+			// Buffer Size - Source 
+			0, 0, bitmapBuffer->Width, bitmapBuffer->Height,
+			bitmapBuffer->Memory,
+			&bitmapBuffer->Info,
+			DIB_RGB_COLORS,
+			SRCCOPY
+		);
+	}
+	else
+	{
+		int offsetX = 10;
+		int offsetY = 10;
+
+		PatBlt(deviceContext, 0, 0, state->WindowWidth, offsetY, BLACKNESS);
+		PatBlt(deviceContext, 0, offsetY + bitmapBuffer->Height, state->WindowWidth, state->WindowHeight, BLACKNESS);
+		PatBlt(deviceContext, 0, 0, offsetX, state->WindowHeight, BLACKNESS);
+		PatBlt(deviceContext, offsetX + bitmapBuffer->Width, 0, state->WindowWidth, state->WindowHeight, BLACKNESS);
+
+		StretchDIBits(
+			deviceContext,
+			// Window Size - Destination
+			offsetX, offsetY, bitmapBuffer->Width, bitmapBuffer->Height,
+			// Buffer Size - Source 
+			0, 0, bitmapBuffer->Width, bitmapBuffer->Height,
+			bitmapBuffer->Memory,
+			&bitmapBuffer->Info,
+			DIB_RGB_COLORS,
+			SRCCOPY
+		);
+	}
 }
-internal void Win32DrawBuffer(const HWND& windowHandle, Win32BitmapBuffer* buffer)
+internal void Win32DrawBuffer(const HWND& windowHandle, Win32BitmapBuffer* buffer, Win32ProgramState* state)
 {
 	HDC deviceContext = GetDC(windowHandle);
-	Win32DisplayBufferInWindow(buffer, deviceContext);
+	Win32DisplayBufferInWindow(buffer, deviceContext, state);
 	ReleaseDC(windowHandle, deviceContext);
 }
 
@@ -744,8 +788,8 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 	{
 	case WM_CREATE:
 	{
-		CREATESTRUCT* pCreate = reinterpret_cast<CREATESTRUCT*>(lParam);
-		programState = reinterpret_cast<Win32ProgramState*>(pCreate->lpCreateParams);
+		CREATESTRUCT* pCreate = (CREATESTRUCT*)lParam;
+		programState = (Win32ProgramState*)pCreate->lpCreateParams;
 		SetWindowLongPtr(windowHandle, GWLP_USERDATA, (LONG_PTR)programState);
 	} break;
 
@@ -767,23 +811,36 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 	{
 	} break;
 
+	case WM_SETCURSOR:
+	{
+		if (programState->ShowCursor)
+		{
+			result = DefWindowProc(windowHandle, message, wParam, lParam);
+		}
+		else
+		{
+			SetCursor(NULL);
+		}
+	} break;
+
 	case WM_SYSKEYDOWN:
 	case WM_SYSKEYUP:
 	case WM_KEYDOWN:
 	case WM_KEYUP:
 	{
-		uint32 vkCode = static_cast<uint32>(wParam);
+		uint32 vkCode = (uint32)wParam;
 
-		bool wasDown = ((lParam & (1 << 30)) != 0);
-		bool isDown = ((lParam & (static_cast<uint32>(1) << 31)) == 0);
+		bool32 wasDown = ((lParam & (1 << 30)) != 0);
+		bool32 isDown = ((lParam & ((uint32)1 << 31)) == 0);
+		bool32 altDown = ((lParam & (1 << 29)) != 0);
 
 		switch (vkCode)
 		{
 		case VK_F4:
 		{
 			// Is alt button held down
-			//if (programState->KeysPressed[Key::Alt])
-			//	programState->IsRunning = false;
+			if (altDown)
+				programState->IsRunning = false;
 		} break;
 
 		default:
@@ -797,7 +854,7 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 	{
 		PAINTSTRUCT paint;
 		HDC deviceContext = BeginPaint(windowHandle, &paint);
-		Win32DisplayBufferInWindow(&programState->BitmapBuffer, deviceContext);
+		Win32DisplayBufferInWindow(&programState->BitmapBuffer, deviceContext, programState);
 		EndPaint(windowHandle, &paint);
 	} break;
 
@@ -863,4 +920,40 @@ internal int StringLength(const char* string)
 	}
 
 	return count;
+}
+
+internal void ToggleFullScreen(Win32ProgramState* state, HWND handle, WINDOWPLACEMENT* prevWP)
+{
+	DWORD style = GetWindowLong(handle, GWL_STYLE);
+
+	state->IsFullScreen = style & WS_OVERLAPPEDWINDOW;
+
+	if (state->IsFullScreen)
+	{
+
+		MONITORINFO monitorInfo = { sizeof(monitorInfo) };
+
+		if (GetWindowPlacement(handle, prevWP) && GetMonitorInfo(MonitorFromWindow(handle, MONITOR_DEFAULTTOPRIMARY), &monitorInfo))
+		{
+			SetWindowLong(handle, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
+
+			SetWindowPlacement(handle, prevWP);
+
+			state->WindowHeight = monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top;
+			state->WindowWidth = monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left;
+
+			SetWindowPos(handle, HWND_TOP, monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.top, state->WindowWidth, state->WindowHeight, SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+		}
+	}
+	else
+	{
+		SetWindowLong(handle, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+
+		SetWindowPlacement(handle, prevWP);
+
+		state->WindowHeight = prevWP->rcNormalPosition.bottom - prevWP->rcNormalPosition.top;
+		state->WindowWidth = prevWP->rcNormalPosition.right - prevWP->rcNormalPosition.left;
+
+		SetWindowPos(handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+	}
 }

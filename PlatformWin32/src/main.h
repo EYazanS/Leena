@@ -29,8 +29,14 @@ struct Win32BitmapBuffer
 struct Win32ProgramState
 {
 	bool32 IsRunning;
+	bool32 ShowCursor;
+	bool32 IsFullScreen;
+	int32 WindowWidth;
+	int32 WindowHeight;
 	Win32RecordState RecordingState;
 	Win32BitmapBuffer BitmapBuffer;
+	WINDOWPLACEMENT PrevWP;
+
 	int64 PerformanceFrequence;
 
 	char ExeFileName[MAX_PATH];
@@ -54,6 +60,7 @@ internal real32 GetSecondsElapsed(uint64 start, uint64 end, uint64 frequency);
 internal FILETIME GetFileLastWriteDate(const char* fileName);
 internal void Win32BuildEXEPathFileName(Win32ProgramState* State, const char* FileName, int DestCount, char* Dest);
 internal void Win32GetExeFileName(Win32ProgramState* State);
+internal void ToggleFullScreen(Win32ProgramState* state, HWND handle, WINDOWPLACEMENT* prevWP);
 
 // Audio
 internal HRESULT Wind32InitializeXAudio(IXAudio2*& xAudio);
@@ -74,9 +81,9 @@ internal void Win32GetMouseButtonsState(MouseInput* mouse);
 
 // Graphics
 internal WindowDimensions GetWindowDimensions(HWND windowHandle);
-internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int width, int height);
-internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext);
-internal void Win32DrawBuffer(const HWND& windowHandle, Win32BitmapBuffer* buffer);
+internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int32 width, int32 height);
+internal void Win32DisplayBufferInWindow(Win32BitmapBuffer* bitmapBuffer, HDC deviceContext, Win32ProgramState* state);
+internal void Win32DrawBuffer(const HWND& windowHandle, Win32BitmapBuffer* buffer, Win32ProgramState* state);
 
 // Recording 
 internal void Win32BeginRecordingInput(Win32RecordState* state);
