@@ -36,8 +36,8 @@ MapPosition RecanonicalizePosition(Map* map, MapPosition position)
 {
 	MapPosition result = position;
 
-	RecanonicalizeCoordinant(map, &result.X, &result.TileRelativeX);
-	RecanonicalizeCoordinant(map, &result.Y, &result.TileRelativeY);
+	RecanonicalizeCoordinant(map, &result.X, &result.OffsetX);
+	RecanonicalizeCoordinant(map, &result.Y, &result.OffsetY);
 
 	return result;
 }

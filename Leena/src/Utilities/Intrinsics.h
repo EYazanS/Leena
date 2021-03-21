@@ -86,6 +86,17 @@ inline BitScanResult FindLeastSigifigantSetBit(uint32 value)
 	return result;
 }
 
+
+#if defined(COMPILER_MSVC)
+//  Microsoft 
+#define DllExport extern "C" __declspec(dllexport)
+#define DllImport __declspec(dllimport)
+#elif defined(__GNUC__)
+//  GCC
+#define DllExport extern "C" __attribute__((visibility("default")))
+#define DllIMPORT
+#endif
+
 #define Leena_Intinsics_h
 
 #endif // !defined(Leena_Intinsics)

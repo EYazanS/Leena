@@ -1,31 +1,16 @@
-#if !defined(LeenaH)
+#pragma once
 
+#if !defined(LeenaH)
 
 #include "GameTypes.h"
 #include "GameStructs.h"
 #include "RandomNumbers.h"
 #include "Memory/Memory.h"
-
-#if defined(_MSC_VER)
-//  Microsoft 
-#define DllExport extern "C" __declspec(dllexport)
-#define DllImport __declspec(dllimport)
-#elif defined(__GNUC__)
-//  GCC
-#define DllExport extern "C" __attribute__((visibility("default")))
-#define DllIMPORT
-#else
-//  do nothing and hope for the best?
-#define DllEXPORT
-#define DllIMPORT
-#pragma warning Unknown dynamic link import/export semantics.
-#endif
+#include "Utilities/Intrinsics.h"
+#include "Map/TileMap.h"
 
 // Functions provided for the platform layer
 DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameInput* input);
-
-#include "Utilities/Intrinsics.h"
-#include "Map/TileMap.h"
 
 inline GameControllerInput* GetController(GameInput* input, uint8 index)
 {
@@ -41,20 +26,31 @@ struct World
 
 struct LoadedBitmap
 {
-	int32 Width;
-	int32 Height;
+	int64 Width;
+	int64 Height;
 	uint32* Data;
+};
+
+struct PlayerBitMap
+{
+	LoadedBitmap Head;
+	LoadedBitmap Torso;
+	LoadedBitmap Cape;
+
+	int32 AlignX;
+	int32 AlignY;
 };
 
 struct GameState
 {
 	MemoryPool WorldMemoryPool;
 	World* World;
+	MapPosition CameraPosition;
 	MapPosition PlayerPosition;
 	LoadedBitmap Background;
-	LoadedBitmap PlayerHead;
-	LoadedBitmap PlayerTorso;
-	LoadedBitmap PlayerCape;
+	uint32 PlayerFacingDirection;
+	PlayerBitMap playerBitMaps[4];
+	bool32 EnableSmoothCamera;
 };
 #define LeenaH
 

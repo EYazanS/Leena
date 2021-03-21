@@ -15,6 +15,12 @@ enum class TileValue
 	DoorDown = 5
 };
 
+struct MapPositionDifference
+{
+	real32 DX;
+	real32 DY;
+	real32 DZ;
+};
 
 struct MapPosition
 {
@@ -24,8 +30,8 @@ struct MapPosition
 	uint32 Z;
 
 	// Relative to the tile 
-	real32 TileRelativeX;
-	real32 TileRelativeY;
+	real32 OffsetX;
+	real32 OffsetY;
 };
 
 struct Map
@@ -53,3 +59,18 @@ void SetTileValue(Map* map, uint32 tileX, uint32 tileY, uint32 tileZ, TileValue 
 MapPosition RecanonicalizePosition(Map* map, MapPosition position);
 void RecanonicalizeCoordinant(Map* map, uint32* tile, real32* tileRelative);
 bool32 AreOnSameTile(MapPosition position1, MapPosition position2);
+
+inline MapPositionDifference CalculatePositionDifference(Map* map, MapPosition* position1, MapPosition* position2)
+{
+	MapPositionDifference result = {};
+
+	real32 dTileX = (real32)position1->X - (real32)position2->X;
+	real32 dTileY = (real32)position1->Y - (real32)position2->Y;
+	real32 dTileZ = (real32)position1->Z - (real32)position2->Z;
+
+	result.DX = map->TileSideInMeters * dTileX + (position1->OffsetX - position2->OffsetX);
+	result.DY = map->TileSideInMeters * dTileY + (position1->OffsetY - position2->OffsetY);
+	result.DZ = map->TileSideInMeters * dTileZ;
+
+	return result;
+}
