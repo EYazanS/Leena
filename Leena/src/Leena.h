@@ -10,7 +10,8 @@
 #include "Map/TileMap.h"
 
 // Functions provided for the platform layer
-DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameInput* input);
+DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameInput* input);
+DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer* audioBuffer);
 
 inline GameControllerInput* GetController(GameInput* input, uint8 index)
 {

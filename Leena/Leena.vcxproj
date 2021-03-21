@@ -147,7 +147,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>Xinput.lib;Xinput9_1_0.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalOptions>/EXPORT:GameUpdate %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/EXPORT:GameUpdateAndRender /EXPORT:GameUpdateAudio %(AdditionalOptions)</AdditionalOptions>
       <ProgramDatabaseFile>$(SolutionDir)Build\$(TargetName)-$([System.DateTime]::Now.ToString("yyyyMMddHHmmss_fff")).pdb</ProgramDatabaseFile>
       <GenerateMapFile>true</GenerateMapFile>
     </Link>

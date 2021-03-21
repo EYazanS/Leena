@@ -1,9 +1,12 @@
 #include "Leena.h"
 
-void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer);
-void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, Colour colour);
+// GRAPHICS
 LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFile, const char* fileName);
+void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, Colour colour);
 void DrawBitmap(LoadedBitmap* bitmap, GameScreenBuffer* screenBuffer, real32 realX, real32 realY, int32 alignX = 0, int32 alignY = 0);
+
+// AUDIO
+void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer* soundBuffer);
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 
 // To pack the struct tightly and prevent combiler from 
@@ -35,7 +38,7 @@ struct BitmapHeader
 };
 #pragma pack(pop)
 
-DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameInput* input)
+DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameInput* input)
 {
 	GameState* gameState = (GameState*)gameMemory->PermanentStorage;
 
@@ -438,52 +441,11 @@ DllExport void GameUpdate(ThreadContext* thread, GameMemory* gameMemory, GameScr
 	DrawBitmap(&playerFacingDirectionMap->Torso, screenBuffer, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
 }
 
-void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer*& soundBuffer)
+DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer* audioBuffer)
 {
-	if (0)
-	{
-		DebugFileResult file = gameMemory->ReadFile(thread, "resources/Water_Splash_SeaLion_Fienup_001.wav");
-
-		auto result = ReadAudioBufferData(file.Memory);
-
-		*soundBuffer = *result;
-	}
-}
-
-GameAudioBuffer* ReadAudioBufferData(void* memory)
-{
-	uint8* byte = (uint8*)memory; // Get the firs 4 bytes of the memory
-
-	// Move to position 21
-	byte += 20;
-
-	GameAudioBuffer* result = (GameAudioBuffer*)byte;
-
-	// Move to Data chunk
-	char* characterToRead = ((char*)byte);
-
-	characterToRead += sizeof(GameAudioBuffer);
-
-	while (*characterToRead != 'd' || *(characterToRead + 1) != 'a' || *(characterToRead + 2) != 't' || *(characterToRead + 3) != 'a')
-	{
-		characterToRead++;
-	}
-
-	characterToRead += 4;
-
-	byte = (uint8*)(characterToRead);
-
-	uint32 bufferSize = *((uint32*)byte);
-
-	byte += 4;
-
-	// Get one third of a sec
-	uint32 totalBytesNeeded = (uint32)(result->SamplesPerSec * 0.5f);
-
-	result->BufferSize = totalBytesNeeded;
-	result->BufferData = byte;
-
-	return result;
+#if 0
+	FillAudioBuffer(thread, gameMemory, audioBuffer);
+#endif // 0
 }
 
 void DrawRectangle(
@@ -603,7 +565,7 @@ void DrawBitmap(LoadedBitmap* bitmap, GameScreenBuffer* screenBuffer, real32 rea
 	int64 sourceOffsetY = 0;
 
 	if (minY < 0)
-	{ 
+	{
 		sourceOffsetY = -minY - 1;
 		minY = 0;
 	}
@@ -661,4 +623,52 @@ void DrawBitmap(LoadedBitmap* bitmap, GameScreenBuffer* screenBuffer, real32 rea
 		destRow += screenBuffer->Pitch;
 		sourceRow -= bitmap->Width;
 	}
+}
+
+void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer* soundBuffer)
+{
+	DebugFileResult file = gameMemory->ReadFile(thread, "resources/Water_Splash_SeaLion_Fienup_001.wav");
+
+	if (file.Memory)
+	{
+		GameAudioBuffer* result = ReadAudioBufferData(file.Memory);
+
+		*soundBuffer = *result;
+	}
+}
+
+GameAudioBuffer* ReadAudioBufferData(void* memory)
+{
+	uint8* byte = (uint8*)memory; // Get the firs 4 bytes of the memory
+
+	// Move to position 21
+	byte += 20;
+
+	GameAudioBuffer* result = (GameAudioBuffer*)byte;
+
+	// Move to Data chunk
+	char* characterToRead = ((char*)byte);
+
+	characterToRead += sizeof(GameAudioBuffer);
+
+	while (*characterToRead != 'd' || *(characterToRead + 1) != 'a' || *(characterToRead + 2) != 't' || *(characterToRead + 3) != 'a')
+	{
+		characterToRead++;
+	}
+
+	characterToRead += 4;
+
+	byte = (uint8*)(characterToRead);
+
+	uint32 bufferSize = *((uint32*)byte);
+
+	byte += 4;
+
+	// Get one third of a sec
+	uint32 totalBytesNeeded = (uint32)(result->SamplesPerSec * 0.5f);
+
+	result->BufferSize = totalBytesNeeded;
+	result->BufferData = byte;
+
+	return result;
 }

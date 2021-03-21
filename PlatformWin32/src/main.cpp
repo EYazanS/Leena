@@ -40,7 +40,7 @@ int WINAPI wWinMain(
 		bool32 isSleepGranular = timeBeginPeriod(desiredSchedularTimeInMs) == TIMERR_NOERROR;
 
 		HDC dc = GetDC(windowHandle);
-		uint32 monitorRefreshRate = 120; // In HZ
+		uint32 monitorRefreshRate = 60; // In HZ
 		uint32 win32VRefreshRate = GetDeviceCaps(dc, VREFRESH);
 
 		if (win32VRefreshRate > 1)
@@ -158,6 +158,7 @@ int WINAPI wWinMain(
 
 			// Process game update. the game returns both a sound and draw buffer so we can use.
 			game.UpdateAndRender(&thread, &gameMemory, &screenBuffer, currentInput);
+			game.UpdateAudio(&thread, &gameMemory, &gameaudioBuffer);
 
 			int64 workCounter = Win32GetWallClock();
 			real64 workSecondsElapsed = GetSecondsElapsed(lastCounter, workCounter, programState.PerformanceFrequence);
@@ -199,7 +200,7 @@ int WINAPI wWinMain(
 			// TODO: Look if i dont need to create a new source voice every frame.
 			IXAudio2SourceVoice* gameSourceVoice = {};
 
-			auto wave = Wind32InitializeWaveFormat(xAudio, gameSourceVoice, &gameaudioBuffer);
+			WAVEFORMATEX wave = Wind32InitializeWaveFormat(xAudio, gameSourceVoice, &gameaudioBuffer);
 
 			XAUDIO2_BUFFER audioBuffer2 = {};
 
@@ -236,13 +237,14 @@ internal GameCode Win32LoadGameCode(char* sourceDLLName, char* tempDLLName)
 
 	HMODULE gameCodeHandle = LoadLibraryA(tempDLLName);
 
-	GameCode result = { gameCodeHandle, GameUpdateStub };
+	GameCode result = { gameCodeHandle, GameUpdatAndRendereStub, GameUpdateAudioStub };
 
 	if (gameCodeHandle)
 	{
-		result.UpdateAndRender = (GAMEUPDATE*)GetProcAddress(gameCodeHandle, "GameUpdate");
+		result.UpdateAndRender = (GAMEUPDATEANDRENDER*)GetProcAddress(gameCodeHandle, "GameUpdateAndRender");
+		result.UpdateAudio = (GAMEUPDATEAUDIO*)GetProcAddress(gameCodeHandle, "GameUpdateAudio");
 
-		if (result.UpdateAndRender)
+		if (result.UpdateAndRender && result.UpdateAudio)
 			result.IsValid = true;
 		else
 			result.IsValid = false;
@@ -256,7 +258,8 @@ internal void Win32UnloadGameCode(GameCode* gameCode)
 		FreeLibrary(gameCode->LibraryHandle);
 
 	gameCode->IsValid = false;
-	gameCode->UpdateAndRender = GameUpdateStub;
+	gameCode->UpdateAndRender = GameUpdatAndRendereStub;
+	gameCode->UpdateAudio = GameUpdateAudioStub;
 }
 
 // Windows
