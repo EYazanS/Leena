@@ -250,15 +250,43 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	{
 		GameControllerInput* controller = GetController(input, controllerIndex);
 
+		Vector2d dPlayer = {};
+		real32 PlayerSpeed = 5.0f;
+
 		if (controller->IsAnalog)
 		{
 			//NOTE: Use analog movement tuning
+			if (controller->LeftStickAverageX != 0)
+			{
+				dPlayer.X = controller->LeftStickAverageX;
+
+				if (controller->LeftStickAverageX > 0)
+				{
+					gameState->PlayerFacingDirection = 0;
+				}
+				else
+				{
+					gameState->PlayerFacingDirection = 2;
+				}
+			}
+
+			if (controller->LeftStickAverageY != 0)
+			{
+				dPlayer.Y = controller->LeftStickAverageY;
+
+				if (controller->LeftStickAverageY > 0)
+				{
+					gameState->PlayerFacingDirection = 1;
+				}
+				else
+				{
+					gameState->PlayerFacingDirection = 3;
+				}
+			}
 		}
 		else
 		{
 			//NOTE: Use digital movement tuning
-			Vector2d dPlayer = {};
-
 			if (controller->MoveRight.EndedDown)
 			{
 				dPlayer.X = 1.0f;
@@ -284,92 +312,89 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			{
 				gameState->EnableSmoothCamera = !gameState->EnableSmoothCamera;
 			}
-
-			real32 PlayerSpeed = 5.0f;
-
-			if (controller->X.EndedDown)
-			{
-				PlayerSpeed = 30.0f;
-			}
-
-			if (controller->Start.EndedDown)
-			{
-				gameMemory->IsInitialized = false;
-			}
-
-			dPlayer *= PlayerSpeed;
-
-			if ((dPlayer.X != 0.0f) && (dPlayer.Y != 0.0f))
-			{
-				dPlayer.X *= 0.707106781187f;
-				dPlayer.Y *= 0.707106781187f;
-			}
-
-			MapPosition newPlayerPosition = gameState->PlayerPosition;
-
-			newPlayerPosition.Offset += (real32)input->TimeToAdvance * dPlayer;
-
-			newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
-
-			MapPosition playerLeft = newPlayerPosition;
-			playerLeft.Offset.X -= 0.5f * playerWidth;
-			playerLeft = RecanonicalizePosition(map, playerLeft);
-
-			MapPosition playerRight = newPlayerPosition;
-			playerRight.Offset.X += 0.5f * playerWidth;
-			playerRight = RecanonicalizePosition(map, playerRight);
-
-
-			if (IsMapPointEmpty(map, newPlayerPosition) &&
-				IsMapPointEmpty(map, playerLeft) &&
-				IsMapPointEmpty(map, playerRight))
-			{
-				if (!AreOnSameTile(gameState->PlayerPosition, newPlayerPosition))
-				{
-					TileValue newTileValue = GetTileValue(map, newPlayerPosition);
-					if (newTileValue == TileValue::DoorUp)
-						newPlayerPosition.Z++;
-					else if (newTileValue == TileValue::DoorDown)
-						newPlayerPosition.Z--;
-				}
-
-				gameState->PlayerPosition = newPlayerPosition;
-			}
-
-			// Smooth scrolling for the camera
-			if (gameState->EnableSmoothCamera)
-			{
-
-				gameState->CameraPosition.X = gameState->PlayerPosition.X;
-				gameState->CameraPosition.Offset.X = gameState->PlayerPosition.Offset.X;
-				gameState->CameraPosition.Y = gameState->PlayerPosition.Y;
-				gameState->CameraPosition.Offset.Y = gameState->PlayerPosition.Offset.Y;
-			}
-			else
-			{
-				MapPositionDifference diff = CalculatePositionDifference(map, &gameState->PlayerPosition, &gameState->CameraPosition);
-
-				if (diff.DXY.X > (9.0f * map->TileSideInMeters))
-				{
-					gameState->CameraPosition.X += 17;
-				}
-				else if (diff.DXY.X < -(9.0f * map->TileSideInMeters))
-				{
-					gameState->CameraPosition.X -= 17;
-				}
-
-				if (diff.DXY.Y > (5.0f * map->TileSideInMeters))
-				{
-					gameState->CameraPosition.Y += 9;
-				}
-				else if (diff.DXY.Y < -(5.0f * map->TileSideInMeters))
-				{
-					gameState->CameraPosition.Y -= 9;
-				}
-			}
-
-			gameState->CameraPosition.Z = gameState->PlayerPosition.Z;
 		}
+
+		if (controller->X.EndedDown)
+		{
+			PlayerSpeed = 30.0f;
+		}
+
+		if (controller->Start.EndedDown)
+		{
+			gameMemory->IsInitialized = false;
+		}
+
+		dPlayer *= PlayerSpeed;
+
+		if ((dPlayer.X != 0.0f) && (dPlayer.Y != 0.0f))
+		{
+			dPlayer.X *= 0.707106781187f;
+			dPlayer.Y *= 0.707106781187f;
+		}
+
+		MapPosition newPlayerPosition = gameState->PlayerPosition;
+
+		newPlayerPosition.Offset += (real32)input->TimeToAdvance * dPlayer;
+
+		newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
+
+		MapPosition playerLeft = newPlayerPosition;
+		playerLeft.Offset.X -= 0.5f * playerWidth;
+		playerLeft = RecanonicalizePosition(map, playerLeft);
+
+		MapPosition playerRight = newPlayerPosition;
+		playerRight.Offset.X += 0.5f * playerWidth;
+		playerRight = RecanonicalizePosition(map, playerRight);
+
+
+		if (IsMapPointEmpty(map, newPlayerPosition) &&
+			IsMapPointEmpty(map, playerLeft) &&
+			IsMapPointEmpty(map, playerRight))
+		{
+			if (!AreOnSameTile(gameState->PlayerPosition, newPlayerPosition))
+			{
+				TileValue newTileValue = GetTileValue(map, newPlayerPosition);
+				if (newTileValue == TileValue::DoorUp)
+					newPlayerPosition.Z++;
+				else if (newTileValue == TileValue::DoorDown)
+					newPlayerPosition.Z--;
+			}
+
+			gameState->PlayerPosition = newPlayerPosition;
+		}
+
+		// Smooth scrolling for the camera
+		if (gameState->EnableSmoothCamera)
+		{
+			gameState->CameraPosition.X = gameState->PlayerPosition.X;
+			gameState->CameraPosition.Offset.X = gameState->PlayerPosition.Offset.X;
+			gameState->CameraPosition.Y = gameState->PlayerPosition.Y;
+			gameState->CameraPosition.Offset.Y = gameState->PlayerPosition.Offset.Y;
+		}
+		else
+		{
+			MapPositionDifference diff = CalculatePositionDifference(map, &gameState->PlayerPosition, &gameState->CameraPosition);
+
+			if (diff.DXY.X > (9.0f * map->TileSideInMeters))
+			{
+				gameState->CameraPosition.X += 17;
+			}
+			else if (diff.DXY.X < -(9.0f * map->TileSideInMeters))
+			{
+				gameState->CameraPosition.X -= 17;
+			}
+
+			if (diff.DXY.Y > (5.0f * map->TileSideInMeters))
+			{
+				gameState->CameraPosition.Y += 9;
+			}
+			else if (diff.DXY.Y < -(5.0f * map->TileSideInMeters))
+			{
+				gameState->CameraPosition.Y -= 9;
+			}
+		}
+
+		gameState->CameraPosition.Z = gameState->PlayerPosition.Z;
 	}
 
 	int32 tileSideInPixels = 60;

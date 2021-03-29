@@ -446,9 +446,9 @@ internal real32 Win32ProcessXInputStickValues(real32 value, int16 deadZoneThresh
 	real32 result = 0.f;
 
 	if (value < -deadZoneThreshold)
-		result = (real32)(value + deadZoneThreshold) / (32768.f - deadZoneThreshold);
+		result = (real32)((value + deadZoneThreshold) / (32768.0f - deadZoneThreshold));
 	else if (value > deadZoneThreshold)
-		result = (real32)(value + deadZoneThreshold) / (32767.f - deadZoneThreshold);
+		result = (real32)((value - deadZoneThreshold) / (32767.0f - deadZoneThreshold));
 
 	return result;
 }
