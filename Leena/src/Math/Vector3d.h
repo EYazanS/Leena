@@ -13,9 +13,6 @@ struct Vector3d
 
 		real32 Elements[3];
 	};
-
-	inline Vector3d& operator*=(real32 b);
-	inline Vector3d& operator+=(Vector3d b);
 };
 
 inline Vector3d operator-(Vector3d a)
@@ -64,23 +61,17 @@ inline Vector3d operator*(Vector3d a, real32 b)
 
 inline Vector3d operator*(real32 a, Vector3d b)
 {
-	Vector3d result = {};
-
-	result.X = a * b.X;
-	result.Y = a * b.Y;
-	result.Z = a * b.Z;
-
-	return result;
+	return b * a;
 }
 
-inline Vector3d& Vector3d::operator+=(Vector3d b)
+inline Vector3d& operator+=(Vector3d &a, Vector3d b)
 {
-	*this = *this + b;
-	return *this;
+	a = a + b;
+	return a;
 }
 
-inline Vector3d& Vector3d::operator*=(real32 b)
+inline Vector3d& operator*=(Vector3d& a, real32 b)
 {
-	*this = *this * b;
-	return *this;
+	a = a * b;
+	return a;
 }

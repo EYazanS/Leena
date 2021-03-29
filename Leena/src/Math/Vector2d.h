@@ -12,9 +12,6 @@ struct Vector2d
 
 		real32 Elements[2];
 	};
-
-	inline Vector2d& operator*=(real32 b);
-	inline Vector2d& operator+=(Vector2d b);
 };
 
 inline Vector2d operator-(Vector2d a)
@@ -59,22 +56,18 @@ inline Vector2d operator*(Vector2d a, real32 b)
 
 inline Vector2d operator*(real32 a, Vector2d b)
 {
-	Vector2d result = {};
-
-	result.X = a * b.X;
-	result.Y = a * b.Y;
-
-	return result;
+	return b * a;
 }
 
-inline Vector2d& Vector2d::operator+=(Vector2d b)
+inline Vector2d& operator+=(Vector2d& a, Vector2d b)
 {
-	*this = *this + b;
-	return *this;
+	a = a + b;
+	return a;
 }
 
-inline Vector2d& Vector2d::operator*=(real32 b)
+inline Vector2d& operator*=(Vector2d& a, real32 b)
 {
-	*this = *this * b;
-	return *this;
+	a = a * b;
+
+	return a;
 }
