@@ -4,6 +4,7 @@
 #include "Utilities/Intrinsics.h"
 #include "GameStructs.h"
 #include "Memory/Memory.h"
+#include "Math/Math.h"
 
 enum class TileValue
 {
@@ -17,8 +18,7 @@ enum class TileValue
 
 struct MapPositionDifference
 {
-	real32 DX;
-	real32 DY;
+	Vector2d DXY;
 	real32 DZ;
 };
 
@@ -30,8 +30,7 @@ struct MapPosition
 	uint32 Z;
 
 	// Relative to the tile 
-	real32 OffsetX;
-	real32 OffsetY;
+	Vector2d Offset;
 };
 
 struct Map
@@ -64,12 +63,11 @@ inline MapPositionDifference CalculatePositionDifference(Map* map, MapPosition* 
 {
 	MapPositionDifference result = {};
 
-	real32 dTileX = (real32)position1->X - (real32)position2->X;
-	real32 dTileY = (real32)position1->Y - (real32)position2->Y;
+	Vector2d dTile = { (real32)position1->X - (real32)position2->X, (real32)position1->Y - (real32)position2->Y };
 	real32 dTileZ = (real32)position1->Z - (real32)position2->Z;
 
-	result.DX = map->TileSideInMeters * dTileX + (position1->OffsetX - position2->OffsetX);
-	result.DY = map->TileSideInMeters * dTileY + (position1->OffsetY - position2->OffsetY);
+	result.DXY = map->TileSideInMeters * dTile + (position1->Offset - position2->Offset);
+
 	result.DZ = map->TileSideInMeters * dTileZ;
 
 	return result;

@@ -3,6 +3,7 @@
 #if !defined(LeenaH)
 
 #include "GameTypes.h"
+#include "Math/Math.h"
 #include "GameStructs.h"
 #include "RandomNumbers.h"
 #include "Memory/Memory.h"

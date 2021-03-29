@@ -84,8 +84,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		gameState->PlayerPosition.Y = 4;
 		gameState->PlayerPosition.Z = 0;
 
-		gameState->PlayerPosition.OffsetX = 0.0f;
-		gameState->PlayerPosition.OffsetY = 0.0f;
+		gameState->PlayerPosition.Offset = {};
 
 		InitilizePool(&gameState->WorldMemoryPool, gameMemory->PermanentStorageSize - sizeof(GameState), (uint8*)gameMemory->PermanentStorage + sizeof(GameState));
 
@@ -258,27 +257,26 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		else
 		{
 			//NOTE: Use digital movement tuning
-			real32 dPlayerX = 0.0f;
-			real32 dPlayerY = 0.0f;
+			Vector2d dPlayer = {};
 
 			if (controller->MoveRight.EndedDown)
 			{
-				dPlayerX = 1.0f;
+				dPlayer.X = 1.0f;
 				gameState->PlayerFacingDirection = 0;
 			}
 			if (controller->MoveUp.EndedDown)
 			{
-				dPlayerY = 1.0f;
+				dPlayer.Y = 1.0f;
 				gameState->PlayerFacingDirection = 1;
 			}
 			if (controller->MoveDown.EndedDown)
 			{
-				dPlayerY = -1.0f;
+				dPlayer.Y = -1.0f;
 				gameState->PlayerFacingDirection = 3;
 			}
 			if (controller->MoveLeft.EndedDown)
 			{
-				dPlayerX = -1.0f;
+				dPlayer.X = -1.0f;
 				gameState->PlayerFacingDirection = 2;
 			}
 
@@ -299,20 +297,26 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 				gameMemory->IsInitialized = false;
 			}
 
-			dPlayerX *= PlayerSpeed;
-			dPlayerY *= PlayerSpeed;
+			dPlayer *= PlayerSpeed;
+
+			if ((dPlayer.X != 0.0f) && (dPlayer.Y != 0.0f))
+			{
+				dPlayer.X *= 0.707106781187f;
+				dPlayer.Y *= 0.707106781187f;
+			}
 
 			MapPosition newPlayerPosition = gameState->PlayerPosition;
-			newPlayerPosition.OffsetX += (real32)input->TimeToAdvance * dPlayerX;
-			newPlayerPosition.OffsetY += (real32)input->TimeToAdvance * dPlayerY;
+			
+			newPlayerPosition.Offset += (real32)input->TimeToAdvance * dPlayer;
+
 			newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
 
 			MapPosition playerLeft = newPlayerPosition;
-			playerLeft.OffsetX -= 0.5f * playerWidth;
+			playerLeft.Offset.X -= 0.5f * playerWidth;
 			playerLeft = RecanonicalizePosition(map, playerLeft);
 
 			MapPosition playerRight = newPlayerPosition;
-			playerRight.OffsetX += 0.5f * playerWidth;
+			playerRight.Offset.X += 0.5f * playerWidth;
 			playerRight = RecanonicalizePosition(map, playerRight);
 
 
@@ -337,28 +341,28 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			{
 
 				gameState->CameraPosition.X = gameState->PlayerPosition.X;
-				gameState->CameraPosition.OffsetX = gameState->PlayerPosition.OffsetX;
+				gameState->CameraPosition.Offset.X = gameState->PlayerPosition.Offset.X;
 				gameState->CameraPosition.Y = gameState->PlayerPosition.Y;
-				gameState->CameraPosition.OffsetY = gameState->PlayerPosition.OffsetY;
+				gameState->CameraPosition.Offset.Y = gameState->PlayerPosition.Offset.Y;
 			}
 			else
 			{
 				MapPositionDifference diff = CalculatePositionDifference(map, &gameState->PlayerPosition, &gameState->CameraPosition);
 
-				if (diff.DX > (9.0f * map->TileSideInMeters))
+				if (diff.DXY.X > (9.0f * map->TileSideInMeters))
 				{
 					gameState->CameraPosition.X += 17;
 				}
-				else if (diff.DX < -(9.0f * map->TileSideInMeters))
+				else if (diff.DXY.X < -(9.0f * map->TileSideInMeters))
 				{
 					gameState->CameraPosition.X -= 17;
 				}
 
-				if (diff.DY > (5.0f * map->TileSideInMeters))
+				if (diff.DXY.Y > (5.0f * map->TileSideInMeters))
 				{
 					gameState->CameraPosition.Y += 9;
 				}
-				else if (diff.DY < -(5.0f * map->TileSideInMeters))
+				else if (diff.DXY.Y < -(5.0f * map->TileSideInMeters))
 				{
 					gameState->CameraPosition.Y -= 9;
 				}
@@ -405,8 +409,8 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 					colour = 0;
 				}
 
-				real32 centerX = (screenCenterX - MetersToPixels * gameState->CameraPosition.OffsetX) + ((real32)relColumn) * tileSideInPixels;
-				real32 centerY = (screenCenterY + MetersToPixels * gameState->CameraPosition.OffsetY) - ((real32)relRow) * tileSideInPixels;
+				real32 centerX = (screenCenterX - MetersToPixels * gameState->CameraPosition.Offset.X) + ((real32)relColumn) * tileSideInPixels;
+				real32 centerY = (screenCenterY + MetersToPixels * gameState->CameraPosition.Offset.Y) - ((real32)relRow) * tileSideInPixels;
 				real32 minX = centerX - 0.5f * tileSideInPixels;
 				real32 minY = centerY - 0.5f * tileSideInPixels;
 				real32 maxX = centerX + 0.5f * tileSideInPixels;
@@ -423,8 +427,8 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	real32 playerG = 1.0f;
 	real32 playerB = 0.0f;
 
-	real32 playerGroundPointX = screenCenterX + MetersToPixels * camDiff.DX;
-	real32 playerGroundPointY = screenCenterY - MetersToPixels * camDiff.DY;
+	real32 playerGroundPointX = screenCenterX + MetersToPixels * camDiff.DXY.X;
+	real32 playerGroundPointY = screenCenterY - MetersToPixels * camDiff.DXY.Y;
 
 	real32 playerLeft = playerGroundPointX - 0.5f * MetersToPixels * playerWidth;
 	real32 playerTop = playerGroundPointY - MetersToPixels * playerHeight;
