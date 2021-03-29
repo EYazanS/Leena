@@ -44,7 +44,13 @@
     <ClInclude Include="src\Memory\Memory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Math\Vector2d.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="src\Math\Math.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Math\Vector3d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

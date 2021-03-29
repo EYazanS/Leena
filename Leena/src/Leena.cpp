@@ -2,7 +2,7 @@
 
 // GRAPHICS
 LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFile, const char* fileName);
-void DrawRectangle(GameScreenBuffer* gameScreenBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, Colour colour);
+void DrawRectangle(GameScreenBuffer* gameScreenBuffer, Vector2d vecMin, Vector2d vecMax, Colour colour);
 void DrawBitmap(LoadedBitmap* bitmap, GameScreenBuffer* screenBuffer, real32 realX, real32 realY, int32 alignX = 0, int32 alignY = 0);
 
 // AUDIO
@@ -306,7 +306,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			}
 
 			MapPosition newPlayerPosition = gameState->PlayerPosition;
-			
+
 			newPlayerPosition.Offset += (real32)input->TimeToAdvance * dPlayer;
 
 			newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
@@ -375,8 +375,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	int32 tileSideInPixels = 60;
 	real32 MetersToPixels = (real32)tileSideInPixels / (real32)map->TileSideInMeters;
 
-	real32 screenCenterX = 0.5f * (real32)screenBuffer->Width;
-	real32 screenCenterY = 0.5f * (real32)screenBuffer->Height;
+	Vector2d screenCenter = { 0.5f * (real32)screenBuffer->Width, 0.5f * (real32)screenBuffer->Height };
 
 	DrawBitmap(&gameState->Background, screenBuffer, 0, 0);
 
@@ -409,14 +408,14 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 					colour = 0;
 				}
 
-				real32 centerX = (screenCenterX - MetersToPixels * gameState->CameraPosition.Offset.X) + ((real32)relColumn) * tileSideInPixels;
-				real32 centerY = (screenCenterY + MetersToPixels * gameState->CameraPosition.Offset.Y) - ((real32)relRow) * tileSideInPixels;
-				real32 minX = centerX - 0.5f * tileSideInPixels;
-				real32 minY = centerY - 0.5f * tileSideInPixels;
-				real32 maxX = centerX + 0.5f * tileSideInPixels;
-				real32 maxY = centerY + 0.5f * tileSideInPixels;
+				Vector2d center = { (screenCenter.X - MetersToPixels * gameState->CameraPosition.Offset.X) + ((real32)relColumn) * tileSideInPixels, (screenCenter.Y + MetersToPixels * gameState->CameraPosition.Offset.Y) - ((real32)relRow) * tileSideInPixels };
 
-				DrawRectangle(screenBuffer, minX, minY, maxX, maxY, { colour, colour, colour });
+				Vector2d halfTileSide = { 0.5f * tileSideInPixels , 0.5f * tileSideInPixels };
+
+				Vector2d min = center - halfTileSide;
+				Vector2d max = center + halfTileSide;
+
+				DrawRectangle(screenBuffer, min, max, { colour, colour, colour });
 			}
 		}
 	}
@@ -427,16 +426,13 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	real32 playerG = 1.0f;
 	real32 playerB = 0.0f;
 
-	real32 playerGroundPointX = screenCenterX + MetersToPixels * camDiff.DXY.X;
-	real32 playerGroundPointY = screenCenterY - MetersToPixels * camDiff.DXY.Y;
+	real32 playerGroundPointX = screenCenter.X + MetersToPixels * camDiff.DXY.X;
+	real32 playerGroundPointY = screenCenter.Y - MetersToPixels * camDiff.DXY.Y;
 
-	real32 playerLeft = playerGroundPointX - 0.5f * MetersToPixels * playerWidth;
-	real32 playerTop = playerGroundPointY - MetersToPixels * playerHeight;
+	Vector2d playerDim = { MetersToPixels * playerWidth, MetersToPixels * playerHeight };
+	Vector2d playerLeftTop = { playerGroundPointX - 0.5f * MetersToPixels * playerWidth, playerGroundPointY - MetersToPixels * playerHeight };
 
-	DrawRectangle(screenBuffer, playerLeft, playerTop,
-		playerLeft + MetersToPixels * playerWidth,
-		playerTop + MetersToPixels * playerHeight,
-		{ playerR, playerG, playerB });
+	DrawRectangle(screenBuffer, playerLeftTop, playerLeftTop + playerDim, { playerR, playerG, playerB });
 
 	PlayerBitMap* playerFacingDirectionMap = &gameState->playerBitMaps[gameState->PlayerFacingDirection];
 
@@ -454,14 +450,14 @@ DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, Ga
 
 void DrawRectangle(
 	GameScreenBuffer* gameScreenBuffer,
-	real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY,
+	Vector2d vecMin, Vector2d vecMax,
 	Colour colour)
 {
-	int32 minX = RoundReal32ToInt32(realMinX);
-	int32 maxX = RoundReal32ToInt32(realMaxX);
+	int32 minX = RoundReal32ToInt32(vecMin.X);
+	int32 maxX = RoundReal32ToInt32(vecMax.X);
 
-	int32 minY = RoundReal32ToInt32(realMinY);
-	int32 maxY = RoundReal32ToInt32(realMaxY);
+	int32 minY = RoundReal32ToInt32(vecMin.Y);
+	int32 maxY = RoundReal32ToInt32(vecMax.Y);
 
 	// Clip to the nearest valid pixel
 	if (minX < 0)
