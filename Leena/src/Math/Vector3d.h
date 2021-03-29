@@ -2,11 +2,17 @@
 
 struct Vector3d
 {
-	real32 X;
-	real32 Y;
-	real32 Z;
+	union
+	{
+		struct
+		{
+			real32 X;
+			real32 Y;
+			real32 Z;
+		};
 
-	inline real32& operator[](int32 index) { return (&X)[index]; }
+		real32 Elements[3];
+	};
 
 	inline Vector3d& operator*=(real32 b);
 	inline Vector3d& operator+=(Vector3d b);

@@ -2,13 +2,19 @@
 
 struct Vector2d
 {
-	real32 X;
-	real32 Y;
+	union
+	{
+		struct
+		{
+			real32 X;
+			real32 Y;
+		};
 
-	inline real32& operator[](int32 index) { return (&X)[index]; }
+		real32 Elements[2];
+	};
 
-	inline Vector2d &operator*=(real32 b);
-	inline Vector2d &operator+=(Vector2d b);
+	inline Vector2d& operator*=(real32 b);
+	inline Vector2d& operator+=(Vector2d b);
 };
 
 inline Vector2d operator-(Vector2d a)
@@ -61,13 +67,13 @@ inline Vector2d operator*(real32 a, Vector2d b)
 	return result;
 }
 
-inline Vector2d &Vector2d::operator+=(Vector2d b)
+inline Vector2d& Vector2d::operator+=(Vector2d b)
 {
 	*this = *this + b;
 	return *this;
 }
 
-inline Vector2d &Vector2d::operator*=(real32 b)
+inline Vector2d& Vector2d::operator*=(real32 b)
 {
 	*this = *this * b;
 	return *this;
