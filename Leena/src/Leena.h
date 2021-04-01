@@ -46,12 +46,17 @@ struct PlayerBitMap
 struct GameState
 {
 	MemoryPool WorldMemoryPool;
-	World* World;
+	
 	MapPosition CameraPosition;
 	MapPosition PlayerPosition;
+
+	Vector2d PlayerVelocity;
+
 	LoadedBitmap Background;
-	uint32 PlayerFacingDirection;
 	PlayerBitMap playerBitMaps[4];
+	uint32 PlayerFacingDirection;
+	
+	World* World;
 	bool32 EnableSmoothCamera;
 };
 #define LeenaH

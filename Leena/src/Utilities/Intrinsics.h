@@ -61,6 +61,16 @@ inline uint32 AbsoluteInt32ToUInt32(int32 number)
 	return (uint32)number;
 }
 
+inline uint32 sqaure(int32 number)
+{
+	return number * number;
+}
+
+inline real64 sqaure(real64 number)
+{
+	return number * number;
+}
+
 struct BitScanResult
 {
 	bool32 Found;

@@ -250,15 +250,14 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	{
 		GameControllerInput* controller = GetController(input, controllerIndex);
 
-		Vector2d dPlayer = {};
-		real32 PlayerSpeed = 5.0f;
+		Vector2d playerAcceleration = {};
 
 		if (controller->IsAnalog)
 		{
 			//NOTE: Use analog movement tuning
 			if (controller->LeftStickAverageX != 0)
 			{
-				dPlayer.X = controller->LeftStickAverageX;
+				playerAcceleration.X = controller->LeftStickAverageX;
 
 				if (controller->LeftStickAverageX > 0)
 				{
@@ -272,7 +271,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 			if (controller->LeftStickAverageY != 0)
 			{
-				dPlayer.Y = controller->LeftStickAverageY;
+				playerAcceleration.Y = controller->LeftStickAverageY;
 
 				if (controller->LeftStickAverageY > 0)
 				{
@@ -289,34 +288,29 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			//NOTE: Use digital movement tuning
 			if (controller->MoveRight.EndedDown)
 			{
-				dPlayer.X = 1.0f;
+				playerAcceleration.X = 1.0f;
 				gameState->PlayerFacingDirection = 0;
 			}
 			if (controller->MoveUp.EndedDown)
 			{
-				dPlayer.Y = 1.0f;
+				playerAcceleration.Y = 1.0f;
 				gameState->PlayerFacingDirection = 1;
 			}
 			if (controller->MoveDown.EndedDown)
 			{
-				dPlayer.Y = -1.0f;
+				playerAcceleration.Y = -1.0f;
 				gameState->PlayerFacingDirection = 3;
 			}
 			if (controller->MoveLeft.EndedDown)
 			{
-				dPlayer.X = -1.0f;
+				playerAcceleration.X = -1.0f;
 				gameState->PlayerFacingDirection = 2;
-			}
-
-			if (controller->A.EndedDown)
-			{
-				gameState->EnableSmoothCamera = !gameState->EnableSmoothCamera;
 			}
 		}
 
-		if (controller->X.EndedDown)
+		if (controller->A.EndedDown)
 		{
-			PlayerSpeed = 30.0f;
+			gameState->EnableSmoothCamera = !gameState->EnableSmoothCamera;
 		}
 
 		if (controller->Start.EndedDown)
@@ -324,17 +318,31 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			gameMemory->IsInitialized = false;
 		}
 
-		dPlayer *= PlayerSpeed;
+		real32 PlayerSpeed = 5.0f;
 
-		if ((dPlayer.X != 0.0f) && (dPlayer.Y != 0.0f))
+		if (controller->X.EndedDown)
 		{
-			dPlayer.X *= 0.707106781187f;
-			dPlayer.Y *= 0.707106781187f;
+			PlayerSpeed = 15.0f;
+		}
+
+		playerAcceleration *= PlayerSpeed;
+
+		// TODO:Use ODE
+		// Simulate friction
+		playerAcceleration += -1.0f * gameState->PlayerVelocity;
+
+		if ((playerAcceleration.X != 0.0f) && (playerAcceleration.Y != 0.0f))
+		{
+			playerAcceleration.X *= 0.707106781187f;
+			playerAcceleration.Y *= 0.707106781187f;
 		}
 
 		MapPosition newPlayerPosition = gameState->PlayerPosition;
 
-		newPlayerPosition.Offset += (real32)input->TimeToAdvance * dPlayer;
+		// Equation of motion
+		newPlayerPosition.Offset = (0.5f * playerAcceleration * (real32)sqaure(input->TimeToAdvance)) + (gameState->PlayerVelocity * (real32)input->TimeToAdvance) + newPlayerPosition.Offset;
+
+		gameState->PlayerVelocity = playerAcceleration * (real32)input->TimeToAdvance + gameState->PlayerVelocity;
 
 		newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
 
@@ -361,6 +369,10 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			}
 
 			gameState->PlayerPosition = newPlayerPosition;
+		}
+		else
+		{
+			gameState->PlayerVelocity = {};
 		}
 
 		// Smooth scrolling for the camera
@@ -637,17 +649,17 @@ void DrawBitmap(LoadedBitmap* bitmap, GameScreenBuffer* screenBuffer, real32 rea
 			if (*source >> 24 > 124)
 			{
 				*dest = *source;
-			}
+		}
 #endif // 0
 
 
 			dest++;
 			source++;
-		}
+	}
 
 		destRow += screenBuffer->Pitch;
 		sourceRow -= bitmap->Width;
-	}
+}
 }
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer* soundBuffer)
