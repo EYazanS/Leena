@@ -71,3 +71,10 @@ inline Vector2d& operator*=(Vector2d& a, real32 b)
 
 	return a;
 }
+
+inline real32 InnerProduct(Vector2d& a, Vector2d& b)
+{
+	real32 result = (a.X * b.X) + (a.Y * b.Y);
+
+	return result;
+}

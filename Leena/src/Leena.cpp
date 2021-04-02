@@ -318,11 +318,11 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			gameMemory->IsInitialized = false;
 		}
 
-		real32 PlayerSpeed = 5.0f;
+		real32 PlayerSpeed = 4.0f; // Meter/Seconds
 
 		if (controller->X.EndedDown)
 		{
-			PlayerSpeed = 15.0f;
+			PlayerSpeed = 8.0f; // Meter/Seconds
 		}
 
 		playerAcceleration *= PlayerSpeed;
@@ -354,10 +354,59 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		playerRight.Offset.X += 0.5f * playerWidth;
 		playerRight = RecanonicalizePosition(map, playerRight);
 
+		bool32 collided = false;
 
-		if (IsMapPointEmpty(map, newPlayerPosition) &&
-			IsMapPointEmpty(map, playerLeft) &&
-			IsMapPointEmpty(map, playerRight))
+		MapPosition collidPosition = {};
+
+		if (!IsMapPointEmpty(map, newPlayerPosition))
+		{
+			collidPosition = newPlayerPosition;
+			collided = true;
+		}
+
+		if (!IsMapPointEmpty(map, playerLeft))
+		{
+			collidPosition = playerLeft;
+			collided = true;
+		}
+
+		if (!IsMapPointEmpty(map, playerRight))
+		{
+			collidPosition = playerRight;
+			collided = true;
+		}
+
+		if (collided)
+		{
+			// We use to reflect if we hit a wall
+			Vector2d reflectVector = { };
+
+			if (collidPosition.X < gameState->PlayerPosition.X)
+			{
+				reflectVector = Vector2d{ 1, 0 };
+			}
+
+			if (collidPosition.X > gameState->PlayerPosition.X)
+			{
+				reflectVector = Vector2d{ -1, 0 };
+			}
+
+			if (collidPosition.Y < gameState->PlayerPosition.Y)
+			{
+				reflectVector = Vector2d{ 0, 1 };
+			}
+
+			if (collidPosition.Y > gameState->PlayerPosition.Y)
+			{
+				reflectVector = Vector2d{ 0, -1 };
+			}
+
+			// If reflectBehaviour is 1, we run with the wall we have collided with, if its 2, we bounce off it 
+			uint32 reflectBehaviour = 1;
+
+			gameState->PlayerVelocity = gameState->PlayerVelocity - reflectBehaviour * InnerProduct(gameState->PlayerVelocity, reflectVector) * reflectVector;
+		}
+		else
 		{
 			if (!AreOnSameTile(gameState->PlayerPosition, newPlayerPosition))
 			{
@@ -369,10 +418,6 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			}
 
 			gameState->PlayerPosition = newPlayerPosition;
-		}
-		else
-		{
-			gameState->PlayerVelocity = {};
 		}
 
 		// Smooth scrolling for the camera
@@ -649,17 +694,17 @@ void DrawBitmap(LoadedBitmap* bitmap, GameScreenBuffer* screenBuffer, real32 rea
 			if (*source >> 24 > 124)
 			{
 				*dest = *source;
-		}
+			}
 #endif // 0
 
 
 			dest++;
 			source++;
-	}
+		}
 
 		destRow += screenBuffer->Pitch;
 		sourceRow -= bitmap->Width;
-}
+	}
 }
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer* soundBuffer)
