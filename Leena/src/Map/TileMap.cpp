@@ -67,7 +67,7 @@ bool32 IsMapPointEmpty(Map* map, MapPosition position)
 {
 	TileValue tileValue = GetTileValue(map, position.X, position.Y, position.Z);
 
-	int32 isEmpty = tileValue == TileValue::Empty || tileValue == TileValue::DoorUp || tileValue == TileValue::DoorDown;
+	int32 isEmpty = IsTileValueEmpty(tileValue);
 
 	return isEmpty;
 }

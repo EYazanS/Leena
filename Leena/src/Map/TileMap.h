@@ -72,3 +72,21 @@ inline MapPositionDifference CalculatePositionDifference(Map* map, MapPosition* 
 
 	return result;
 }
+
+inline bool32 IsTileValueEmpty(TileValue tileValue)
+{
+	bool32 result = {};
+
+	result = tileValue == TileValue::Empty || tileValue == TileValue::DoorUp || tileValue == TileValue::DoorDown;
+
+	return result;
+}
+
+inline MapPosition GenerateCeneteredTiledPosition(uint32 x, uint32 y, uint32 z)
+{
+	MapPosition result = {};
+
+	result = MapPosition{ x, y, z };
+
+	return result;
+}

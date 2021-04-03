@@ -78,3 +78,10 @@ inline real32 InnerProduct(Vector2d& a, Vector2d& b)
 
 	return result;
 }
+
+inline real32 LengthSq(Vector2d v)
+{
+	real32 result = InnerProduct(v, v);
+
+	return result;
+}

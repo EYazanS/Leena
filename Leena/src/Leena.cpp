@@ -249,7 +249,9 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	Vector2d playerAcceleration = {};
 	real32 PlayerSpeed = 4.0f; // Meter/Seconds
 
+	//
 	// Handle input
+	// 
 	for (uint8 controllerIndex = 0; controllerIndex < ArrayCount(input->Controllers); ++controllerIndex)
 	{
 		GameControllerInput* controller = GetController(input, controllerIndex);
@@ -327,11 +329,16 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		}
 	}
 
+
+	//
+	// Handle Movement after gathering input
+	//
 	playerAcceleration *= PlayerSpeed;
 
 	// TODO:Use ODE
 	// Simulate friction
-	playerAcceleration += -1.0f * gameState->PlayerVelocity;
+	real32 friction = -1.0f;
+	playerAcceleration += friction * gameState->PlayerVelocity;
 
 	if ((playerAcceleration.X != 0.0f) && (playerAcceleration.Y != 0.0f))
 	{
@@ -339,15 +346,21 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		playerAcceleration.Y *= 0.707106781187f;
 	}
 
+	//
+	// Handle collision detection
+	//
 	MapPosition newPlayerPosition = oldPlayerPosition;
 
+	Vector2d playerDelta = (0.5f * playerAcceleration * (real32)sqaure(input->TimeToAdvance)) + (gameState->PlayerVelocity * (real32)input->TimeToAdvance);
+
 	// Equation of motion
-	newPlayerPosition.Offset = (0.5f * playerAcceleration * (real32)sqaure(input->TimeToAdvance)) + (gameState->PlayerVelocity * (real32)input->TimeToAdvance) + newPlayerPosition.Offset;
+	newPlayerPosition.Offset += playerDelta;
 
 	gameState->PlayerVelocity = playerAcceleration * (real32)input->TimeToAdvance + gameState->PlayerVelocity;
 
 	newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
 
+#if 1
 	MapPosition playerLeft = newPlayerPosition;
 	playerLeft.Offset.X -= 0.5f * playerWidth;
 	playerLeft = RecanonicalizePosition(map, playerLeft);
@@ -378,6 +391,9 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		collided = true;
 	}
 
+	//
+	// Update Player Position
+	//
 	if (collided)
 	{
 		// We use to reflect if we hit a wall
@@ -410,16 +426,54 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	}
 	else
 	{
-		if (!AreOnSameTile(oldPlayerPosition, newPlayerPosition))
-		{
-			TileValue newTileValue = GetTileValue(map, newPlayerPosition);
-			if (newTileValue == TileValue::DoorUp)
-				newPlayerPosition.Z++;
-			else if (newTileValue == TileValue::DoorDown)
-				newPlayerPosition.Z--;
-		}
-
 		gameState->PlayerPosition = newPlayerPosition;
+	}
+#else
+	// Search in player position for next location after hit detection;
+	uint32 minTileX = 0;
+	uint32 minTileY = 0;
+
+	uint32 onePastMaxTileX = 0;
+	uint32 onePastMaxTileY = 0;
+
+	uint32 tileZ = gameState->PlayerPosition.Z;
+
+	MapPosition bestPoint = gameState->PlayerPosition;
+	real32 bestDistanceSq = LengthSq(playerDelta);
+
+	for (uint32 tileY = minTileY; tileY != onePastMaxTileY; tileY++)
+	{
+		for (uint32 tileX = minTileX; tileX != onePastMaxTileX; tileX++)
+		{
+			MapPosition testTilePosition = GenerateCeneteredTiledPosition(tileX, tileY, tileZ);
+			TileValue tileValue = GetTileValue(map, testTilePosition);
+
+			if (IsTileValueEmpty(tileValue))
+			{
+				Vector2d minCorner = -0.5f * Vector2d{ map->TileSideInMeters, map->TileSideInMeters };
+				Vector2d maxCorner = 0.5f * Vector2d{ map->TileSideInMeters, map->TileSideInMeters };
+
+				MapPositionDifference positionDifference = CalculatePositionDifference(map, &testTilePosition, &newPlayerPosition);
+				Vector2d testPosition = ClosestPointInRectangel(minCorner, maxCorner, newPlayerPosition);
+				real32 testDistanceSq = LengthSq(testPosition);
+
+				if (testDistanceSq < bestDistanceSq)
+				{
+					bestPoint = testTilePosition;
+					bestDistanceSq = testDistanceSq;
+				}
+			}
+		}
+	}
+#endif
+
+	if (!AreOnSameTile(oldPlayerPosition, gameState->PlayerPosition))
+	{
+		TileValue newTileValue = GetTileValue(map, gameState->PlayerPosition);
+		if (newTileValue == TileValue::DoorUp)
+			gameState->PlayerPosition.Z++;
+		else if (newTileValue == TileValue::DoorDown)
+			gameState->PlayerPosition.Z--;
 	}
 
 	// Smooth scrolling for the camera
@@ -455,6 +509,9 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 	gameState->CameraPosition.Z = gameState->PlayerPosition.Z;
 
+	//
+	// Draw New game status
+	//
 	int32 tileSideInPixels = 60;
 	real32 MetersToPixels = (real32)tileSideInPixels / (real32)map->TileSideInMeters;
 
