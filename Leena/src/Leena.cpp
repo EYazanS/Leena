@@ -245,12 +245,15 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	real32 playerHeight = 1.4f;
 	real32 playerWidth = 0.75f * playerHeight;
 
+	MapPosition oldPlayerPosition = gameState->PlayerPosition;
+	Vector2d playerAcceleration = {};
+	real32 PlayerSpeed = 4.0f; // Meter/Seconds
+
 	// Handle input
 	for (uint8 controllerIndex = 0; controllerIndex < ArrayCount(input->Controllers); ++controllerIndex)
 	{
 		GameControllerInput* controller = GetController(input, controllerIndex);
 
-		Vector2d playerAcceleration = {};
 
 		if (controller->IsAnalog)
 		{
@@ -318,141 +321,139 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			gameMemory->IsInitialized = false;
 		}
 
-		real32 PlayerSpeed = 4.0f; // Meter/Seconds
-
 		if (controller->X.EndedDown)
 		{
 			PlayerSpeed = 8.0f; // Meter/Seconds
 		}
-
-		playerAcceleration *= PlayerSpeed;
-
-		// TODO:Use ODE
-		// Simulate friction
-		playerAcceleration += -1.0f * gameState->PlayerVelocity;
-
-		if ((playerAcceleration.X != 0.0f) && (playerAcceleration.Y != 0.0f))
-		{
-			playerAcceleration.X *= 0.707106781187f;
-			playerAcceleration.Y *= 0.707106781187f;
-		}
-
-		MapPosition newPlayerPosition = gameState->PlayerPosition;
-
-		// Equation of motion
-		newPlayerPosition.Offset = (0.5f * playerAcceleration * (real32)sqaure(input->TimeToAdvance)) + (gameState->PlayerVelocity * (real32)input->TimeToAdvance) + newPlayerPosition.Offset;
-
-		gameState->PlayerVelocity = playerAcceleration * (real32)input->TimeToAdvance + gameState->PlayerVelocity;
-
-		newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
-
-		MapPosition playerLeft = newPlayerPosition;
-		playerLeft.Offset.X -= 0.5f * playerWidth;
-		playerLeft = RecanonicalizePosition(map, playerLeft);
-
-		MapPosition playerRight = newPlayerPosition;
-		playerRight.Offset.X += 0.5f * playerWidth;
-		playerRight = RecanonicalizePosition(map, playerRight);
-
-		bool32 collided = false;
-
-		MapPosition collidPosition = {};
-
-		if (!IsMapPointEmpty(map, newPlayerPosition))
-		{
-			collidPosition = newPlayerPosition;
-			collided = true;
-		}
-
-		if (!IsMapPointEmpty(map, playerLeft))
-		{
-			collidPosition = playerLeft;
-			collided = true;
-		}
-
-		if (!IsMapPointEmpty(map, playerRight))
-		{
-			collidPosition = playerRight;
-			collided = true;
-		}
-
-		if (collided)
-		{
-			// We use to reflect if we hit a wall
-			Vector2d reflectVector = { };
-
-			if (collidPosition.X < gameState->PlayerPosition.X)
-			{
-				reflectVector = Vector2d{ 1, 0 };
-			}
-
-			if (collidPosition.X > gameState->PlayerPosition.X)
-			{
-				reflectVector = Vector2d{ -1, 0 };
-			}
-
-			if (collidPosition.Y < gameState->PlayerPosition.Y)
-			{
-				reflectVector = Vector2d{ 0, 1 };
-			}
-
-			if (collidPosition.Y > gameState->PlayerPosition.Y)
-			{
-				reflectVector = Vector2d{ 0, -1 };
-			}
-
-			// If reflectBehaviour is 1, we run with the wall we have collided with, if its 2, we bounce off it 
-			uint32 reflectBehaviour = 1;
-
-			gameState->PlayerVelocity = gameState->PlayerVelocity - reflectBehaviour * InnerProduct(gameState->PlayerVelocity, reflectVector) * reflectVector;
-		}
-		else
-		{
-			if (!AreOnSameTile(gameState->PlayerPosition, newPlayerPosition))
-			{
-				TileValue newTileValue = GetTileValue(map, newPlayerPosition);
-				if (newTileValue == TileValue::DoorUp)
-					newPlayerPosition.Z++;
-				else if (newTileValue == TileValue::DoorDown)
-					newPlayerPosition.Z--;
-			}
-
-			gameState->PlayerPosition = newPlayerPosition;
-		}
-
-		// Smooth scrolling for the camera
-		if (gameState->EnableSmoothCamera)
-		{
-			gameState->CameraPosition.X = gameState->PlayerPosition.X;
-			gameState->CameraPosition.Offset.X = gameState->PlayerPosition.Offset.X;
-			gameState->CameraPosition.Y = gameState->PlayerPosition.Y;
-			gameState->CameraPosition.Offset.Y = gameState->PlayerPosition.Offset.Y;
-		}
-		else
-		{
-			MapPositionDifference diff = CalculatePositionDifference(map, &gameState->PlayerPosition, &gameState->CameraPosition);
-
-			if (diff.DXY.X > (9.0f * map->TileSideInMeters))
-			{
-				gameState->CameraPosition.X += 17;
-			}
-			else if (diff.DXY.X < -(9.0f * map->TileSideInMeters))
-			{
-				gameState->CameraPosition.X -= 17;
-			}
-
-			if (diff.DXY.Y > (5.0f * map->TileSideInMeters))
-			{
-				gameState->CameraPosition.Y += 9;
-			}
-			else if (diff.DXY.Y < -(5.0f * map->TileSideInMeters))
-			{
-				gameState->CameraPosition.Y -= 9;
-			}
-		}
-
-		gameState->CameraPosition.Z = gameState->PlayerPosition.Z;
 	}
+
+	playerAcceleration *= PlayerSpeed;
+
+	// TODO:Use ODE
+	// Simulate friction
+	playerAcceleration += -1.0f * gameState->PlayerVelocity;
+
+	if ((playerAcceleration.X != 0.0f) && (playerAcceleration.Y != 0.0f))
+	{
+		playerAcceleration.X *= 0.707106781187f;
+		playerAcceleration.Y *= 0.707106781187f;
+	}
+
+	MapPosition newPlayerPosition = oldPlayerPosition;
+
+	// Equation of motion
+	newPlayerPosition.Offset = (0.5f * playerAcceleration * (real32)sqaure(input->TimeToAdvance)) + (gameState->PlayerVelocity * (real32)input->TimeToAdvance) + newPlayerPosition.Offset;
+
+	gameState->PlayerVelocity = playerAcceleration * (real32)input->TimeToAdvance + gameState->PlayerVelocity;
+
+	newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
+
+	MapPosition playerLeft = newPlayerPosition;
+	playerLeft.Offset.X -= 0.5f * playerWidth;
+	playerLeft = RecanonicalizePosition(map, playerLeft);
+
+	MapPosition playerRight = newPlayerPosition;
+	playerRight.Offset.X += 0.5f * playerWidth;
+	playerRight = RecanonicalizePosition(map, playerRight);
+
+	bool32 collided = false;
+
+	MapPosition collidPosition = {};
+
+	if (!IsMapPointEmpty(map, newPlayerPosition))
+	{
+		collidPosition = newPlayerPosition;
+		collided = true;
+	}
+
+	if (!IsMapPointEmpty(map, playerLeft))
+	{
+		collidPosition = playerLeft;
+		collided = true;
+	}
+
+	if (!IsMapPointEmpty(map, playerRight))
+	{
+		collidPosition = playerRight;
+		collided = true;
+	}
+
+	if (collided)
+	{
+		// We use to reflect if we hit a wall
+		Vector2d reflectVector = { };
+
+		if (collidPosition.X < oldPlayerPosition.X)
+		{
+			reflectVector = Vector2d{ 1, 0 };
+		}
+
+		if (collidPosition.X > oldPlayerPosition.X)
+		{
+			reflectVector = Vector2d{ -1, 0 };
+		}
+
+		if (collidPosition.Y < oldPlayerPosition.Y)
+		{
+			reflectVector = Vector2d{ 0, 1 };
+		}
+
+		if (collidPosition.Y > oldPlayerPosition.Y)
+		{
+			reflectVector = Vector2d{ 0, -1 };
+		}
+
+		// If reflectBehaviour is 1, we run with the wall we have collided with, if its 2, we bounce off it 
+		uint32 reflectBehaviour = 1;
+
+		gameState->PlayerVelocity = gameState->PlayerVelocity - reflectBehaviour * InnerProduct(gameState->PlayerVelocity, reflectVector) * reflectVector;
+	}
+	else
+	{
+		if (!AreOnSameTile(oldPlayerPosition, newPlayerPosition))
+		{
+			TileValue newTileValue = GetTileValue(map, newPlayerPosition);
+			if (newTileValue == TileValue::DoorUp)
+				newPlayerPosition.Z++;
+			else if (newTileValue == TileValue::DoorDown)
+				newPlayerPosition.Z--;
+		}
+
+		gameState->PlayerPosition = newPlayerPosition;
+	}
+
+	// Smooth scrolling for the camera
+	if (gameState->EnableSmoothCamera)
+	{
+		gameState->CameraPosition.X = gameState->PlayerPosition.X;
+		gameState->CameraPosition.Offset.X = gameState->PlayerPosition.Offset.X;
+		gameState->CameraPosition.Y = gameState->PlayerPosition.Y;
+		gameState->CameraPosition.Offset.Y = gameState->PlayerPosition.Offset.Y;
+	}
+	else
+	{
+		MapPositionDifference diff = CalculatePositionDifference(map, &gameState->PlayerPosition, &gameState->CameraPosition);
+
+		if (diff.DXY.X > (9.0f * map->TileSideInMeters))
+		{
+			gameState->CameraPosition.X += 17;
+		}
+		else if (diff.DXY.X < -(9.0f * map->TileSideInMeters))
+		{
+			gameState->CameraPosition.X -= 17;
+		}
+
+		if (diff.DXY.Y > (5.0f * map->TileSideInMeters))
+		{
+			gameState->CameraPosition.Y += 9;
+		}
+		else if (diff.DXY.Y < -(5.0f * map->TileSideInMeters))
+		{
+			gameState->CameraPosition.Y -= 9;
+		}
+	}
+
+	gameState->CameraPosition.Z = gameState->PlayerPosition.Z;
 
 	int32 tileSideInPixels = 60;
 	real32 MetersToPixels = (real32)tileSideInPixels / (real32)map->TileSideInMeters;
