@@ -61,7 +61,26 @@ inline uint32 AbsoluteInt32ToUInt32(int32 number)
 	return (uint32)number;
 }
 
+inline uint32 RotateLeft(uint32 value, int32 amount)
+{
+	uint32 result = _rotl(value, amount);
+
+	return result;
+}
+
+inline uint32 RotateRight(uint32 value, int32 amount)
+{
+	uint32 result = _rotr(value, amount);
+
+	return result;
+}
+
 inline uint32 sqaure(int32 number)
+{
+	return number * number;
+}
+
+inline real32 sqaure(real32 number)
 {
 	return number * number;
 }
@@ -97,7 +116,7 @@ inline BitScanResult FindLeastSigifigantSetBit(uint32 value)
 			result.Found = true;
 			result.Index = currentScanningIndex;
 			break;
-}
+		}
 	}
 #endif
 	return result;

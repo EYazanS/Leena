@@ -48,14 +48,13 @@ struct Entity
 	Vector2d Velocity;
 
 	uint32 FacingDirection;
-	PlayerBitMap BitMaps[4];
 };
 
 struct GameState
 {
 	MemoryPool WorldMemoryPool;
 
-	uint8 EntityIndexTheCameraIsFollowing;
+	uint32 EntityIndexTheCameraIsFollowing;
 	MapPosition CameraPosition;
 
 	uint32 EntitiesCount;
@@ -63,6 +62,7 @@ struct GameState
 	Entity Entities[250];
 
 	LoadedBitmap Background;
+	PlayerBitMap BitMaps[4];
 
 	World* World;
 	bool32 EnableSmoothCamera;

@@ -10,9 +10,9 @@ void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuf
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 
 void RenderEntity(GameScreenBuffer* screenBuffer, Map* map, GameState* gameState, Vector2d screenCenter, real32 metersToPixels, Entity* entity);
-void InitializePlayer(ThreadContext* thread, GameMemory* gameMemory, Entity* entity);
-void MoveEntity(GameMemory* gameMemory, GameState* gameState, GameInput* input, GameControllerInput* controller, Map* map, Entity* entity, Vector2d playerAcceleration);
-Entity* AddEntity(GameState* gameState);
+void InitializePlayer(GameState* state, uint32  index);
+void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameControllerInput* controller, Entity* entity, real32 timeToAdvance, Vector2d playerAcceleration);
+uint32 AddEntity(GameState* gameState);
 
 // To pack the struct tightly and prevent combiler from 
 // aligning the fields 
@@ -49,7 +49,40 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 	if (!gameMemory->IsInitialized)
 	{
+		// Reserve the first entity as null entity
+		AddEntity(gameState);
+
 		gameState->Background = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_background.bmp");
+		gameState->EntityIndexTheCameraIsFollowing = 1;
+		PlayerBitMap* playerBitMap;
+		playerBitMap = gameState->BitMaps;
+
+		playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_right_head.bmp");
+		playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_right_cape.bmp");
+		playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_right_torso.bmp");
+		playerBitMap->AlignX = 72;
+		playerBitMap->AlignY = 182;
+
+		playerBitMap++;
+		playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_back_head.bmp");
+		playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_back_cape.bmp");
+		playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_back_torso.bmp");
+		playerBitMap->AlignX = 72;
+		playerBitMap->AlignY = 182;
+
+		playerBitMap++;
+		playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_left_head.bmp");
+		playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_left_cape.bmp");
+		playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_left_torso.bmp");
+		playerBitMap->AlignX = 72;
+		playerBitMap->AlignY = 182;
+
+		playerBitMap++;
+		playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_head.bmp");
+		playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_cape.bmp");
+		playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_torso.bmp");
+		playerBitMap->AlignX = 72;
+		playerBitMap->AlignY = 182;
 
 		gameState->CameraPosition.X = 17 / 2;
 		gameState->CameraPosition.Y = 9 / 2;
@@ -231,15 +264,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			if (controller->IsAnalog)
 			{
 				//NOTE: Use analog movement tuning
-				if (controller->LeftStickAverageX != 0)
-				{
-					playerAcceleration.X = controller->LeftStickAverageX;
-				}
-
-				if (controller->LeftStickAverageY != 0)
-				{
-					playerAcceleration.Y = controller->LeftStickAverageY;
-				}
+				playerAcceleration = { controller->LeftStickAverageX , controller->LeftStickAverageY };
 			}
 			else
 			{
@@ -266,19 +291,20 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		{
 			if (controller->Start.EndedDown)
 			{
-				controlledEntity = AddEntity(gameState);
-				InitializePlayer(thread, gameMemory, controlledEntity);
+				uint32 controlledEntityIndex = AddEntity(gameState);
+				controlledEntity = GetEntity(gameState, controlledEntityIndex);
+				InitializePlayer(gameState, controlledEntityIndex);
+				gameState->PlayersIndexesForControllers[controllerIndex] = controlledEntityIndex;
 			}
 		}
 
 		if (controlledEntity && controlledEntity->Exists)
 		{
-			MoveEntity(gameMemory, gameState, input, controller, map, controlledEntity, playerAcceleration);
+			MoveEntity(gameMemory, map, gameState, controller, controlledEntity, (real32)input->TimeToAdvance, playerAcceleration);
 		}
 	}
 
 	// Smooth scrolling for the camera
-
 	Entity* cameraFollowingEntity = GetEntity(gameState, gameState->EntityIndexTheCameraIsFollowing);
 
 	if (cameraFollowingEntity)
@@ -371,7 +397,8 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	{
 		Entity* entity = GetEntity(gameState, entityIndex);
 
-		if (entity && entity->Exists)
+		// TODO: Culling based on camera point of view
+		if (entity && entity->Exists && entity->Position.Z == gameState->CameraPosition.Z)
 		{
 			RenderEntity(screenBuffer, map, gameState, screenCenter, metersToPixels, entity);
 		}
@@ -446,30 +473,35 @@ LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFil
 
 		uint32* source = pixels;
 
-		BitScanResult redShift = FindLeastSigifigantSetBit(header->RedMask);
-		BitScanResult greenShift = FindLeastSigifigantSetBit(header->GreeenMask);
-		BitScanResult blueShift = FindLeastSigifigantSetBit(header->BlueMask);
-		BitScanResult alphaShift = FindLeastSigifigantSetBit(header->AlphaMask);
+		BitScanResult alphaScan = FindLeastSigifigantSetBit(header->AlphaMask);
+		BitScanResult redScan = FindLeastSigifigantSetBit(header->RedMask);
+		BitScanResult greenScan = FindLeastSigifigantSetBit(header->GreeenMask);
+		BitScanResult blueScan = FindLeastSigifigantSetBit(header->BlueMask);
 
-		Assert(redShift.Found);
-		Assert(greenShift.Found);
-		Assert(blueShift.Found);
-		Assert(alphaShift.Found);
+		Assert(alphaScan.Found);
+		Assert(redScan.Found);
+		Assert(greenScan.Found);
+		Assert(blueScan.Found);
+
+		int32 alphaShift = 24 - (int32)alphaScan.Index;
+		int32 redShift = 16 - (int32)redScan.Index;
+		int32 greenShift = 8 - (int32)greenScan.Index;
+		int32 blueShift = 0 - (int32)blueScan.Index;
 
 		for (int32 y = 0; y < header->Height; y++)
 		{
 			for (int32 x = 0; x < header->Width; x++)
 			{
-				uint32 alpha = (*source >> alphaShift.Index) << 24;
-				uint32 red = (*source >> redShift.Index) << 16;
-				uint32 green = (*source >> greenShift.Index) << 8;
-				uint32 blue = (*source >> blueShift.Index) << 0;
+				uint32 pixel = *source;
 
-				uint32 r = alpha | red | green | blue;
+				uint32 alpha = RotateLeft(pixel & header->AlphaMask, alphaShift);
+				uint32 red = RotateLeft(pixel & header->RedMask, redShift);
+				uint32 green = RotateLeft(pixel & header->GreeenMask, greenShift);
+				uint32 blue = RotateLeft(pixel & header->BlueMask, blueShift);
 
-				*source = r;
+				uint32 combinedColor = alpha | red | green | blue;
 
-				source++;
+				*source++ = combinedColor;
 			}
 		}
 
@@ -611,13 +643,13 @@ GameAudioBuffer* ReadAudioBufferData(void* memory)
 }
 
 
-void MoveEntity(GameMemory* gameMemory, GameState* gameState, GameInput* input, GameControllerInput* controller, Map* map, Entity* entity, Vector2d playerAcceleration)
+void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameControllerInput* controller, Entity* entity, real32 timeToAdvance, Vector2d playerAcceleration)
 {
 	// In Meters
 	real32 playerHeight = 1.4f;
 	real32 playerWidth = 0.75f * playerHeight;
 	MapPosition oldPlayerPosition = entity->Position;
-	real32 PlayerSpeed = 5.0f; // Meter/Seconds
+	real32 PlayerSpeed = 30.0f; // Meter/Seconds
 
 	if (controller->A.EndedDown)
 	{
@@ -631,7 +663,7 @@ void MoveEntity(GameMemory* gameMemory, GameState* gameState, GameInput* input, 
 
 	if (controller->X.EndedDown)
 	{
-		PlayerSpeed = 9.0f; // Meter/Seconds
+		PlayerSpeed = 60.0f; // Meter/Seconds
 	}
 
 	//
@@ -641,12 +673,7 @@ void MoveEntity(GameMemory* gameMemory, GameState* gameState, GameInput* input, 
 
 	// TODO:Use ODE
 	// Simulate friction
-	real32 friction = -1.0f;
-
-	if (playerAcceleration.X == 0 && playerAcceleration.Y == 0)
-	{
-		friction = -10.0f;
-	}
+	real32 friction = -6.0f;
 
 	playerAcceleration += friction * entity->Velocity;
 
@@ -661,12 +688,12 @@ void MoveEntity(GameMemory* gameMemory, GameState* gameState, GameInput* input, 
 	//
 	MapPosition newPlayerPosition = oldPlayerPosition;
 
-	Vector2d playerDelta = (0.5f * playerAcceleration * (real32)sqaure(input->TimeToAdvance)) + (entity->Velocity * (real32)input->TimeToAdvance);
+	Vector2d playerDelta = (0.5f * playerAcceleration * sqaure(timeToAdvance) + (entity->Velocity * timeToAdvance));
 
 	// Equation of motion
 	newPlayerPosition.Offset += playerDelta;
 
-	entity->Velocity = playerAcceleration * (real32)input->TimeToAdvance + entity->Velocity;
+	entity->Velocity = playerAcceleration * timeToAdvance + entity->Velocity;
 
 	newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
 
@@ -787,71 +814,47 @@ void MoveEntity(GameMemory* gameMemory, GameState* gameState, GameInput* input, 
 			entity->Position.Z--;
 	}
 
-	if (AbsoluteValue(entity->Velocity.X) > AbsoluteValue(entity->Velocity.Y))
-	{
-		if (entity->Velocity.X > 0)
+	if (entity->Velocity.X != 0.0f || entity->Velocity.Y != 0.0f)
+		if (AbsoluteValue(entity->Velocity.X) > AbsoluteValue(entity->Velocity.Y))
 		{
-			entity->FacingDirection = 0;
+			if (entity->Velocity.X > 0)
+			{
+				entity->FacingDirection = 0;
+			}
+			else
+			{
+				entity->FacingDirection = 2;
+			}
 		}
-		else
+		else if (AbsoluteValue(entity->Velocity.X) < AbsoluteValue(entity->Velocity.Y))
 		{
-			entity->FacingDirection = 2;
+			if (entity->Velocity.Y > 0)
+			{
+				entity->FacingDirection = 1;
+			}
+			else
+			{
+				entity->FacingDirection = 3;
+			}
 		}
-	}
-	else if (AbsoluteValue(entity->Velocity.X) < AbsoluteValue(entity->Velocity.Y))
-	{
-		if (entity->Velocity.Y > 0)
-		{
-			entity->FacingDirection = 1;
-		}
-		else
-		{
-			entity->FacingDirection = 3;
-		}
-	}
 }
 
-void InitializePlayer(ThreadContext* thread, GameMemory* gameMemory, Entity* entity)
+void InitializePlayer(GameState* state, uint32  index)
 {
-	*entity = {};
+	Entity* entity = GetEntity(state, index);
 
 	entity->Exists = true;
 
 	// Order: X Y Z Offset
-	entity->Position = { 1, 4, 0, { 5.0f, 5.0f } };
+	entity->Position = { 1, 4, 0, { 0.0f, 0.0f } };
 
 	entity->Height = 1.4f;
 	entity->Width = 0.75f * entity->Height;
 
-	PlayerBitMap* playerBitMap;
-	playerBitMap = entity->BitMaps;
-
-	playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_right_head.bmp");
-	playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_right_cape.bmp");
-	playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_right_torso.bmp");
-	playerBitMap->AlignX = 72;
-	playerBitMap->AlignY = 182;
-
-	playerBitMap++;
-	playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_back_head.bmp");
-	playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_back_cape.bmp");
-	playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_back_torso.bmp");
-	playerBitMap->AlignX = 72;
-	playerBitMap->AlignY = 182;
-
-	playerBitMap++;
-	playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_left_head.bmp");
-	playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_left_cape.bmp");
-	playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_left_torso.bmp");
-	playerBitMap->AlignX = 72;
-	playerBitMap->AlignY = 182;
-
-	playerBitMap++;
-	playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_head.bmp");
-	playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_cape.bmp");
-	playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_torso.bmp");
-	playerBitMap->AlignX = 72;
-	playerBitMap->AlignY = 182;
+	if (!GetEntity(state, !state->EntityIndexTheCameraIsFollowing))
+	{
+		state->EntityIndexTheCameraIsFollowing = index;
+	}
 }
 
 void RenderEntity(GameScreenBuffer* screenBuffer, Map* map, GameState* gameState, Vector2d screenCenter, real32 metersToPixels, Entity* entity)
@@ -870,15 +873,18 @@ void RenderEntity(GameScreenBuffer* screenBuffer, Map* map, GameState* gameState
 
 	DrawRectangle(screenBuffer, playerLeftTop, playerLeftTop + playerDim, { playerR, playerG, playerB });
 
-	PlayerBitMap* playerFacingDirectionMap = &entity->BitMaps[entity->FacingDirection];
+	PlayerBitMap* playerFacingDirectionMap = &gameState->BitMaps[entity->FacingDirection];
 
 	DrawBitmap(&playerFacingDirectionMap->Head, screenBuffer, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
 	DrawBitmap(&playerFacingDirectionMap->Cape, screenBuffer, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
 	DrawBitmap(&playerFacingDirectionMap->Torso, screenBuffer, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
 }
 
-Entity* AddEntity(GameState* gameState)
+uint32 AddEntity(GameState* gameState)
 {
-	Entity* entity = &gameState->Entities[gameState->EntitiesCount++];
-	return entity;
+	uint32 entityIndex = gameState->EntitiesCount++;
+	Assert(gameState->EntitiesCount < ArrayCount(gameState->Entities));
+	Entity* entity = &gameState->Entities[entityIndex];
+	*entity = {};
+	return entityIndex;
 }
