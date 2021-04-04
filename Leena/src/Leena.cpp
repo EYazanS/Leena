@@ -9,6 +9,11 @@ void DrawBitmap(LoadedBitmap* bitmap, GameScreenBuffer* screenBuffer, real32 rea
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer* soundBuffer);
 GameAudioBuffer* ReadAudioBufferData(void* memory);
 
+void RenderEntity(GameScreenBuffer* screenBuffer, Map* map, GameState* gameState, Vector2d screenCenter, real32 metersToPixels, Entity* entity);
+void InitializePlayer(ThreadContext* thread, GameMemory* gameMemory, Entity* entity);
+void MoveEntity(GameMemory* gameMemory, GameState* gameState, GameInput* input, GameControllerInput* controller, Map* map, Entity* entity, Vector2d playerAcceleration);
+Entity* AddEntity(GameState* gameState);
+
 // To pack the struct tightly and prevent combiler from 
 // aligning the fields 
 #pragma pack(push, 1)
@@ -46,45 +51,9 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	{
 		gameState->Background = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_background.bmp");
 
-		PlayerBitMap* playerBitMap;
-		playerBitMap = gameState->playerBitMaps;
-
-		playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_right_head.bmp");
-		playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_right_cape.bmp");
-		playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_right_torso.bmp");
-		playerBitMap->AlignX = 72;
-		playerBitMap->AlignY = 182;
-
-		playerBitMap++;
-		playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_back_head.bmp");
-		playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_back_cape.bmp");
-		playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_back_torso.bmp");
-		playerBitMap->AlignX = 72;
-		playerBitMap->AlignY = 182;
-
-		playerBitMap++;
-		playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_left_head.bmp");
-		playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_left_cape.bmp");
-		playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_left_torso.bmp");
-		playerBitMap->AlignX = 72;
-		playerBitMap->AlignY = 182;
-
-		playerBitMap++;
-		playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_head.bmp");
-		playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_cape.bmp");
-		playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_torso.bmp");
-		playerBitMap->AlignX = 72;
-		playerBitMap->AlignY = 182;
-
 		gameState->CameraPosition.X = 17 / 2;
 		gameState->CameraPosition.Y = 9 / 2;
 		gameState->CameraPosition.Z = 0;
-
-		gameState->PlayerPosition.X = 1;
-		gameState->PlayerPosition.Y = 4;
-		gameState->PlayerPosition.Z = 0;
-
-		gameState->PlayerPosition.Offset = {};
 
 		InitilizePool(&gameState->WorldMemoryPool, gameMemory->PermanentStorageSize - sizeof(GameState), (uint8*)gameMemory->PermanentStorage + sizeof(GameState));
 
@@ -241,281 +210,119 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	World* world = gameState->World;
 	Map* map = gameState->World->Map;
 
-	// In Meters
-	real32 playerHeight = 1.4f;
-	real32 playerWidth = 0.75f * playerHeight;
-
-	MapPosition oldPlayerPosition = gameState->PlayerPosition;
-	Vector2d playerAcceleration = {};
-	real32 PlayerSpeed = 4.0f; // Meter/Seconds
-
 	//
 	// Handle input
 	// 
-	for (uint8 controllerIndex = 0; controllerIndex < ArrayCount(input->Controllers); ++controllerIndex)
+	for (uint8 controllerIndex = 0; controllerIndex < ArrayCount(input->Controllers); controllerIndex++)
 	{
 		GameControllerInput* controller = GetController(input, controllerIndex);
 
-
-		if (controller->IsAnalog)
+		if (!controller->IsConnected)
 		{
-			//NOTE: Use analog movement tuning
-			if (controller->LeftStickAverageX != 0)
-			{
-				playerAcceleration.X = controller->LeftStickAverageX;
+			continue;
+		}
 
-				if (controller->LeftStickAverageX > 0)
+		Entity* controlledEntity = GetEntity(gameState, gameState->PlayersIndexesForControllers[controllerIndex]);
+
+		Vector2d playerAcceleration = {};
+
+		if (controlledEntity)
+		{
+			if (controller->IsAnalog)
+			{
+				//NOTE: Use analog movement tuning
+				if (controller->LeftStickAverageX != 0)
 				{
-					gameState->PlayerFacingDirection = 0;
+					playerAcceleration.X = controller->LeftStickAverageX;
 				}
-				else
+
+				if (controller->LeftStickAverageY != 0)
 				{
-					gameState->PlayerFacingDirection = 2;
+					playerAcceleration.Y = controller->LeftStickAverageY;
 				}
 			}
-
-			if (controller->LeftStickAverageY != 0)
+			else
 			{
-				playerAcceleration.Y = controller->LeftStickAverageY;
-
-				if (controller->LeftStickAverageY > 0)
+				//NOTE: Use digital movement tuning
+				if (controller->MoveRight.EndedDown)
 				{
-					gameState->PlayerFacingDirection = 1;
+					playerAcceleration.X = 1.0f;
 				}
-				else
+				if (controller->MoveUp.EndedDown)
 				{
-					gameState->PlayerFacingDirection = 3;
+					playerAcceleration.Y = 1.0f;
+				}
+				if (controller->MoveDown.EndedDown)
+				{
+					playerAcceleration.Y = -1.0f;
+				}
+				if (controller->MoveLeft.EndedDown)
+				{
+					playerAcceleration.X = -1.0f;
 				}
 			}
 		}
 		else
 		{
-			//NOTE: Use digital movement tuning
-			if (controller->MoveRight.EndedDown)
+			if (controller->Start.EndedDown)
 			{
-				playerAcceleration.X = 1.0f;
-				gameState->PlayerFacingDirection = 0;
-			}
-			if (controller->MoveUp.EndedDown)
-			{
-				playerAcceleration.Y = 1.0f;
-				gameState->PlayerFacingDirection = 1;
-			}
-			if (controller->MoveDown.EndedDown)
-			{
-				playerAcceleration.Y = -1.0f;
-				gameState->PlayerFacingDirection = 3;
-			}
-			if (controller->MoveLeft.EndedDown)
-			{
-				playerAcceleration.X = -1.0f;
-				gameState->PlayerFacingDirection = 2;
+				controlledEntity = AddEntity(gameState);
+				InitializePlayer(thread, gameMemory, controlledEntity);
 			}
 		}
 
-		if (controller->A.EndedDown)
+		if (controlledEntity && controlledEntity->Exists)
 		{
-			gameState->EnableSmoothCamera = !gameState->EnableSmoothCamera;
+			MoveEntity(gameMemory, gameState, input, controller, map, controlledEntity, playerAcceleration);
 		}
-
-		if (controller->Start.EndedDown)
-		{
-			gameMemory->IsInitialized = false;
-		}
-
-		if (controller->X.EndedDown)
-		{
-			PlayerSpeed = 8.0f; // Meter/Seconds
-		}
-	}
-
-
-	//
-	// Handle Movement after gathering input
-	//
-	playerAcceleration *= PlayerSpeed;
-
-	// TODO:Use ODE
-	// Simulate friction
-	real32 friction = -1.0f;
-	playerAcceleration += friction * gameState->PlayerVelocity;
-
-	if ((playerAcceleration.X != 0.0f) && (playerAcceleration.Y != 0.0f))
-	{
-		playerAcceleration.X *= 0.707106781187f;
-		playerAcceleration.Y *= 0.707106781187f;
-	}
-
-	//
-	// Handle collision detection
-	//
-	MapPosition newPlayerPosition = oldPlayerPosition;
-
-	Vector2d playerDelta = (0.5f * playerAcceleration * (real32)sqaure(input->TimeToAdvance)) + (gameState->PlayerVelocity * (real32)input->TimeToAdvance);
-
-	// Equation of motion
-	newPlayerPosition.Offset += playerDelta;
-
-	gameState->PlayerVelocity = playerAcceleration * (real32)input->TimeToAdvance + gameState->PlayerVelocity;
-
-	newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
-
-#if 1
-	MapPosition playerLeft = newPlayerPosition;
-	playerLeft.Offset.X -= 0.5f * playerWidth;
-	playerLeft = RecanonicalizePosition(map, playerLeft);
-
-	MapPosition playerRight = newPlayerPosition;
-	playerRight.Offset.X += 0.5f * playerWidth;
-	playerRight = RecanonicalizePosition(map, playerRight);
-
-	bool32 collided = false;
-
-	MapPosition collidPosition = {};
-
-	if (!IsMapPointEmpty(map, newPlayerPosition))
-	{
-		collidPosition = newPlayerPosition;
-		collided = true;
-	}
-
-	if (!IsMapPointEmpty(map, playerLeft))
-	{
-		collidPosition = playerLeft;
-		collided = true;
-	}
-
-	if (!IsMapPointEmpty(map, playerRight))
-	{
-		collidPosition = playerRight;
-		collided = true;
-	}
-
-	//
-	// Update Player Position
-	//
-	if (collided)
-	{
-		// We use to reflect if we hit a wall
-		Vector2d reflectVector = { };
-
-		if (collidPosition.X < oldPlayerPosition.X)
-		{
-			reflectVector = Vector2d{ 1, 0 };
-		}
-
-		if (collidPosition.X > oldPlayerPosition.X)
-		{
-			reflectVector = Vector2d{ -1, 0 };
-		}
-
-		if (collidPosition.Y < oldPlayerPosition.Y)
-		{
-			reflectVector = Vector2d{ 0, 1 };
-		}
-
-		if (collidPosition.Y > oldPlayerPosition.Y)
-		{
-			reflectVector = Vector2d{ 0, -1 };
-		}
-
-		// If reflectBehaviour is 1, we run with the wall we have collided with, if its 2, we bounce off it 
-		uint32 reflectBehaviour = 1;
-
-		gameState->PlayerVelocity = gameState->PlayerVelocity - reflectBehaviour * InnerProduct(gameState->PlayerVelocity, reflectVector) * reflectVector;
-	}
-	else
-	{
-		gameState->PlayerPosition = newPlayerPosition;
-	}
-#else
-	// Search in player position for next location after hit detection;
-	uint32 minTileX = 0;
-	uint32 minTileY = 0;
-
-	uint32 onePastMaxTileX = 0;
-	uint32 onePastMaxTileY = 0;
-
-	uint32 tileZ = gameState->PlayerPosition.Z;
-
-	MapPosition bestPoint = gameState->PlayerPosition;
-	real32 bestDistanceSq = LengthSq(playerDelta);
-
-	for (uint32 tileY = minTileY; tileY != onePastMaxTileY; tileY++)
-	{
-		for (uint32 tileX = minTileX; tileX != onePastMaxTileX; tileX++)
-		{
-			MapPosition testTilePosition = GenerateCeneteredTiledPosition(tileX, tileY, tileZ);
-			TileValue tileValue = GetTileValue(map, testTilePosition);
-
-			if (IsTileValueEmpty(tileValue))
-			{
-				Vector2d minCorner = -0.5f * Vector2d{ map->TileSideInMeters, map->TileSideInMeters };
-				Vector2d maxCorner = 0.5f * Vector2d{ map->TileSideInMeters, map->TileSideInMeters };
-
-				MapPositionDifference positionDifference = CalculatePositionDifference(map, &testTilePosition, &newPlayerPosition);
-				Vector2d testPosition = ClosestPointInRectangel(minCorner, maxCorner, newPlayerPosition);
-				real32 testDistanceSq = LengthSq(testPosition);
-
-				if (testDistanceSq < bestDistanceSq)
-				{
-					bestPoint = testTilePosition;
-					bestDistanceSq = testDistanceSq;
-				}
-			}
-		}
-	}
-#endif
-
-	if (!AreOnSameTile(oldPlayerPosition, gameState->PlayerPosition))
-	{
-		TileValue newTileValue = GetTileValue(map, gameState->PlayerPosition);
-		if (newTileValue == TileValue::DoorUp)
-			gameState->PlayerPosition.Z++;
-		else if (newTileValue == TileValue::DoorDown)
-			gameState->PlayerPosition.Z--;
 	}
 
 	// Smooth scrolling for the camera
-	if (gameState->EnableSmoothCamera)
+
+	Entity* cameraFollowingEntity = GetEntity(gameState, gameState->EntityIndexTheCameraIsFollowing);
+
+	if (cameraFollowingEntity)
 	{
-		gameState->CameraPosition.X = gameState->PlayerPosition.X;
-		gameState->CameraPosition.Offset.X = gameState->PlayerPosition.Offset.X;
-		gameState->CameraPosition.Y = gameState->PlayerPosition.Y;
-		gameState->CameraPosition.Offset.Y = gameState->PlayerPosition.Offset.Y;
+		if (gameState->EnableSmoothCamera)
+		{
+			gameState->CameraPosition.X = cameraFollowingEntity->Position.X;
+			gameState->CameraPosition.Offset.X = cameraFollowingEntity->Position.Offset.X;
+			gameState->CameraPosition.Y = cameraFollowingEntity->Position.Y;
+			gameState->CameraPosition.Offset.Y = cameraFollowingEntity->Position.Offset.Y;
+		}
+		else
+		{
+			MapPositionDifference diff = CalculatePositionDifference(map, &cameraFollowingEntity->Position, &gameState->CameraPosition);
+
+			if (diff.DXY.X > (9.0f * map->TileSideInMeters))
+			{
+				gameState->CameraPosition.X += 17;
+			}
+			else if (diff.DXY.X < -(9.0f * map->TileSideInMeters))
+			{
+				gameState->CameraPosition.X -= 17;
+			}
+
+			if (diff.DXY.Y > (5.0f * map->TileSideInMeters))
+			{
+				gameState->CameraPosition.Y += 9;
+			}
+			else if (diff.DXY.Y < -(5.0f * map->TileSideInMeters))
+			{
+				gameState->CameraPosition.Y -= 9;
+			}
+		}
+
+		gameState->CameraPosition.Z = cameraFollowingEntity->Position.Z;
 	}
-	else
-	{
-		MapPositionDifference diff = CalculatePositionDifference(map, &gameState->PlayerPosition, &gameState->CameraPosition);
-
-		if (diff.DXY.X > (9.0f * map->TileSideInMeters))
-		{
-			gameState->CameraPosition.X += 17;
-		}
-		else if (diff.DXY.X < -(9.0f * map->TileSideInMeters))
-		{
-			gameState->CameraPosition.X -= 17;
-		}
-
-		if (diff.DXY.Y > (5.0f * map->TileSideInMeters))
-		{
-			gameState->CameraPosition.Y += 9;
-		}
-		else if (diff.DXY.Y < -(5.0f * map->TileSideInMeters))
-		{
-			gameState->CameraPosition.Y -= 9;
-		}
-	}
-
-	gameState->CameraPosition.Z = gameState->PlayerPosition.Z;
-
 	//
 	// Draw New game status
 	//
 	int32 tileSideInPixels = 60;
-	real32 MetersToPixels = (real32)tileSideInPixels / (real32)map->TileSideInMeters;
+	real32 metersToPixels = (real32)tileSideInPixels / (real32)map->TileSideInMeters;
 
-	Vector2d screenCenter = { 0.5f * (real32)screenBuffer->Width, 0.5f * (real32)screenBuffer->Height };
+	// TOOD: Check this
+	Vector2d screenCenter = 0.5f * Vector2d{ (real32)screenBuffer->Width, (real32)screenBuffer->Height };
 
 	DrawBitmap(&gameState->Background, screenBuffer, 0, 0);
 
@@ -548,7 +355,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 					colour = 0;
 				}
 
-				Vector2d center = { (screenCenter.X - MetersToPixels * gameState->CameraPosition.Offset.X) + ((real32)relColumn) * tileSideInPixels, (screenCenter.Y + MetersToPixels * gameState->CameraPosition.Offset.Y) - ((real32)relRow) * tileSideInPixels };
+				Vector2d center = { (screenCenter.X - metersToPixels * gameState->CameraPosition.Offset.X) + ((real32)relColumn) * tileSideInPixels, (screenCenter.Y + metersToPixels * gameState->CameraPosition.Offset.Y) - ((real32)relRow) * tileSideInPixels };
 
 				Vector2d halfTileSide = { 0.5f * tileSideInPixels , 0.5f * tileSideInPixels };
 
@@ -560,25 +367,15 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		}
 	}
 
-	MapPositionDifference camDiff = CalculatePositionDifference(map, &gameState->PlayerPosition, &gameState->CameraPosition);
+	for (uint8 entityIndex = 1; entityIndex <= gameState->EntitiesCount; entityIndex++)
+	{
+		Entity* entity = GetEntity(gameState, entityIndex);
 
-	real32 playerR = 1.0f;
-	real32 playerG = 1.0f;
-	real32 playerB = 0.0f;
-
-	real32 playerGroundPointX = screenCenter.X + MetersToPixels * camDiff.DXY.X;
-	real32 playerGroundPointY = screenCenter.Y - MetersToPixels * camDiff.DXY.Y;
-
-	Vector2d playerDim = { MetersToPixels * playerWidth, MetersToPixels * playerHeight };
-	Vector2d playerLeftTop = { playerGroundPointX - 0.5f * MetersToPixels * playerWidth, playerGroundPointY - MetersToPixels * playerHeight };
-
-	DrawRectangle(screenBuffer, playerLeftTop, playerLeftTop + playerDim, { playerR, playerG, playerB });
-
-	PlayerBitMap* playerFacingDirectionMap = &gameState->playerBitMaps[gameState->PlayerFacingDirection];
-
-	DrawBitmap(&playerFacingDirectionMap->Head, screenBuffer, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
-	DrawBitmap(&playerFacingDirectionMap->Cape, screenBuffer, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
-	DrawBitmap(&playerFacingDirectionMap->Torso, screenBuffer, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
+		if (entity && entity->Exists)
+		{
+			RenderEntity(screenBuffer, map, gameState, screenCenter, metersToPixels, entity);
+		}
+	}
 }
 
 DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer* audioBuffer)
@@ -811,4 +608,277 @@ GameAudioBuffer* ReadAudioBufferData(void* memory)
 	result->BufferData = byte;
 
 	return result;
+}
+
+
+void MoveEntity(GameMemory* gameMemory, GameState* gameState, GameInput* input, GameControllerInput* controller, Map* map, Entity* entity, Vector2d playerAcceleration)
+{
+	// In Meters
+	real32 playerHeight = 1.4f;
+	real32 playerWidth = 0.75f * playerHeight;
+	MapPosition oldPlayerPosition = entity->Position;
+	real32 PlayerSpeed = 5.0f; // Meter/Seconds
+
+	if (controller->A.EndedDown)
+	{
+		gameState->EnableSmoothCamera = !gameState->EnableSmoothCamera;
+	}
+
+	if (controller->Back.EndedDown)
+	{
+		gameMemory->IsInitialized = false;
+	}
+
+	if (controller->X.EndedDown)
+	{
+		PlayerSpeed = 9.0f; // Meter/Seconds
+	}
+
+	//
+	// Handle Movement after gathering input
+	//
+	playerAcceleration *= PlayerSpeed;
+
+	// TODO:Use ODE
+	// Simulate friction
+	real32 friction = -1.0f;
+
+	if (playerAcceleration.X == 0 && playerAcceleration.Y == 0)
+	{
+		friction = -10.0f;
+	}
+
+	playerAcceleration += friction * entity->Velocity;
+
+	if ((playerAcceleration.X != 0.0f) && (playerAcceleration.Y != 0.0f))
+	{
+		playerAcceleration.X *= 0.707106781187f;
+		playerAcceleration.Y *= 0.707106781187f;
+	}
+
+	//
+	// Handle collision detection
+	//
+	MapPosition newPlayerPosition = oldPlayerPosition;
+
+	Vector2d playerDelta = (0.5f * playerAcceleration * (real32)sqaure(input->TimeToAdvance)) + (entity->Velocity * (real32)input->TimeToAdvance);
+
+	// Equation of motion
+	newPlayerPosition.Offset += playerDelta;
+
+	entity->Velocity = playerAcceleration * (real32)input->TimeToAdvance + entity->Velocity;
+
+	newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
+
+#if 1
+	MapPosition playerLeft = newPlayerPosition;
+	playerLeft.Offset.X -= 0.5f * playerWidth;
+	playerLeft = RecanonicalizePosition(map, playerLeft);
+
+	MapPosition playerRight = newPlayerPosition;
+	playerRight.Offset.X += 0.5f * playerWidth;
+	playerRight = RecanonicalizePosition(map, playerRight);
+
+	bool32 collided = false;
+
+	MapPosition collidPosition = {};
+
+	if (!IsMapPointEmpty(map, newPlayerPosition))
+	{
+		collidPosition = newPlayerPosition;
+		collided = true;
+	}
+
+	if (!IsMapPointEmpty(map, playerLeft))
+	{
+		collidPosition = playerLeft;
+		collided = true;
+	}
+
+	if (!IsMapPointEmpty(map, playerRight))
+	{
+		collidPosition = playerRight;
+		collided = true;
+	}
+
+	//
+	// Update Player Position
+	//
+	if (collided)
+	{
+		// We use to reflect if we hit a wall
+		Vector2d reflectVector = { };
+
+		if (collidPosition.X < oldPlayerPosition.X)
+		{
+			reflectVector = Vector2d{ 1, 0 };
+		}
+
+		if (collidPosition.X > oldPlayerPosition.X)
+		{
+			reflectVector = Vector2d{ -1, 0 };
+		}
+
+		if (collidPosition.Y < oldPlayerPosition.Y)
+		{
+			reflectVector = Vector2d{ 0, 1 };
+		}
+
+		if (collidPosition.Y > oldPlayerPosition.Y)
+		{
+			reflectVector = Vector2d{ 0, -1 };
+		}
+
+		// If reflectBehaviour is 1, we run with the wall we have collided with, if its 2, we bounce off it 
+		uint32 reflectBehaviour = 1;
+
+		entity->Velocity = entity->Velocity - reflectBehaviour * InnerProduct(entity->Velocity, reflectVector) * reflectVector;
+	}
+	else
+	{
+		entity->Position = newPlayerPosition;
+	}
+#else
+	// Search in player position for next location after hit detection;
+	uint32 minTileX = 0;
+	uint32 minTileY = 0;
+
+	uint32 onePastMaxTileX = 0;
+	uint32 onePastMaxTileY = 0;
+
+	uint32 tileZ = gameState->PlayerPosition.Z;
+
+	MapPosition bestPoint = gameState->PlayerPosition;
+	real32 bestDistanceSq = LengthSq(playerDelta);
+
+	for (uint32 tileY = minTileY; tileY != onePastMaxTileY; tileY++)
+	{
+		for (uint32 tileX = minTileX; tileX != onePastMaxTileX; tileX++)
+		{
+			MapPosition testTilePosition = GenerateCeneteredTiledPosition(tileX, tileY, tileZ);
+			TileValue tileValue = GetTileValue(map, testTilePosition);
+
+			if (IsTileValueEmpty(tileValue))
+			{
+				Vector2d minCorner = -0.5f * Vector2d{ map->TileSideInMeters, map->TileSideInMeters };
+				Vector2d maxCorner = 0.5f * Vector2d{ map->TileSideInMeters, map->TileSideInMeters };
+
+				MapPositionDifference positionDifference = CalculatePositionDifference(map, &testTilePosition, &newPlayerPosition);
+				Vector2d testPosition = ClosestPointInRectangel(minCorner, maxCorner, newPlayerPosition);
+				real32 testDistanceSq = LengthSq(testPosition);
+
+				if (testDistanceSq < bestDistanceSq)
+				{
+					bestPoint = testTilePosition;
+					bestDistanceSq = testDistanceSq;
+				}
+			}
+		}
+	}
+#endif
+
+	if (!AreOnSameTile(oldPlayerPosition, entity->Position))
+	{
+		TileValue newTileValue = GetTileValue(map, entity->Position);
+
+		if (newTileValue == TileValue::DoorUp)
+			entity->Position.Z++;
+		else if (newTileValue == TileValue::DoorDown)
+			entity->Position.Z--;
+	}
+
+	if (AbsoluteValue(entity->Velocity.X) > AbsoluteValue(entity->Velocity.Y))
+	{
+		if (entity->Velocity.X > 0)
+		{
+			entity->FacingDirection = 0;
+		}
+		else
+		{
+			entity->FacingDirection = 2;
+		}
+	}
+	else if (AbsoluteValue(entity->Velocity.X) < AbsoluteValue(entity->Velocity.Y))
+	{
+		if (entity->Velocity.Y > 0)
+		{
+			entity->FacingDirection = 1;
+		}
+		else
+		{
+			entity->FacingDirection = 3;
+		}
+	}
+}
+
+void InitializePlayer(ThreadContext* thread, GameMemory* gameMemory, Entity* entity)
+{
+	*entity = {};
+
+	entity->Exists = true;
+
+	// Order: X Y Z Offset
+	entity->Position = { 1, 4, 0, { 5.0f, 5.0f } };
+
+	entity->Height = 1.4f;
+	entity->Width = 0.75f * entity->Height;
+
+	PlayerBitMap* playerBitMap;
+	playerBitMap = entity->BitMaps;
+
+	playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_right_head.bmp");
+	playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_right_cape.bmp");
+	playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_right_torso.bmp");
+	playerBitMap->AlignX = 72;
+	playerBitMap->AlignY = 182;
+
+	playerBitMap++;
+	playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_back_head.bmp");
+	playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_back_cape.bmp");
+	playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_back_torso.bmp");
+	playerBitMap->AlignX = 72;
+	playerBitMap->AlignY = 182;
+
+	playerBitMap++;
+	playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_left_head.bmp");
+	playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_left_cape.bmp");
+	playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_left_torso.bmp");
+	playerBitMap->AlignX = 72;
+	playerBitMap->AlignY = 182;
+
+	playerBitMap++;
+	playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_head.bmp");
+	playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_cape.bmp");
+	playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_torso.bmp");
+	playerBitMap->AlignX = 72;
+	playerBitMap->AlignY = 182;
+}
+
+void RenderEntity(GameScreenBuffer* screenBuffer, Map* map, GameState* gameState, Vector2d screenCenter, real32 metersToPixels, Entity* entity)
+{
+	MapPositionDifference camDiff = CalculatePositionDifference(map, &entity->Position, &gameState->CameraPosition);
+
+	real32 playerR = 1.0f;
+	real32 playerG = 1.0f;
+	real32 playerB = 0.0f;
+
+	real32 playerGroundPointX = screenCenter.X + metersToPixels * camDiff.DXY.X;
+	real32 playerGroundPointY = screenCenter.Y - metersToPixels * camDiff.DXY.Y;
+
+	Vector2d playerDim = { metersToPixels * entity->Width, metersToPixels * entity->Height };
+	Vector2d playerLeftTop = { playerGroundPointX - 0.5f * metersToPixels * entity->Width, playerGroundPointY - metersToPixels * entity->Height };
+
+	DrawRectangle(screenBuffer, playerLeftTop, playerLeftTop + playerDim, { playerR, playerG, playerB });
+
+	PlayerBitMap* playerFacingDirectionMap = &entity->BitMaps[entity->FacingDirection];
+
+	DrawBitmap(&playerFacingDirectionMap->Head, screenBuffer, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
+	DrawBitmap(&playerFacingDirectionMap->Cape, screenBuffer, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
+	DrawBitmap(&playerFacingDirectionMap->Torso, screenBuffer, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
+}
+
+Entity* AddEntity(GameState* gameState)
+{
+	Entity* entity = &gameState->Entities[gameState->EntitiesCount++];
+	return entity;
 }

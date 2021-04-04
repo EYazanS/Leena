@@ -15,13 +15,6 @@
 DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameInput* input);
 DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer* audioBuffer);
 
-inline GameControllerInput* GetController(GameInput* input, uint8 index)
-{
-	Assert(index < ArrayCount(input->Controllers));
-	GameControllerInput* result = &input->Controllers[index];
-	return result;
-}
-
 struct World
 {
 	Map* Map;
@@ -44,22 +37,55 @@ struct PlayerBitMap
 	int32 AlignY;
 };
 
+struct Entity
+{
+	bool32 Exists;
+
+	real32 Width;
+	real32 Height;
+
+	MapPosition Position;
+	Vector2d Velocity;
+
+	uint32 FacingDirection;
+	PlayerBitMap BitMaps[4];
+};
+
 struct GameState
 {
 	MemoryPool WorldMemoryPool;
-	
-	MapPosition CameraPosition;
-	MapPosition PlayerPosition;
 
-	Vector2d PlayerVelocity;
+	uint8 EntityIndexTheCameraIsFollowing;
+	MapPosition CameraPosition;
+
+	uint32 EntitiesCount;
+	uint32 PlayersIndexesForControllers[ArrayCount(((GameInput*)0)->Controllers)];
+	Entity Entities[250];
 
 	LoadedBitmap Background;
-	PlayerBitMap playerBitMaps[4];
-	uint32 PlayerFacingDirection;
-	
+
 	World* World;
 	bool32 EnableSmoothCamera;
 };
-#define LeenaH
 
+
+inline GameControllerInput* GetController(GameInput* input, uint8 index)
+{
+	Assert(index < ArrayCount(input->Controllers));
+	GameControllerInput* result = &input->Controllers[index];
+	return result;
+}
+
+inline Entity* GetEntity(GameState* gameState, uint32 index)
+{
+	Entity* result = {};
+
+	if (index > 0 && (index < ArrayCount(gameState->Entities)))
+	{
+		result = &gameState->Entities[index];
+	}
+	return result;
+}
+
+#define LeenaH
 #endif

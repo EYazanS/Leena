@@ -598,6 +598,7 @@ internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, GameC
 
 		case VK_RETURN:
 		{
+			Win32ProccessKeyboardMessage(controller->Start, isDown);
 			if (altDown && isDown)
 			{
 				ToggleFullScreen(state, message.hwnd, &state->PrevWP);

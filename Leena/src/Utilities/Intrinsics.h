@@ -71,6 +71,13 @@ inline real64 sqaure(real64 number)
 	return number * number;
 }
 
+inline real64 AbsoluteValue(real32 number)
+{
+	real32 result = (real32)fabs(number);
+
+	return result;
+}
+
 struct BitScanResult
 {
 	bool32 Found;
@@ -90,7 +97,7 @@ inline BitScanResult FindLeastSigifigantSetBit(uint32 value)
 			result.Found = true;
 			result.Index = currentScanningIndex;
 			break;
-		}
+}
 	}
 #endif
 	return result;
