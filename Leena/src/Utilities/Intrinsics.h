@@ -1,5 +1,6 @@
 #if !defined(Leena_Intinsics_h)
 #include <math.h>
+#include <stdlib.h>
 
 // Math
 inline int32 RoundReal32ToInt32(real32 value)
@@ -75,17 +76,23 @@ inline uint32 RotateRight(uint32 value, int32 amount)
 	return result;
 }
 
-inline uint32 sqaure(int32 number)
+inline uint32 Sqaure(int32 number)
 {
 	return number * number;
 }
 
-inline real32 sqaure(real32 number)
+inline real32 SqaureRoot(real32 number)
+{
+	real32 result = sqrtf(number);
+	return result;
+}
+
+inline real32 Sqaure(real32 number)
 {
 	return number * number;
 }
 
-inline real64 sqaure(real64 number)
+inline real64 Sqaure(real64 number)
 {
 	return number * number;
 }

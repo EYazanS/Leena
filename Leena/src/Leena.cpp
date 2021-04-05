@@ -14,6 +14,8 @@ void InitializePlayer(GameState* state, uint32  index);
 void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameControllerInput* controller, Entity* entity, real32 timeToAdvance, Vector2d playerAcceleration);
 uint32 AddEntity(GameState* gameState);
 
+void TestWall(real32& tMin, real32 wall, real32 relX, real32 relY, real32 playerDeltaX, real32 playerDeltaY, real32 minY, real32 maxY);
+
 // To pack the struct tightly and prevent combiler from 
 // aligning the fields 
 #pragma pack(push, 1)
@@ -646,10 +648,16 @@ GameAudioBuffer* ReadAudioBufferData(void* memory)
 void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameControllerInput* controller, Entity* entity, real32 timeToAdvance, Vector2d playerAcceleration)
 {
 	// In Meters
-	real32 playerHeight = 1.4f;
-	real32 playerWidth = 0.75f * playerHeight;
 	MapPosition oldPlayerPosition = entity->Position;
 	real32 PlayerSpeed = 30.0f; // Meter/Seconds
+
+	real32 playerAccelerationLength = LengthSq(playerAcceleration);
+
+	// Normlazie vetor to make it length of 1
+	if (playerAccelerationLength > 1.0f)
+	{
+		playerAcceleration *= 1 / SqaureRoot(playerAccelerationLength);
+	}
 
 	if (controller->A.EndedDown)
 	{
@@ -677,27 +685,16 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameCont
 
 	playerAcceleration += friction * entity->Velocity;
 
-	if ((playerAcceleration.X != 0.0f) && (playerAcceleration.Y != 0.0f))
-	{
-		playerAcceleration.X *= 0.707106781187f;
-		playerAcceleration.Y *= 0.707106781187f;
-	}
-
-	//
-	// Handle collision detection
-	//
-	MapPosition newPlayerPosition = oldPlayerPosition;
-
-	Vector2d playerDelta = (0.5f * playerAcceleration * sqaure(timeToAdvance) + (entity->Velocity * timeToAdvance));
+	Vector2d playerDelta = (0.5f * playerAcceleration * Sqaure(timeToAdvance) + (entity->Velocity * timeToAdvance));
 
 	// Equation of motion
-	newPlayerPosition.Offset += playerDelta;
-
 	entity->Velocity = playerAcceleration * timeToAdvance + entity->Velocity;
 
+	MapPosition newPlayerPosition = oldPlayerPosition;
+	newPlayerPosition.Offset += playerDelta;
 	newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
 
-#if 1
+#if 0
 	MapPosition playerLeft = newPlayerPosition;
 	playerLeft.Offset.X -= 0.5f * playerWidth;
 	playerLeft = RecanonicalizePosition(map, playerLeft);
@@ -767,16 +764,16 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameCont
 	}
 #else
 	// Search in player position for next location after hit detection;
-	uint32 minTileX = 0;
-	uint32 minTileY = 0;
+	uint32 minTileX = Minimum(oldPlayerPosition.X, newPlayerPosition.X);
+	uint32 minTileY = Minimum(oldPlayerPosition.Y, newPlayerPosition.Y);
 
-	uint32 onePastMaxTileX = 0;
-	uint32 onePastMaxTileY = 0;
+	uint32 onePastMaxTileX = Maximum(oldPlayerPosition.X, newPlayerPosition.X) + 1;
+	uint32 onePastMaxTileY = Maximum(oldPlayerPosition.Y, newPlayerPosition.Y) + 1;
 
-	uint32 tileZ = gameState->PlayerPosition.Z;
-
-	MapPosition bestPoint = gameState->PlayerPosition;
-	real32 bestDistanceSq = LengthSq(playerDelta);
+	uint32 tileZ = entity->Position.Z;
+	// The relative distance to the closest thing we hit, between 0 and 1
+	// 0 didnt move, 1 moved the full amount
+	real32 tMin = 1.0f;
 
 	for (uint32 tileY = minTileY; tileY != onePastMaxTileY; tileY++)
 	{
@@ -785,23 +782,31 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameCont
 			MapPosition testTilePosition = GenerateCeneteredTiledPosition(tileX, tileY, tileZ);
 			TileValue tileValue = GetTileValue(map, testTilePosition);
 
-			if (IsTileValueEmpty(tileValue))
+			if (!IsTileValueEmpty(tileValue))
 			{
 				Vector2d minCorner = -0.5f * Vector2d{ map->TileSideInMeters, map->TileSideInMeters };
 				Vector2d maxCorner = 0.5f * Vector2d{ map->TileSideInMeters, map->TileSideInMeters };
 
-				MapPositionDifference positionDifference = CalculatePositionDifference(map, &testTilePosition, &newPlayerPosition);
-				Vector2d testPosition = ClosestPointInRectangel(minCorner, maxCorner, newPlayerPosition);
-				real32 testDistanceSq = LengthSq(testPosition);
+				MapPositionDifference relOldPositionDifference = CalculatePositionDifference(map, &oldPlayerPosition, &testTilePosition);
 
-				if (testDistanceSq < bestDistanceSq)
-				{
-					bestPoint = testTilePosition;
-					bestDistanceSq = testDistanceSq;
-				}
+				Vector2d relativeVector = relOldPositionDifference.DXY;
+
+				// Side walls
+				TestWall(tMin, minCorner.X, relativeVector.X, relativeVector.Y, playerDelta.X, playerDelta.Y, minCorner.Y, maxCorner.Y);
+				TestWall(tMin, maxCorner.X, relativeVector.X, relativeVector.Y, playerDelta.X, playerDelta.Y, minCorner.Y, maxCorner.Y);
+
+				// Upper walls
+				TestWall(tMin, minCorner.Y, relativeVector.Y, relativeVector.X, playerDelta.Y, playerDelta.X, minCorner.X, maxCorner.X);
+				TestWall(tMin, maxCorner.Y, relativeVector.Y, relativeVector.X, playerDelta.Y, playerDelta.X, minCorner.X, maxCorner.X);
 			}
 		}
 	}
+
+	newPlayerPosition = oldPlayerPosition;
+	newPlayerPosition.Offset += (0.9f * tMin) * playerDelta;
+	newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
+	entity->Position = newPlayerPosition;
+
 #endif
 
 	if (!AreOnSameTile(oldPlayerPosition, entity->Position))
@@ -887,4 +892,24 @@ uint32 AddEntity(GameState* gameState)
 	Entity* entity = &gameState->Entities[entityIndex];
 	*entity = {};
 	return entityIndex;
+}
+
+void TestWall(real32& tMin, real32 wall, real32 relX, real32 relY, real32 playerDeltaX, real32 playerDeltaY, real32 minY, real32 maxY)
+{
+	real32 tEpslion = 0.00001f;
+
+	if (playerDeltaX != 0)
+	{
+		real32 tResult = (wall - relX) / playerDeltaX;
+
+		real32 y = relY + tResult * playerDeltaY;
+
+		if ((tResult >= 0.0f) && (tMin > tResult))
+		{
+			if ((y >= minY) && (y <= maxY))
+			{
+				tMin = Maximum(0.0f, tResult - tEpslion);
+			}
+		}
+	}
 }

@@ -15,6 +15,9 @@
 DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameInput* input);
 DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer* audioBuffer);
 
+#define Minimum(a, b) ((a < b) ? a : b)
+#define Maximum(a, b) ((a > b) ? a : b)
+
 struct World
 {
 	Map* Map;
