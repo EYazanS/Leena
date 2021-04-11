@@ -690,9 +690,7 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameCont
 	// Equation of motion
 	entity->Velocity = playerAcceleration * timeToAdvance + entity->Velocity;
 
-	MapPosition newPlayerPosition = oldPlayerPosition;
-	newPlayerPosition.Offset += playerDelta;
-	newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
+	MapPosition newPlayerPosition = SetOffset(map, oldPlayerPosition, playerDelta);
 
 #if 0
 	MapPosition playerLeft = newPlayerPosition;
@@ -764,20 +762,31 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameCont
 	}
 #else
 	// Search in player position for next location after hit detection;
+#if 0
 	uint32 minTileX = Minimum(oldPlayerPosition.X, newPlayerPosition.X);
 	uint32 minTileY = Minimum(oldPlayerPosition.Y, newPlayerPosition.Y);
-
 	uint32 onePastMaxTileX = Maximum(oldPlayerPosition.X, newPlayerPosition.X) + 1;
 	uint32 onePastMaxTileY = Maximum(oldPlayerPosition.Y, newPlayerPosition.Y) + 1;
+#else
+	uint32 startTileX = oldPlayerPosition.X;
+	uint32 startTileY = oldPlayerPosition.Y;
+	uint32 endTileX = newPlayerPosition.X;
+	uint32 endTileY = newPlayerPosition.Y;
 
+	int32 deltaX = SingOf(endTileX - startTileX);
+	int32 deltaY = SingOf(endTileY - startTileY);
+#endif
 	uint32 tileZ = entity->Position.Z;
 	// The relative distance to the closest thing we hit, between 0 and 1
 	// 0 didnt move, 1 moved the full amount
 	real32 tMin = 1.0f;
 
-	for (uint32 tileY = minTileY; tileY != onePastMaxTileY; tileY++)
+	uint32 tileY = startTileY;
+	for (;;)
 	{
-		for (uint32 tileX = minTileX; tileX != onePastMaxTileX; tileX++)
+		uint32 tileX = startTileX;
+
+		for (;;)
 		{
 			MapPosition testTilePosition = GenerateCeneteredTiledPosition(tileX, tileY, tileZ);
 			TileValue tileValue = GetTileValue(map, testTilePosition);
@@ -799,13 +808,29 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameCont
 				TestWall(tMin, minCorner.Y, relativeVector.Y, relativeVector.X, playerDelta.Y, playerDelta.X, minCorner.X, maxCorner.X);
 				TestWall(tMin, maxCorner.Y, relativeVector.Y, relativeVector.X, playerDelta.Y, playerDelta.X, minCorner.X, maxCorner.X);
 			}
+
+			if (tileX == endTileX)
+			{
+				break;
+			}
+			else
+			{
+				tileX += deltaX;
+			}
+		}
+
+		if (tileY == endTileY)
+		{
+			break;
+		}
+		else
+		{
+			tileY += deltaY;
 		}
 	}
 
 	newPlayerPosition = oldPlayerPosition;
-	newPlayerPosition.Offset += (0.9f * tMin) * playerDelta;
-	newPlayerPosition = RecanonicalizePosition(map, newPlayerPosition);
-	entity->Position = newPlayerPosition;
+	entity->Position = SetOffset(map, newPlayerPosition, (0.9f * tMin) * playerDelta);
 
 #endif
 

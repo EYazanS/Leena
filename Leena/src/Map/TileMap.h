@@ -90,3 +90,10 @@ inline MapPosition GenerateCeneteredTiledPosition(uint32 x, uint32 y, uint32 z)
 
 	return result;
 }
+
+inline MapPosition SetOffset(Map* map, MapPosition position, Vector2d offset)
+{
+	position.Offset += offset;
+	position = RecanonicalizePosition(map, position);
+	return position;
+}

@@ -3,6 +3,13 @@
 #include <stdlib.h>
 
 // Math
+inline int32 SingOf(int32 value)
+{
+	int32 result = value >= 0 ? 1 : -1;
+
+	return result;
+}
+
 inline int32 RoundReal32ToInt32(real32 value)
 {
 	int32 result = (int32)roundf(value);
@@ -123,7 +130,7 @@ inline BitScanResult FindLeastSigifigantSetBit(uint32 value)
 			result.Found = true;
 			result.Index = currentScanningIndex;
 			break;
-		}
+}
 	}
 #endif
 	return result;
