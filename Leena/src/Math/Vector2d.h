@@ -1,22 +1,22 @@
 #pragma once
 
-struct Vector2d
+struct V2
 {
 	union
 	{
 		struct
 		{
-			real32 X;
-			real32 Y;
+			r32 X;
+			r32 Y;
 		};
 
-		real32 Elements[2];
+		r32 Elements[2];
 	};
 };
 
-inline Vector2d operator-(Vector2d a)
+inline V2 operator-(V2 a)
 {
-	Vector2d result = {};
+	V2 result = {};
 
 	result.X = -a.X;
 	result.Y = -a.Y;
@@ -24,9 +24,9 @@ inline Vector2d operator-(Vector2d a)
 	return result;
 }
 
-inline Vector2d operator+(Vector2d a, Vector2d b)
+inline V2 operator+(V2 a, V2 b)
 {
-	Vector2d result = {};
+	V2 result = {};
 
 	result.X = a.X + b.X;
 	result.Y = a.Y + b.Y;
@@ -34,9 +34,9 @@ inline Vector2d operator+(Vector2d a, Vector2d b)
 	return result;
 }
 
-inline Vector2d operator-(Vector2d a, Vector2d b)
+inline V2 operator-(V2 a, V2 b)
 {
-	Vector2d result = {};
+	V2 result = {};
 
 	result.X = a.X - b.X;
 	result.Y = a.Y - b.Y;
@@ -44,9 +44,9 @@ inline Vector2d operator-(Vector2d a, Vector2d b)
 	return result;
 }
 
-inline Vector2d operator*(Vector2d a, real32 b)
+inline V2 operator*(V2 a, r32 b)
 {
-	Vector2d result = {};
+	V2 result = {};
 
 	result.X = b * a.X;
 	result.Y = b * a.Y;
@@ -54,34 +54,34 @@ inline Vector2d operator*(Vector2d a, real32 b)
 	return result;
 }
 
-inline Vector2d operator*(real32 a, Vector2d b)
+inline V2 operator*(r32 a, V2 b)
 {
 	return b * a;
 }
 
-inline Vector2d& operator+=(Vector2d& a, Vector2d b)
+inline V2& operator+=(V2& a, V2 b)
 {
 	a = a + b;
 	return a;
 }
 
-inline Vector2d& operator*=(Vector2d& a, real32 b)
+inline V2& operator*=(V2& a, r32 b)
 {
 	a = a * b;
 
 	return a;
 }
 
-inline real32 InnerProduct(Vector2d& a, Vector2d& b)
+inline r32 InnerProduct(V2& a, V2& b)
 {
-	real32 result = (a.X * b.X) + (a.Y * b.Y);
+	r32 result = (a.X * b.X) + (a.Y * b.Y);
 
 	return result;
 }
 
-inline real32 LengthSq(Vector2d v)
+inline r32 LengthSq(V2 v)
 {
-	real32 result = InnerProduct(v, v);
+	r32 result = InnerProduct(v, v);
 
 	return result;
 }

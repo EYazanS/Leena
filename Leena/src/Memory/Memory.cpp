@@ -1,6 +1,6 @@
 #include "Memory.h"
 
-void InitilizePool(MemoryPool* pool, MemorySizeIndex size, uint8* storage)
+void InitilizePool(MemoryPool* pool, MemorySizeIndex size, u8* storage)
 {
 	pool->Size = size;
 	pool->BaseMemory = storage;

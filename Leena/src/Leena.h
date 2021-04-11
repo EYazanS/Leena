@@ -12,8 +12,8 @@
 #include "Map/TileMap.h"
 
 // Functions provided for the platform layer
-DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* gameScreenBuffer, GameInput* input);
-DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer* audioBuffer);
+DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory, ScreenBuffer* gameScreenBuffer, GameInput* input);
+DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* audioBuffer);
 
 #define Minimum(a, b) ((a < b) ? a : b)
 #define Maximum(a, b) ((a > b) ? a : b)
@@ -25,9 +25,9 @@ struct World
 
 struct LoadedBitmap
 {
-	int64 Width;
-	int64 Height;
-	uint32* Data;
+	i64 Width;
+	i64 Height;
+	u32* Data;
 };
 
 struct PlayerBitMap
@@ -36,50 +36,44 @@ struct PlayerBitMap
 	LoadedBitmap Torso;
 	LoadedBitmap Cape;
 
-	int32 AlignX;
-	int32 AlignY;
+	i32 AlignX;
+	i32 AlignY;
 };
 
 struct Entity
 {
-	bool32 Exists;
+	b32 Exists;
 
-	real32 Width;
-	real32 Height;
+	r32 Width;
+	r32 Height;
 
 	MapPosition Position;
-	Vector2d Velocity;
+	V2 Velocity;
+	
+	r32 Speed;
 
-	uint32 FacingDirection;
+	u32 FacingDirection;
 };
 
 struct GameState
 {
 	MemoryPool WorldMemoryPool;
 
-	uint32 EntityIndexTheCameraIsFollowing;
 	MapPosition CameraPosition;
 
-	uint32 EntitiesCount;
-	uint32 PlayersIndexesForControllers[ArrayCount(((GameInput*)0)->Controllers)];
+	u32 EntitiesCount;
+
 	Entity Entities[250];
+
+	Entity PlayerEntity;
 
 	LoadedBitmap Background;
 	PlayerBitMap BitMaps[4];
 
 	World* World;
-	bool32 EnableSmoothCamera;
 };
 
-
-inline GameControllerInput* GetController(GameInput* input, uint8 index)
-{
-	Assert(index < ArrayCount(input->Controllers));
-	GameControllerInput* result = &input->Controllers[index];
-	return result;
-}
-
-inline Entity* GetEntity(GameState* gameState, uint32 index)
+inline Entity* GetEntity(GameState* gameState, u32 index)
 {
 	Entity* result = {};
 

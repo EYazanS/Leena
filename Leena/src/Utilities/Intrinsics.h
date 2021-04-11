@@ -3,127 +3,127 @@
 #include <stdlib.h>
 
 // Math
-inline int32 SingOf(int32 value)
+inline i32 SingOf(i32 value)
 {
-	int32 result = value >= 0 ? 1 : -1;
+	i32 result = value >= 0 ? 1 : -1;
 
 	return result;
 }
 
-inline int32 RoundReal32ToInt32(real32 value)
+inline i32 RoundReal32ToInt32(r32 value)
 {
-	int32 result = (int32)roundf(value);
+	i32 result = (i32)roundf(value);
 	return result;
 }
 
-inline uint32 RoundReal32ToUInt32(real32 val)
+inline u32 RoundReal32ToUInt32(r32 val)
 {
-	uint32 Result = (uint32)roundf(val);
+	u32 Result = (u32)roundf(val);
 	return Result;
 }
 
-inline int32 TruncateReal32ToInt32(real32 value)
+inline i32 TruncateReal32ToInt32(r32 value)
 {
-	int32 result = (int32)(value);
+	i32 result = (i32)(value);
 	return result;
 }
 
-inline uint32 TruncateReal32ToUint32(real32 value)
+inline u32 TruncateReal32ToUint32(r32 value)
 {
-	uint32 result = (uint32)(value);
+	u32 result = (u32)(value);
 	return result;
 }
 
-inline int32 FloorReal32ToInt32(real32 value)
+inline i32 FloorReal32ToInt32(r32 value)
 {
-	int32 result = (int32)floorf(value);
+	i32 result = (i32)floorf(value);
 	return result;
 }
 
-inline real32 Sin(real32 angel)
+inline r32 Sin(r32 angel)
 {
-	real32 result = (real32)sin(angel);
-
-	return result;
-}
-
-inline real32 Cos(real32 angel)
-{
-	real32 result = (real32)cos(angel);
+	r32 result = (r32)sin(angel);
 
 	return result;
 }
 
-inline real32 ATan2(real32 x, real32 y)
+inline r32 Cos(r32 angel)
 {
-	real32 result = (real32)atan2(x, y);
+	r32 result = (r32)cos(angel);
 
 	return result;
 }
 
-inline uint32 AbsoluteInt32ToUInt32(int32 number)
+inline r32 ATan2(r32 x, r32 y)
+{
+	r32 result = (r32)atan2(x, y);
+
+	return result;
+}
+
+inline u32 AbsoluteInt32ToUInt32(i32 number)
 {
 	if (number < 0)
 		number *= -1;
 
-	return (uint32)number;
+	return (u32)number;
 }
 
-inline uint32 RotateLeft(uint32 value, int32 amount)
+inline u32 RotateLeft(u32 value, i32 amount)
 {
-	uint32 result = _rotl(value, amount);
+	u32 result = _rotl(value, amount);
 
 	return result;
 }
 
-inline uint32 RotateRight(uint32 value, int32 amount)
+inline u32 RotateRight(u32 value, i32 amount)
 {
-	uint32 result = _rotr(value, amount);
+	u32 result = _rotr(value, amount);
 
 	return result;
 }
 
-inline uint32 Sqaure(int32 number)
+inline u32 Sqaure(i32 number)
 {
 	return number * number;
 }
 
-inline real32 SqaureRoot(real32 number)
+inline r32 SqaureRoot(r32 number)
 {
-	real32 result = sqrtf(number);
+	r32 result = sqrtf(number);
 	return result;
 }
 
-inline real32 Sqaure(real32 number)
+inline r32 Sqaure(r32 number)
 {
 	return number * number;
 }
 
-inline real64 Sqaure(real64 number)
+inline r64 Sqaure(r64 number)
 {
 	return number * number;
 }
 
-inline real64 AbsoluteValue(real32 number)
+inline r64 AbsoluteValue(r32 number)
 {
-	real32 result = (real32)fabs(number);
+	r32 result = (r32)fabs(number);
 
 	return result;
 }
 
 struct BitScanResult
 {
-	bool32 Found;
-	uint32 Index;
+	b32 Found;
+	u32 Index;
 };
 
-inline BitScanResult FindLeastSigifigantSetBit(uint32 value)
+inline BitScanResult FindLeastSigifigantSetBit(u32 value)
 {
 	BitScanResult result = {};
 #if COMPILER_MSVC
 	result.Found = _BitScanForward((unsigned long*)&result.Index, value);
 #else
-	for (uint32 currentScanningIndex = 0; currentScanningIndex < 32; currentScanningIndex++)
+	for (u32 currentScanningIndex = 0; currentScanningIndex < 32; currentScanningIndex++)
 	{
 		if (value & 1 << currentScanningIndex)
 		{

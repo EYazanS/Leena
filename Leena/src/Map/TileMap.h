@@ -18,19 +18,19 @@ enum class TileValue
 
 struct MapPositionDifference
 {
-	Vector2d DXY;
-	real32 DZ;
+	V2 DXY;
+	r32 DZ;
 };
 
 struct MapPosition
 {
 	// These are fixed points tile locations, the high bits are for tile chunk index, low bita are for tile index in the chunk
-	uint32 X;
-	uint32 Y;
-	uint32 Z;
+	u32 X;
+	u32 Y;
+	u32 Z;
 
 	// Relative to the tile 
-	Vector2d Offset;
+	V2 Offset;
 };
 
 struct Map
@@ -41,30 +41,30 @@ struct Map
 	// it's unsinged so it's always positive
 	// Max tiles in any direction is 65535
 	// Max memory usage is 4 bytes * 65535 tiles * 3 direction = 786,420 bytes aka 768kb
-	uint16 TileCountX;
-	uint16 TileCountY;
-	uint16 TileCountZ;
+	u16 TileCountX;
+	u16 TileCountY;
+	u16 TileCountZ;
 
-	real32 TileSideInMeters;
+	r32 TileSideInMeters;
 };
 
 
 // TODO: Add function to load map from file and set its value
 void initializeMap(MemoryPool* pool, Map* map);
-bool32 IsMapPointEmpty(Map* map, MapPosition position);
-TileValue GetTileValue(Map* map, uint32 x, uint32 y, uint32 z);
+b32 IsMapPointEmpty(Map* map, MapPosition position);
+TileValue GetTileValue(Map* map, u32 x, u32 y, u32 z);
 TileValue GetTileValue(Map* map, MapPosition position);
-void SetTileValue(Map* map, uint32 tileX, uint32 tileY, uint32 tileZ, TileValue value);
+void SetTileValue(Map* map, u32 tileX, u32 tileY, u32 tileZ, TileValue value);
 MapPosition RecanonicalizePosition(Map* map, MapPosition position);
-void RecanonicalizeCoordinant(Map* map, uint32* tile, real32* tileRelative);
-bool32 AreOnSameTile(MapPosition position1, MapPosition position2);
+void RecanonicalizeCoordinant(Map* map, u32* tile, r32* tileRelative);
+b32 AreOnSameTile(MapPosition position1, MapPosition position2);
 
 inline MapPositionDifference CalculatePositionDifference(Map* map, MapPosition* position1, MapPosition* position2)
 {
 	MapPositionDifference result = {};
 
-	Vector2d dTile = { (real32)position1->X - (real32)position2->X, (real32)position1->Y - (real32)position2->Y };
-	real32 dTileZ = (real32)position1->Z - (real32)position2->Z;
+	V2 dTile = { (r32)position1->X - (r32)position2->X, (r32)position1->Y - (r32)position2->Y };
+	r32 dTileZ = (r32)position1->Z - (r32)position2->Z;
 
 	result.DXY = map->TileSideInMeters * dTile + (position1->Offset - position2->Offset);
 
@@ -73,16 +73,16 @@ inline MapPositionDifference CalculatePositionDifference(Map* map, MapPosition* 
 	return result;
 }
 
-inline bool32 IsTileValueEmpty(TileValue tileValue)
+inline b32 IsTileValueEmpty(TileValue tileValue)
 {
-	bool32 result = {};
+	b32 result = {};
 
 	result = tileValue == TileValue::Empty || tileValue == TileValue::DoorUp || tileValue == TileValue::DoorDown;
 
 	return result;
 }
 
-inline MapPosition GenerateCeneteredTiledPosition(uint32 x, uint32 y, uint32 z)
+inline MapPosition GenerateCeneteredTiledPosition(u32 x, u32 y, u32 z)
 {
 	MapPosition result = {};
 
@@ -91,7 +91,7 @@ inline MapPosition GenerateCeneteredTiledPosition(uint32 x, uint32 y, uint32 z)
 	return result;
 }
 
-inline MapPosition SetOffset(Map* map, MapPosition position, Vector2d offset)
+inline MapPosition SetOffset(Map* map, MapPosition position, V2 offset)
 {
 	position.Offset += offset;
 	position = RecanonicalizePosition(map, position);

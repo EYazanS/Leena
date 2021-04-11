@@ -2,60 +2,59 @@
 
 // GRAPHICS
 LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFile, const char* fileName);
-void DrawRectangle(GameScreenBuffer* gameScreenBuffer, Vector2d vecMin, Vector2d vecMax, Colour colour);
-void DrawBitmap(LoadedBitmap* bitmap, GameScreenBuffer* screenBuffer, real32 realX, real32 realY, int32 alignX = 0, int32 alignY = 0);
+void DrawRectangle(ScreenBuffer* gameScreenBuffer, V2 vecMin, V2 vecMax, Colour colour);
+void DrawBitmap(LoadedBitmap* bitmap, ScreenBuffer* screenBuffer, r32 realX, r32 realY, i32 alignX = 0, i32 alignY = 0);
 
 // AUDIO
-void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer* soundBuffer);
-GameAudioBuffer* ReadAudioBufferData(void* memory);
+void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* soundBuffer);
+AudioBuffer* ReadAudioBufferData(void* memory);
 
-void RenderEntity(GameScreenBuffer* screenBuffer, Map* map, GameState* gameState, Vector2d screenCenter, real32 metersToPixels, Entity* entity);
-void InitializePlayer(GameState* state, uint32  index);
-void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameControllerInput* controller, Entity* entity, real32 timeToAdvance, Vector2d playerAcceleration);
-uint32 AddEntity(GameState* gameState);
+void RenderEntity(ScreenBuffer* screenBuffer, Map* map, GameState* gameState, V2 screenCenter, r32 metersToPixels, Entity* entity);
+void InitializePlayer(GameState* state);
+void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity* entity, r32 timeToAdvance, V2 playerAcceleration);
+u32 AddEntity(GameState* gameState);
 
-void TestWall(real32& tMin, real32 wall, real32 relX, real32 relY, real32 playerDeltaX, real32 playerDeltaY, real32 minY, real32 maxY);
+void TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r32 minY, r32 maxY);
 
 // To pack the struct tightly and prevent combiler from 
 // aligning the fields 
 #pragma pack(push, 1)
 struct BitmapHeader
 {
-	uint16 FileType;
-	uint32 FileSize;
-	uint16 Reserved1;
-	uint16 Reserved2;
-	uint32 BitmapOffset;
-	uint32 Size;
-	int32 Width;
-	int32 Height;
-	uint16 Planes;
-	uint16 BitsPerPixel;
-	uint32 Compression;
-	uint32 SizeOfBitmap;
-	int32 HorzResoloution;
-	int32 VertResoloution;
-	uint32 ColoursUsed;
-	uint32 ColoursImportant;
+	u16 FileType;
+	u32 FileSize;
+	u16 Reserved1;
+	u16 Reserved2;
+	u32 BitmapOffset;
+	u32 Size;
+	i32 Width;
+	i32 Height;
+	u16 Planes;
+	u16 BitsPerPixel;
+	u32 Compression;
+	u32 SizeOfBitmap;
+	i32 HorzResoloution;
+	i32 VertResoloution;
+	u32 ColoursUsed;
+	u32 ColoursImportant;
 
-	uint32 RedMask;
-	uint32 GreeenMask;
-	uint32 BlueMask;
-	uint32 AlphaMask;
+	u32 RedMask;
+	u32 GreeenMask;
+	u32 BlueMask;
+	u32 AlphaMask;
 };
 #pragma pack(pop)
 
-DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory, GameScreenBuffer* screenBuffer, GameInput* input)
+DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory, ScreenBuffer* screenBuffer, GameInput* input)
 {
 	GameState* gameState = (GameState*)gameMemory->PermanentStorage;
 
 	if (!gameMemory->IsInitialized)
 	{
-		// Reserve the first entity as null entity
-		AddEntity(gameState);
+		InitializePlayer(gameState);
 
 		gameState->Background = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_background.bmp");
-		gameState->EntityIndexTheCameraIsFollowing = 1;
+
 		PlayerBitMap* playerBitMap;
 		playerBitMap = gameState->BitMaps;
 
@@ -90,7 +89,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		gameState->CameraPosition.Y = 9 / 2;
 		gameState->CameraPosition.Z = 0;
 
-		InitilizePool(&gameState->WorldMemoryPool, gameMemory->PermanentStorageSize - sizeof(GameState), (uint8*)gameMemory->PermanentStorage + sizeof(GameState));
+		InitilizePool(&gameState->WorldMemoryPool, gameMemory->PermanentStorageSize - sizeof(GameState), (u8*)gameMemory->PermanentStorage + sizeof(GameState));
 
 		gameState->World = PushSize(&gameState->WorldMemoryPool, World);
 		World* world = gameState->World;
@@ -100,26 +99,26 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 		initializeMap(&gameState->WorldMemoryPool, map);
 
-		uint32 sandomNumberIndex = 0;
+		u32 sandomNumberIndex = 0;
 
-		uint32 tilesPerWidth = 17;
-		uint32 tilesPerHeight = 9;
-		uint32 screenX = 0;
-		uint32 screenY = 0;
-		uint32 absTileZ = 0;
+		u32 tilesPerWidth = 17;
+		u32 tilesPerHeight = 9;
+		u32 screenX = 0;
+		u32 screenY = 0;
+		u32 absTileZ = 0;
 
-		bool32 doorLeft = false;
-		bool32 doorRight = false;
-		bool32 doorTop = false;
-		bool32 doorBottom = false;
-		bool32 doorUp = false;
-		bool32 doorDown = false;
+		b32 doorLeft = false;
+		b32 doorRight = false;
+		b32 doorTop = false;
+		b32 doorBottom = false;
+		b32 doorUp = false;
+		b32 doorDown = false;
 
-		for (uint32 screenIndex = 0; screenIndex < 100; ++screenIndex)
+		for (u32 screenIndex = 0; screenIndex < 100; ++screenIndex)
 		{
 			Assert(sandomNumberIndex < ArrayCount(randomNumberTable));
 
-			uint32 randomChoice;
+			u32 randomChoice;
 
 			if (doorUp || doorDown)
 			{
@@ -130,7 +129,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 				randomChoice = randomNumberTable[sandomNumberIndex++] % 3;
 			}
 
-			bool32 createdZDoor = false;
+			b32 createdZDoor = false;
 
 			if (randomChoice == 2)
 			{
@@ -153,12 +152,12 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 				doorTop = true;
 			}
 
-			for (uint32 tileY = 0; tileY < tilesPerHeight; ++tileY)
+			for (u32 tileY = 0; tileY < tilesPerHeight; ++tileY)
 			{
-				for (uint32 tileX = 0; tileX < tilesPerWidth; ++tileX)
+				for (u32 tileX = 0; tileX < tilesPerWidth; ++tileX)
 				{
-					uint32 absTileX = screenX * tilesPerWidth + tileX;
-					uint32 absTileY = screenY * tilesPerHeight + tileY;
+					u32 absTileX = screenX * tilesPerWidth + tileX;
+					u32 absTileY = screenY * tilesPerHeight + tileY;
 
 					TileValue tileValue = TileValue::Empty;
 
@@ -244,129 +243,122 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 	World* world = gameState->World;
 	Map* map = gameState->World->Map;
+	Entity* player = &gameState->PlayerEntity;
 
 	//
 	// Handle input
 	// 
-	for (uint8 controllerIndex = 0; controllerIndex < ArrayCount(input->Controllers); controllerIndex++)
+	KeyboardInput* keyboard = &input->Keyboard;
+
+	V2 playerAcceleration = {};
+
+	if (keyboard->IsConnected)
 	{
-		GameControllerInput* controller = GetController(input, controllerIndex);
+		playerAcceleration = {};
 
-		if (!controller->IsConnected)
+		//NOTE: Use digital movement tuning
+		if (keyboard->MoveRight.EndedDown)
 		{
-			continue;
+			playerAcceleration.X = 1.0f;
 		}
-
-		Entity* controlledEntity = GetEntity(gameState, gameState->PlayersIndexesForControllers[controllerIndex]);
-
-		Vector2d playerAcceleration = {};
-
-		if (controlledEntity)
+		if (keyboard->MoveUp.EndedDown)
 		{
-			if (controller->IsAnalog)
-			{
-				//NOTE: Use analog movement tuning
-				playerAcceleration = { controller->LeftStickAverageX , controller->LeftStickAverageY };
-			}
-			else
-			{
-				//NOTE: Use digital movement tuning
-				if (controller->MoveRight.EndedDown)
-				{
-					playerAcceleration.X = 1.0f;
-				}
-				if (controller->MoveUp.EndedDown)
-				{
-					playerAcceleration.Y = 1.0f;
-				}
-				if (controller->MoveDown.EndedDown)
-				{
-					playerAcceleration.Y = -1.0f;
-				}
-				if (controller->MoveLeft.EndedDown)
-				{
-					playerAcceleration.X = -1.0f;
-				}
-			}
+			playerAcceleration.Y = 1.0f;
+		}
+		if (keyboard->MoveDown.EndedDown)
+		{
+			playerAcceleration.Y = -1.0f;
+		}
+		if (keyboard->MoveLeft.EndedDown)
+		{
+			playerAcceleration.X = -1.0f;
+		}
+		if (keyboard->X.EndedDown)
+		{
+			player->Speed = 60.0f;
 		}
 		else
 		{
-			if (controller->Start.EndedDown)
+			player->Speed = 30.0f;
+		}
+	}
+
+	ControllerInput* controller = &input->Controller;
+
+	if (controller->IsConnected)
+	{
+		playerAcceleration = {};
+
+		if (controller->IsAnalog)
+		{
+			//NOTE: Use analog movement tuning
+			playerAcceleration = { controller->LeftStickAverageX , controller->LeftStickAverageY };
+		}
+		else
+		{
+			//NOTE: Use digital movement tuning
+			if (controller->MoveRight.EndedDown)
 			{
-				uint32 controlledEntityIndex = AddEntity(gameState);
-				controlledEntity = GetEntity(gameState, controlledEntityIndex);
-				InitializePlayer(gameState, controlledEntityIndex);
-				gameState->PlayersIndexesForControllers[controllerIndex] = controlledEntityIndex;
+				playerAcceleration.X = 1.0f;
+			}
+			if (controller->MoveUp.EndedDown)
+			{
+				playerAcceleration.Y = 1.0f;
+			}
+			if (controller->MoveDown.EndedDown)
+			{
+				playerAcceleration.Y = -1.0f;
+			}
+			if (controller->MoveLeft.EndedDown)
+			{
+				playerAcceleration.X = -1.0f;
 			}
 		}
 
-		if (controlledEntity && controlledEntity->Exists)
+		if (keyboard->X.EndedDown)
 		{
-			MoveEntity(gameMemory, map, gameState, controller, controlledEntity, (real32)input->TimeToAdvance, playerAcceleration);
+			player->Speed = 60.0f;
+		}
+		else
+		{
+			player->Speed = 30.0f;
 		}
 	}
+
+	MoveEntity(gameMemory, map, gameState, &gameState->PlayerEntity, (r32)input->TimeToAdvance, playerAcceleration);
 
 	// Smooth scrolling for the camera
-	Entity* cameraFollowingEntity = GetEntity(gameState, gameState->EntityIndexTheCameraIsFollowing);
+	Entity* playerEntity = &gameState->PlayerEntity;
 
-	if (cameraFollowingEntity)
-	{
-		if (gameState->EnableSmoothCamera)
-		{
-			gameState->CameraPosition.X = cameraFollowingEntity->Position.X;
-			gameState->CameraPosition.Offset.X = cameraFollowingEntity->Position.Offset.X;
-			gameState->CameraPosition.Y = cameraFollowingEntity->Position.Y;
-			gameState->CameraPosition.Offset.Y = cameraFollowingEntity->Position.Offset.Y;
-		}
-		else
-		{
-			MapPositionDifference diff = CalculatePositionDifference(map, &cameraFollowingEntity->Position, &gameState->CameraPosition);
+	gameState->CameraPosition.X = playerEntity->Position.X;
+	gameState->CameraPosition.Offset.X = playerEntity->Position.Offset.X;
+	gameState->CameraPosition.Y = playerEntity->Position.Y;
+	gameState->CameraPosition.Offset.Y = playerEntity->Position.Offset.Y;
+	gameState->CameraPosition.Z = playerEntity->Position.Z;
 
-			if (diff.DXY.X > (9.0f * map->TileSideInMeters))
-			{
-				gameState->CameraPosition.X += 17;
-			}
-			else if (diff.DXY.X < -(9.0f * map->TileSideInMeters))
-			{
-				gameState->CameraPosition.X -= 17;
-			}
-
-			if (diff.DXY.Y > (5.0f * map->TileSideInMeters))
-			{
-				gameState->CameraPosition.Y += 9;
-			}
-			else if (diff.DXY.Y < -(5.0f * map->TileSideInMeters))
-			{
-				gameState->CameraPosition.Y -= 9;
-			}
-		}
-
-		gameState->CameraPosition.Z = cameraFollowingEntity->Position.Z;
-	}
 	//
 	// Draw New game status
 	//
-	int32 tileSideInPixels = 60;
-	real32 metersToPixels = (real32)tileSideInPixels / (real32)map->TileSideInMeters;
+	i32 tileSideInPixels = 60;
+	r32 metersToPixels = (r32)tileSideInPixels / (r32)map->TileSideInMeters;
 
-	// TOOD: Check this
-	Vector2d screenCenter = 0.5f * Vector2d{ (real32)screenBuffer->Width, (real32)screenBuffer->Height };
+	V2 screenCenter = 0.5f * V2{ (r32)screenBuffer->Width, (r32)screenBuffer->Height };
 
 	DrawBitmap(&gameState->Background, screenBuffer, 0, 0);
 
-	for (int32 relRow = -10; relRow < 10; ++relRow)
+	for (i32 relRow = -10; relRow < 10; ++relRow)
 	{
-		for (int32 relColumn = -20; relColumn < 20; ++relColumn)
+		for (i32 relColumn = -20; relColumn < 20; ++relColumn)
 		{
-			uint32 column = gameState->CameraPosition.X + relColumn;
-			uint32 row = gameState->CameraPosition.Y + relRow;
-			uint32 floor = gameState->CameraPosition.Z;
+			u32 column = gameState->CameraPosition.X + relColumn;
+			u32 row = gameState->CameraPosition.Y + relRow;
+			u32 floor = gameState->CameraPosition.Z;
 
 			TileValue tileValue = GetTileValue(map, column, row, floor);
 
 			if (tileValue != TileValue::Invalid && tileValue != TileValue::Empty)
 			{
-				real32 colour = 0.5f;
+				r32 colour = 0.5f;
 
 				if (tileValue == TileValue::Wall)
 				{
@@ -383,19 +375,21 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 					colour = 0;
 				}
 
-				Vector2d center = { (screenCenter.X - metersToPixels * gameState->CameraPosition.Offset.X) + ((real32)relColumn) * tileSideInPixels, (screenCenter.Y + metersToPixels * gameState->CameraPosition.Offset.Y) - ((real32)relRow) * tileSideInPixels };
+				V2 center = { (screenCenter.X - metersToPixels * gameState->CameraPosition.Offset.X) + ((r32)relColumn) * tileSideInPixels, (screenCenter.Y + metersToPixels * gameState->CameraPosition.Offset.Y) - ((r32)relRow) * tileSideInPixels };
 
-				Vector2d halfTileSide = { 0.5f * tileSideInPixels , 0.5f * tileSideInPixels };
+				V2 halfTileSide = { 0.5f * tileSideInPixels , 0.5f * tileSideInPixels };
 
-				Vector2d min = center - halfTileSide;
-				Vector2d max = center + halfTileSide;
+				V2 min = center - halfTileSide;
+				V2 max = center + halfTileSide;
 
 				DrawRectangle(screenBuffer, min, max, { colour, colour, colour });
 			}
 		}
 	}
 
-	for (uint8 entityIndex = 1; entityIndex <= gameState->EntitiesCount; entityIndex++)
+	RenderEntity(screenBuffer, map, gameState, screenCenter, metersToPixels, &gameState->PlayerEntity);
+
+	for (u8 entityIndex = 1; entityIndex <= gameState->EntitiesCount; entityIndex++)
 	{
 		Entity* entity = GetEntity(gameState, entityIndex);
 
@@ -407,7 +401,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	}
 }
 
-DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer* audioBuffer)
+DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* audioBuffer)
 {
 #if 0
 	FillAudioBuffer(thread, gameMemory, audioBuffer);
@@ -415,15 +409,15 @@ DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, Ga
 }
 
 void DrawRectangle(
-	GameScreenBuffer* gameScreenBuffer,
-	Vector2d vecMin, Vector2d vecMax,
+	ScreenBuffer* gameScreenBuffer,
+	V2 vecMin, V2 vecMax,
 	Colour colour)
 {
-	int32 minX = RoundReal32ToInt32(vecMin.X);
-	int32 maxX = RoundReal32ToInt32(vecMax.X);
+	i32 minX = RoundReal32ToInt32(vecMin.X);
+	i32 maxX = RoundReal32ToInt32(vecMax.X);
 
-	int32 minY = RoundReal32ToInt32(vecMin.Y);
-	int32 maxY = RoundReal32ToInt32(vecMax.Y);
+	i32 minY = RoundReal32ToInt32(vecMin.Y);
+	i32 maxY = RoundReal32ToInt32(vecMax.Y);
 
 	// Clip to the nearest valid pixel
 	if (minX < 0)
@@ -439,20 +433,20 @@ void DrawRectangle(
 		maxY = gameScreenBuffer->Height;
 
 	// Bit Pattern = x0 AA RR GG BB
-	uint32 finalColour =
+	u32 finalColour =
 		(RoundReal32ToInt32(colour.Red * 255.f) << 16) |
 		(RoundReal32ToInt32(colour.Green * 255.f) << 8) |
 		(RoundReal32ToInt32(colour.Blue * 255.f) << 0);
 
-	uint8* endOfBuffer = ((uint8*)gameScreenBuffer->Memory) + ((uint64)gameScreenBuffer->Pitch * (uint64)gameScreenBuffer->Height);
+	u8* endOfBuffer = ((u8*)gameScreenBuffer->Memory) + ((u64)gameScreenBuffer->Pitch * (u64)gameScreenBuffer->Height);
 
-	uint8* row = (((uint8*)gameScreenBuffer->Memory) + (int64)minX * gameScreenBuffer->BytesPerPixel + (int64)minY * gameScreenBuffer->Pitch);
+	u8* row = (((u8*)gameScreenBuffer->Memory) + (i64)minX * gameScreenBuffer->BytesPerPixel + (i64)minY * gameScreenBuffer->Pitch);
 
-	for (int32 y = minY; y < maxY; ++y)
+	for (i32 y = minY; y < maxY; ++y)
 	{
-		uint32* pixel = (uint32*)row;
+		u32* pixel = (u32*)row;
 
-		for (int32 x = minX; x < maxX; ++x)
+		for (i32 x = minX; x < maxX; ++x)
 		{
 			*pixel++ = finalColour;
 		}
@@ -471,9 +465,9 @@ LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFil
 	{
 		BitmapHeader* header = (BitmapHeader*)bmp.Memory;
 
-		uint32* pixels = (uint32*)((uint8*)bmp.Memory + header->BitmapOffset);
+		u32* pixels = (u32*)((u8*)bmp.Memory + header->BitmapOffset);
 
-		uint32* source = pixels;
+		u32* source = pixels;
 
 		BitScanResult alphaScan = FindLeastSigifigantSetBit(header->AlphaMask);
 		BitScanResult redScan = FindLeastSigifigantSetBit(header->RedMask);
@@ -485,23 +479,23 @@ LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFil
 		Assert(greenScan.Found);
 		Assert(blueScan.Found);
 
-		int32 alphaShift = 24 - (int32)alphaScan.Index;
-		int32 redShift = 16 - (int32)redScan.Index;
-		int32 greenShift = 8 - (int32)greenScan.Index;
-		int32 blueShift = 0 - (int32)blueScan.Index;
+		i32 alphaShift = 24 - (i32)alphaScan.Index;
+		i32 redShift = 16 - (i32)redScan.Index;
+		i32 greenShift = 8 - (i32)greenScan.Index;
+		i32 blueShift = 0 - (i32)blueScan.Index;
 
-		for (int32 y = 0; y < header->Height; y++)
+		for (i32 y = 0; y < header->Height; y++)
 		{
-			for (int32 x = 0; x < header->Width; x++)
+			for (i32 x = 0; x < header->Width; x++)
 			{
-				uint32 pixel = *source;
+				u32 pixel = *source;
 
-				uint32 alpha = RotateLeft(pixel & header->AlphaMask, alphaShift);
-				uint32 red = RotateLeft(pixel & header->RedMask, redShift);
-				uint32 green = RotateLeft(pixel & header->GreeenMask, greenShift);
-				uint32 blue = RotateLeft(pixel & header->BlueMask, blueShift);
+				u32 alpha = RotateLeft(pixel & header->AlphaMask, alphaShift);
+				u32 red = RotateLeft(pixel & header->RedMask, redShift);
+				u32 green = RotateLeft(pixel & header->GreeenMask, greenShift);
+				u32 blue = RotateLeft(pixel & header->BlueMask, blueShift);
 
-				uint32 combinedColor = alpha | red | green | blue;
+				u32 combinedColor = alpha | red | green | blue;
 
 				*source++ = combinedColor;
 			}
@@ -515,25 +509,26 @@ LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFil
 	return result;
 }
 
-void DrawBitmap(LoadedBitmap* bitmap, GameScreenBuffer* screenBuffer, real32 realX, real32 realY, int32 alignX, int32 alignY)
+void DrawBitmap(LoadedBitmap* bitmap, ScreenBuffer* screenBuffer, r32 realX, r32 realY, i32 alignX, i32 alignY)
 {
 	realX -= alignX;
 	realY -= alignY;
 
-	int64 minX = RoundReal32ToInt32(realX);
-	int64 minY = RoundReal32ToInt32(realY);
-	int32 maxX = RoundReal32ToInt32(realX + (real32)bitmap->Width);
-	int32 maxY = RoundReal32ToInt32(realY + (real32)bitmap->Height);
+	i64 minX = RoundReal32ToInt32(realX);
+	i64 minY = RoundReal32ToInt32(realY);
+	i32 maxX = RoundReal32ToInt32(realX + (r32)bitmap->Width);
+	i32 maxY = RoundReal32ToInt32(realY + (r32)bitmap->Height);
 
 	// Clip to the nearest valid pixel
-	int64 sourceOffsetX = 0;
+	i64 sourceOffsetX = 0;
+
 	if (minX < 0)
 	{
 		sourceOffsetX = -minX;
 		minX = 0;
 	}
 
-	int64 sourceOffsetY = 0;
+	i64 sourceOffsetY = 0;
 
 	if (minY < 0)
 	{
@@ -542,40 +537,44 @@ void DrawBitmap(LoadedBitmap* bitmap, GameScreenBuffer* screenBuffer, real32 rea
 	}
 
 	if (maxX > screenBuffer->Width)
+	{
 		maxX = screenBuffer->Width;
+	}
 
 	if (maxY > screenBuffer->Height)
+	{
 		maxY = screenBuffer->Height;
+	}
 
-	uint32* sourceRow = bitmap->Data + bitmap->Width * bitmap->Height;
+	u32* sourceRow = bitmap->Data + bitmap->Width * bitmap->Height;
 	sourceRow += (-sourceOffsetY * bitmap->Width) + sourceOffsetX;
 
-	uint8* destRow = (((uint8*)screenBuffer->Memory) + minX * screenBuffer->BytesPerPixel + minY * screenBuffer->Pitch);
+	u8* destRow = (((u8*)screenBuffer->Memory) + minX * screenBuffer->BytesPerPixel + minY * screenBuffer->Pitch);
 
-	for (int64 y = minY; y < maxY; y++)
+	for (i64 y = minY; y < maxY; y++)
 	{
-		uint32* dest = (uint32*)destRow;
-		uint32* source = sourceRow;
+		u32* dest = (u32*)destRow;
+		u32* source = sourceRow;
 
-		for (int64 x = minX; x < maxX; x++)
+		for (i64 x = minX; x < maxX; x++)
 		{
 			// Enabling this cause game to crash becasue too much calculation for the cpu on 60fps
 #if 1
 			// Linear blend
-			real32 a = (real32)((*source >> 24) & 0xFF) / 255.0f;
-			real32 sr = (real32)((*source >> 16) & 0xFF);
-			real32 sg = (real32)((*source >> 8) & 0xFF);
-			real32 sb = (real32)((*source >> 0) & 0xFF);
+			r32 a = (r32)((*source >> 24) & 0xFF) / 255.0f;
+			r32 sr = (r32)((*source >> 16) & 0xFF);
+			r32 sg = (r32)((*source >> 8) & 0xFF);
+			r32 sb = (r32)((*source >> 0) & 0xFF);
 
-			real32 dr = (real32)((*dest >> 16) & 0xFF);
-			real32 dg = (real32)((*dest >> 8) & 0xFF);
-			real32 db = (real32)((*dest >> 0) & 0xFF);
+			r32 dr = (r32)((*dest >> 16) & 0xFF);
+			r32 dg = (r32)((*dest >> 8) & 0xFF);
+			r32 db = (r32)((*dest >> 0) & 0xFF);
 
-			real32 r = (1.0f - a) * dr + a * sr;
-			real32 g = (1.0f - a) * dg + a * sg;
-			real32 b = (1.0f - a) * db + a * sb;
+			r32 r = (1.0f - a) * dr + a * sr;
+			r32 g = (1.0f - a) * dg + a * sg;
+			r32 b = (1.0f - a) * db + a * sb;
 
-			uint32 result = (((uint32)(r + 0.5f) << 16) | ((uint32)(g + 0.5f) << 8) | ((uint32)(b + 0.5f)) << 0);
+			u32 result = (((u32)(r + 0.5f) << 16) | ((u32)(g + 0.5f) << 8) | ((u32)(b + 0.5f)) << 0);
 
 			*dest = result;
 #else
@@ -596,31 +595,31 @@ void DrawBitmap(LoadedBitmap* bitmap, GameScreenBuffer* screenBuffer, real32 rea
 	}
 }
 
-void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, GameAudioBuffer* soundBuffer)
+void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* soundBuffer)
 {
 	DebugFileResult file = gameMemory->ReadFile(thread, "resources/Water_Splash_SeaLion_Fienup_001.wav");
 
 	if (file.Memory)
 	{
-		GameAudioBuffer* result = ReadAudioBufferData(file.Memory);
+		AudioBuffer* result = ReadAudioBufferData(file.Memory);
 
 		*soundBuffer = *result;
 	}
 }
 
-GameAudioBuffer* ReadAudioBufferData(void* memory)
+AudioBuffer* ReadAudioBufferData(void* memory)
 {
-	uint8* byte = (uint8*)memory; // Get the firs 4 bytes of the memory
+	u8* byte = (u8*)memory; // Get the firs 4 bytes of the memory
 
 	// Move to position 21
 	byte += 20;
 
-	GameAudioBuffer* result = (GameAudioBuffer*)byte;
+	AudioBuffer* result = (AudioBuffer*)byte;
 
 	// Move to Data chunk
 	char* characterToRead = ((char*)byte);
 
-	characterToRead += sizeof(GameAudioBuffer);
+	characterToRead += sizeof(AudioBuffer);
 
 	while (*characterToRead != 'd' || *(characterToRead + 1) != 'a' || *(characterToRead + 2) != 't' || *(characterToRead + 3) != 'a')
 	{
@@ -629,14 +628,14 @@ GameAudioBuffer* ReadAudioBufferData(void* memory)
 
 	characterToRead += 4;
 
-	byte = (uint8*)(characterToRead);
+	byte = (u8*)(characterToRead);
 
-	uint32 bufferSize = *((uint32*)byte);
+	u32 bufferSize = *((u32*)byte);
 
 	byte += 4;
 
 	// Get one third of a sec
-	uint32 totalBytesNeeded = (uint32)(result->SamplesPerSec * 0.5f);
+	u32 totalBytesNeeded = (u32)(result->SamplesPerSec * 0.5f);
 
 	result->BufferSize = totalBytesNeeded;
 	result->BufferData = byte;
@@ -645,13 +644,12 @@ GameAudioBuffer* ReadAudioBufferData(void* memory)
 }
 
 
-void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameControllerInput* controller, Entity* entity, real32 timeToAdvance, Vector2d playerAcceleration)
+void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity* entity, r32 timeToAdvance, V2 playerAcceleration)
 {
 	// In Meters
 	MapPosition oldPlayerPosition = entity->Position;
-	real32 PlayerSpeed = 30.0f; // Meter/Seconds
 
-	real32 playerAccelerationLength = LengthSq(playerAcceleration);
+	r32 playerAccelerationLength = LengthSq(playerAcceleration);
 
 	// Normlazie vetor to make it length of 1
 	if (playerAccelerationLength > 1.0f)
@@ -659,132 +657,42 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameCont
 		playerAcceleration *= 1 / SqaureRoot(playerAccelerationLength);
 	}
 
-	if (controller->A.EndedDown)
-	{
-		gameState->EnableSmoothCamera = !gameState->EnableSmoothCamera;
-	}
-
-	if (controller->Back.EndedDown)
-	{
-		gameMemory->IsInitialized = false;
-	}
-
-	if (controller->X.EndedDown)
-	{
-		PlayerSpeed = 60.0f; // Meter/Seconds
-	}
-
 	//
 	// Handle Movement after gathering input
 	//
-	playerAcceleration *= PlayerSpeed;
+	playerAcceleration *= entity->Speed;
 
 	// TODO:Use ODE
 	// Simulate friction
-	real32 friction = -6.0f;
+	r32 friction = -6.0f;
 
 	playerAcceleration += friction * entity->Velocity;
 
-	Vector2d playerDelta = (0.5f * playerAcceleration * Sqaure(timeToAdvance) + (entity->Velocity * timeToAdvance));
+	V2 playerDelta = (0.5f * playerAcceleration * Sqaure(timeToAdvance) + (entity->Velocity * timeToAdvance));
 
 	// Equation of motion
 	entity->Velocity = playerAcceleration * timeToAdvance + entity->Velocity;
 
 	MapPosition newPlayerPosition = SetOffset(map, oldPlayerPosition, playerDelta);
 
-#if 0
-	MapPosition playerLeft = newPlayerPosition;
-	playerLeft.Offset.X -= 0.5f * playerWidth;
-	playerLeft = RecanonicalizePosition(map, playerLeft);
-
-	MapPosition playerRight = newPlayerPosition;
-	playerRight.Offset.X += 0.5f * playerWidth;
-	playerRight = RecanonicalizePosition(map, playerRight);
-
-	bool32 collided = false;
-
-	MapPosition collidPosition = {};
-
-	if (!IsMapPointEmpty(map, newPlayerPosition))
-	{
-		collidPosition = newPlayerPosition;
-		collided = true;
-	}
-
-	if (!IsMapPointEmpty(map, playerLeft))
-	{
-		collidPosition = playerLeft;
-		collided = true;
-	}
-
-	if (!IsMapPointEmpty(map, playerRight))
-	{
-		collidPosition = playerRight;
-		collided = true;
-	}
-
-	//
-	// Update Player Position
-	//
-	if (collided)
-	{
-		// We use to reflect if we hit a wall
-		Vector2d reflectVector = { };
-
-		if (collidPosition.X < oldPlayerPosition.X)
-		{
-			reflectVector = Vector2d{ 1, 0 };
-		}
-
-		if (collidPosition.X > oldPlayerPosition.X)
-		{
-			reflectVector = Vector2d{ -1, 0 };
-		}
-
-		if (collidPosition.Y < oldPlayerPosition.Y)
-		{
-			reflectVector = Vector2d{ 0, 1 };
-		}
-
-		if (collidPosition.Y > oldPlayerPosition.Y)
-		{
-			reflectVector = Vector2d{ 0, -1 };
-		}
-
-		// If reflectBehaviour is 1, we run with the wall we have collided with, if its 2, we bounce off it 
-		uint32 reflectBehaviour = 1;
-
-		entity->Velocity = entity->Velocity - reflectBehaviour * InnerProduct(entity->Velocity, reflectVector) * reflectVector;
-	}
-	else
-	{
-		entity->Position = newPlayerPosition;
-	}
-#else
 	// Search in player position for next location after hit detection;
-#if 0
-	uint32 minTileX = Minimum(oldPlayerPosition.X, newPlayerPosition.X);
-	uint32 minTileY = Minimum(oldPlayerPosition.Y, newPlayerPosition.Y);
-	uint32 onePastMaxTileX = Maximum(oldPlayerPosition.X, newPlayerPosition.X) + 1;
-	uint32 onePastMaxTileY = Maximum(oldPlayerPosition.Y, newPlayerPosition.Y) + 1;
-#else
-	uint32 startTileX = oldPlayerPosition.X;
-	uint32 startTileY = oldPlayerPosition.Y;
-	uint32 endTileX = newPlayerPosition.X;
-	uint32 endTileY = newPlayerPosition.Y;
+	u32 startTileX = oldPlayerPosition.X;
+	u32 startTileY = oldPlayerPosition.Y;
+	u32 endTileX = newPlayerPosition.X;
+	u32 endTileY = newPlayerPosition.Y;
 
-	int32 deltaX = SingOf(endTileX - startTileX);
-	int32 deltaY = SingOf(endTileY - startTileY);
-#endif
-	uint32 tileZ = entity->Position.Z;
+	i32 deltaX = SingOf(endTileX - startTileX);
+	i32 deltaY = SingOf(endTileY - startTileY);
+
+	u32 tileZ = entity->Position.Z;
 	// The relative distance to the closest thing we hit, between 0 and 1
 	// 0 didnt move, 1 moved the full amount
-	real32 tMin = 1.0f;
+	r32 tMin = 1.0f;
 
-	uint32 tileY = startTileY;
+	u32 tileY = startTileY;
 	for (;;)
 	{
-		uint32 tileX = startTileX;
+		u32 tileX = startTileX;
 
 		for (;;)
 		{
@@ -793,12 +701,12 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameCont
 
 			if (!IsTileValueEmpty(tileValue))
 			{
-				Vector2d minCorner = -0.5f * Vector2d{ map->TileSideInMeters, map->TileSideInMeters };
-				Vector2d maxCorner = 0.5f * Vector2d{ map->TileSideInMeters, map->TileSideInMeters };
+				V2 minCorner = -0.5f * V2{ map->TileSideInMeters, map->TileSideInMeters };
+				V2 maxCorner = 0.5f * V2{ map->TileSideInMeters, map->TileSideInMeters };
 
 				MapPositionDifference relOldPositionDifference = CalculatePositionDifference(map, &oldPlayerPosition, &testTilePosition);
 
-				Vector2d relativeVector = relOldPositionDifference.DXY;
+				V2 relativeVector = relOldPositionDifference.DXY;
 
 				// Side walls
 				TestWall(tMin, minCorner.X, relativeVector.X, relativeVector.Y, playerDelta.X, playerDelta.Y, minCorner.Y, maxCorner.Y);
@@ -832,8 +740,6 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameCont
 	newPlayerPosition = oldPlayerPosition;
 	entity->Position = SetOffset(map, newPlayerPosition, (0.9f * tMin) * playerDelta);
 
-#endif
-
 	if (!AreOnSameTile(oldPlayerPosition, entity->Position))
 	{
 		TileValue newTileValue = GetTileValue(map, entity->Position);
@@ -845,6 +751,7 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameCont
 	}
 
 	if (entity->Velocity.X != 0.0f || entity->Velocity.Y != 0.0f)
+	{
 		if (AbsoluteValue(entity->Velocity.X) > AbsoluteValue(entity->Velocity.Y))
 		{
 			if (entity->Velocity.X > 0)
@@ -867,11 +774,12 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, GameCont
 				entity->FacingDirection = 3;
 			}
 		}
+	}
 }
 
-void InitializePlayer(GameState* state, uint32  index)
+void InitializePlayer(GameState* state)
 {
-	Entity* entity = GetEntity(state, index);
+	Entity* entity = &state->PlayerEntity;
 
 	entity->Exists = true;
 
@@ -880,26 +788,22 @@ void InitializePlayer(GameState* state, uint32  index)
 
 	entity->Height = 1.4f;
 	entity->Width = 0.75f * entity->Height;
-
-	if (!GetEntity(state, !state->EntityIndexTheCameraIsFollowing))
-	{
-		state->EntityIndexTheCameraIsFollowing = index;
-	}
+	entity->Speed = 30.0f; // M/S2
 }
 
-void RenderEntity(GameScreenBuffer* screenBuffer, Map* map, GameState* gameState, Vector2d screenCenter, real32 metersToPixels, Entity* entity)
+void RenderEntity(ScreenBuffer* screenBuffer, Map* map, GameState* gameState, V2 screenCenter, r32 metersToPixels, Entity* entity)
 {
 	MapPositionDifference camDiff = CalculatePositionDifference(map, &entity->Position, &gameState->CameraPosition);
 
-	real32 playerR = 1.0f;
-	real32 playerG = 1.0f;
-	real32 playerB = 0.0f;
+	r32 playerR = 1.0f;
+	r32 playerG = 1.0f;
+	r32 playerB = 0.0f;
 
-	real32 playerGroundPointX = screenCenter.X + metersToPixels * camDiff.DXY.X;
-	real32 playerGroundPointY = screenCenter.Y - metersToPixels * camDiff.DXY.Y;
+	r32 playerGroundPointX = screenCenter.X + metersToPixels * camDiff.DXY.X;
+	r32 playerGroundPointY = screenCenter.Y - metersToPixels * camDiff.DXY.Y;
 
-	Vector2d playerDim = { metersToPixels * entity->Width, metersToPixels * entity->Height };
-	Vector2d playerLeftTop = { playerGroundPointX - 0.5f * metersToPixels * entity->Width, playerGroundPointY - metersToPixels * entity->Height };
+	V2 playerDim = { metersToPixels * entity->Width, metersToPixels * entity->Height };
+	V2 playerLeftTop = { playerGroundPointX - 0.5f * metersToPixels * entity->Width, playerGroundPointY - metersToPixels * entity->Height };
 
 	DrawRectangle(screenBuffer, playerLeftTop, playerLeftTop + playerDim, { playerR, playerG, playerB });
 
@@ -910,24 +814,24 @@ void RenderEntity(GameScreenBuffer* screenBuffer, Map* map, GameState* gameState
 	DrawBitmap(&playerFacingDirectionMap->Torso, screenBuffer, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
 }
 
-uint32 AddEntity(GameState* gameState)
+u32 AddEntity(GameState* gameState)
 {
-	uint32 entityIndex = gameState->EntitiesCount++;
+	u32 entityIndex = gameState->EntitiesCount++;
 	Assert(gameState->EntitiesCount < ArrayCount(gameState->Entities));
 	Entity* entity = &gameState->Entities[entityIndex];
 	*entity = {};
 	return entityIndex;
 }
 
-void TestWall(real32& tMin, real32 wall, real32 relX, real32 relY, real32 playerDeltaX, real32 playerDeltaY, real32 minY, real32 maxY)
+void TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r32 minY, r32 maxY)
 {
-	real32 tEpslion = 0.00001f;
+	r32 tEpslion = 0.00001f;
 
 	if (playerDeltaX != 0)
 	{
-		real32 tResult = (wall - relX) / playerDeltaX;
+		r32 tResult = (wall - relX) / playerDeltaX;
 
-		real32 y = relY + tResult * playerDeltaY;
+		r32 y = relY + tResult * playerDeltaY;
 
 		if ((tResult >= 0.0f) && (tMin > tResult))
 		{

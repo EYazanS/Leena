@@ -1,7 +1,7 @@
 #pragma once
 
 // RandomNumber Generator
-static uint32 randomNumberTable[] =
+static u32 randomNumberTable[] =
 {
     0x0e5e57af, 0x1b2f3ca7, 0x1f12d75f, 0x2260ebd8, 0x0004f231, 0x2bb96306, 0x3b512f33, 0x1c101c42,
     0x28678c7e, 0x1b8be568, 0x2a916ff5, 0x00e75217, 0x32b12c52, 0x143fde6e, 0x29e92bc6, 0x01b7309d,

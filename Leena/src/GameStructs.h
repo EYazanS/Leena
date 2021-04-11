@@ -39,7 +39,7 @@ extern "C" {
 	struct DebugFileResult
 	{
 		void* Memory;
-		uint32 FileSize;
+		u32 FileSize;
 	};
 
 #define Debug_Platform_Free_File_Memory(name) void name(ThreadContext* thread, void* memory)
@@ -48,7 +48,7 @@ extern "C" {
 #define Debug_Platform_Read_Entire_File(name) DebugFileResult name(ThreadContext* thread, const char* fileName)
 	typedef Debug_Platform_Read_Entire_File(PlatformReadEntireFile);
 
-#define Debug_Platform_Write_Entire_File(name) bool32 name(ThreadContext* thread, const char* fileName, uint32 memorySize, void* memory)
+#define Debug_Platform_Write_Entire_File(name) b32 name(ThreadContext* thread, const char* fileName, u32 memorySize, void* memory)
 	typedef Debug_Platform_Write_Entire_File(PlatformWriteEntireFile);
 #endif
 
@@ -72,19 +72,19 @@ extern "C" {
 		MoveLeft
 	};
 
-	struct GameAudioBuffer
+	struct AudioBuffer
 	{
-		uint16 FormatTag;
-		uint16 Channels;
-		uint32 SamplesPerSec;
-		uint32 AvgBytesPerSec;
-		uint16 BlockAlign;
-		uint16 BitsPerSample;
-		uint32 BufferSize;
+		u16 FormatTag;
+		u16 Channels;
+		u32 SamplesPerSec;
+		u32 AvgBytesPerSec;
+		u16 BlockAlign;
+		u16 BitsPerSample;
+		u32 BufferSize;
 		void* BufferData;
 	};
 
-	struct GameScreenBuffer
+	struct ScreenBuffer
 	{
 		void* Memory;
 		int Width;
@@ -93,92 +93,130 @@ extern "C" {
 		int BytesPerPixel;
 	};
 
-	struct GameButtonState
+	struct ButtonState
 	{
-		bool32 EndedDown;
+		b32 EndedDown;
 		int HalfTransitionCount;
 	};
 
 	struct WindowDimensions
 	{
-		int32 Width;
-		int32 Height;
+		i32 Width;
+		i32 Height;
 	};
 
 	struct MouseInput
 	{
-		bool32 IsConnected;
+		b32 IsConnected;
 
-		uint64 X;
-		uint64 Y;
+		u64 X;
+		u64 Y;
 
 		union
 		{
-			GameButtonState Buttons[2];
+			ButtonState Buttons[2];
 
 			struct
 			{
-				GameButtonState RightButton;
-				GameButtonState LeftButton;
+				ButtonState RightButton;
+				ButtonState LeftButton;
 
 				// Add button before this line so the assertion about the buttons array == the struct can hit properly 
-				GameButtonState Terminator;
+				ButtonState Terminator;
 			};
 		};
 	};
 
-	struct GameControllerInput
+	struct ControllerInput
 	{
-		bool32 IsConnected;
-		bool32 IsAnalog;
+		b32 IsConnected;
+		b32 IsAnalog;
 
-		real32 LeftStickAverageX;
-		real32 LeftStickAverageY;
+		r32 LeftStickAverageX;
+		r32 LeftStickAverageY;
 
-		real32 RightStickAverageX;
-		real32 RightStickAverageY;
+		r32 RightStickAverageX;
+		r32 RightStickAverageY;
 
-		real32 RightTrigger;
-		real32 LeftTrigger;
+		r32 RightTrigger;
+		r32 LeftTrigger;
 
 		union
 		{
-			GameButtonState Buttons[16];
+			ButtonState Buttons[16];
 
 			struct
 			{
-				GameButtonState A;
-				GameButtonState X;
-				GameButtonState Y;
-				GameButtonState B;
+				ButtonState A;
+				ButtonState X;
+				ButtonState Y;
+				ButtonState B;
 
-				GameButtonState MoveUp;
-				GameButtonState MoveDown;
-				GameButtonState MoveRight;
-				GameButtonState MoveLeft;
+				ButtonState MoveUp;
+				ButtonState MoveDown;
+				ButtonState MoveRight;
+				ButtonState MoveLeft;
 
-				GameButtonState DpadUp;
-				GameButtonState DpadDown;
-				GameButtonState DpadRight;
-				GameButtonState DpadLeft;
+				ButtonState DpadUp;
+				ButtonState DpadDown;
+				ButtonState DpadRight;
+				ButtonState DpadLeft;
 
-				GameButtonState LeftShoulder;
-				GameButtonState RightShoulder;
+				ButtonState LeftShoulder;
+				ButtonState RightShoulder;
 
-				GameButtonState Start;
-				GameButtonState Back;
+				ButtonState Start;
+				ButtonState Back;
 
 				// Add button before this line so the assertion about the buttons array == the struct can hit properly 
-				GameButtonState Terminator;
+				ButtonState Terminator;
+			};
+		};
+	};
+
+	struct KeyboardInput
+	{
+		b32 IsConnected;
+
+		union
+		{
+			ButtonState Buttons[16];
+
+			struct
+			{
+				ButtonState A;
+				ButtonState X;
+				ButtonState Y;
+				ButtonState B;
+
+				ButtonState MoveUp;
+				ButtonState MoveDown;
+				ButtonState MoveRight;
+				ButtonState MoveLeft;
+
+				ButtonState DpadUp;
+				ButtonState DpadDown;
+				ButtonState DpadRight;
+				ButtonState DpadLeft;
+
+				ButtonState LeftShoulder;
+				ButtonState RightShoulder;
+
+				ButtonState Start;
+				ButtonState Back;
+
+				// Add button before this line so the assertion about the buttons array == the struct can hit properly 
+				ButtonState Terminator;
 			};
 		};
 	};
 
 	struct GameInput
 	{
-		real64 TimeToAdvance;
+		r64 TimeToAdvance;
 		MouseInput Mouse;
-		GameControllerInput Controllers[5];
+		KeyboardInput Keyboard;
+		ControllerInput Controller;
 	};
 
 	struct GameMemory
@@ -187,7 +225,7 @@ extern "C" {
 		MemorySizeIndex TransiateStorageSize;
 		void* PermanentStorage;
 		void* TransiateStorage;
-		bool32 IsInitialized;
+		b32 IsInitialized;
 
 		PlatformFreeFileMemory* FreeFile;
 		PlatformReadEntireFile* ReadFile;
@@ -196,14 +234,14 @@ extern "C" {
 
 	struct GameClock
 	{
-		real32 TimeElapsed;
+		r32 TimeElapsed;
 	};
 
 	struct Colour
 	{
-		real32 Red;
-		real32 Green;
-		real32 Blue;
+		r32 Red;
+		r32 Green;
+		r32 Blue;
 	};
 
 #ifdef __cplusplus

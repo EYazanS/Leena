@@ -40,17 +40,17 @@ int WINAPI wWinMain(
 
 		// Set the windows schedueler granularity to 1ms
 		// Which means can we sleep for exactly 1ms?
-		bool32 isSleepGranular = timeBeginPeriod(desiredSchedularTimeInMs) == TIMERR_NOERROR;
+		b32 isSleepGranular = timeBeginPeriod(desiredSchedularTimeInMs) == TIMERR_NOERROR;
 
 		HDC dc = GetDC(windowHandle);
-		uint32 monitorRefreshRate = 60; // In HZ
-		uint32 win32VRefreshRate = GetDeviceCaps(dc, VREFRESH);
+		u32 monitorRefreshRate = 60; // In HZ
+		u32 win32VRefreshRate = GetDeviceCaps(dc, VREFRESH);
 
 		if (win32VRefreshRate > 1)
 			monitorRefreshRate = win32VRefreshRate;
 
-		uint32 gameUpdateInHz = 30; // monitorRefreshRate / 2; // In HZ
-		real64 targetSecondsToAdvanceBy = 1.f / gameUpdateInHz;
+		u32 gameUpdateInHz = 30; // monitorRefreshRate / 2; // In HZ
+		r64 targetSecondsToAdvanceBy = 1.f / gameUpdateInHz;
 
 		programState.RecordingState.InputRecordingIndex = 0;
 		programState.RecordingState.InputPlayingIndex = 0;
@@ -79,16 +79,16 @@ int WINAPI wWinMain(
 		GameInput* previousInput = &Input[0];
 		GameInput* currentInput = &Input[1];
 
-		GameAudioBuffer gameaudioBuffer = { };
+		AudioBuffer gameaudioBuffer = { };
 
 		// Get how many cycle the cpu went through
-		uint64 lastCycleCount = __rdtsc();
+		u64 lastCycleCount = __rdtsc();
 		// Get current cpu time
-		int64 lastCounter = Win32GetWallClock();
+		i64 lastCounter = Win32GetWallClock();
 
 		programState.IsRunning = true;
 
-		real64 timeTookToRenderLastFrame = 0.0f;
+		r64 timeTookToRenderLastFrame = 0.0f;
 
 		while (programState.IsRunning)
 		{
@@ -106,8 +106,8 @@ int WINAPI wWinMain(
 			MSG message = Win32ProcessMessage();
 
 			// Process the keyboard input.
-			GameControllerInput* oldKeyboardInput = GetController(previousInput, 0);
-			GameControllerInput* newKeyboardInput = GetController(currentInput, 0);
+			KeyboardInput* oldKeyboardInput = &previousInput->Keyboard;
+			KeyboardInput* newKeyboardInput = &currentInput->Keyboard;
 
 			*newKeyboardInput = {};
 
@@ -143,7 +143,7 @@ int WINAPI wWinMain(
 			// Process the controller input
 			ProccessControllerInput(currentInput, previousInput);
 
-			GameScreenBuffer screenBuffer =
+			ScreenBuffer screenBuffer =
 			{
 				programState.BitmapBuffer.Memory,
 				programState.BitmapBuffer.Width,
@@ -163,9 +163,9 @@ int WINAPI wWinMain(
 			game.UpdateAndRender(&thread, &gameMemory, &screenBuffer, currentInput);
 			game.UpdateAudio(&thread, &gameMemory, &gameaudioBuffer);
 
-			int64 workCounter = Win32GetWallClock();
-			real64 workSecondsElapsed = GetSecondsElapsed(lastCounter, workCounter, programState.PerformanceFrequence);
-			real64 timeTakenOnFrame = workSecondsElapsed;
+			i64 workCounter = Win32GetWallClock();
+			r64 workSecondsElapsed = GetSecondsElapsed(lastCounter, workCounter, programState.PerformanceFrequence);
+			r64 timeTakenOnFrame = workSecondsElapsed;
 
 			// Make sure we stay at the target time for each frame.
 			if (timeTakenOnFrame < targetSecondsToAdvanceBy)
@@ -195,8 +195,8 @@ int WINAPI wWinMain(
 			}
 
 			// Display performance counter
-			int64 endCounter = Win32GetWallClock();
-			real32 msPerFrame = 1000.0f * GetSecondsElapsed(lastCounter, endCounter, programState.PerformanceFrequence);
+			i64 endCounter = Win32GetWallClock();
+			r32 msPerFrame = 1000.0f * GetSecondsElapsed(lastCounter, endCounter, programState.PerformanceFrequence);
 			lastCounter = endCounter;
 
 			// We fille the sound and draw buffers we got from the game.
@@ -214,7 +214,7 @@ int WINAPI wWinMain(
 			Win32DrawBuffer(windowHandle, &programState.BitmapBuffer, &programState);
 
 			// Register last counter we got
-			real32 FPS = (1000.0f / msPerFrame);
+			r32 FPS = (1000.0f / msPerFrame);
 
 			char formatBuffer[256];
 			sprintf_s(formatBuffer, "%.02fms/f, %.02ff/s, (%.02fws/f)\n", msPerFrame, FPS, workSecondsElapsed * 1000.0f);
@@ -225,7 +225,7 @@ int WINAPI wWinMain(
 			currentInput = previousInput;
 			previousInput = temp;
 
-			int64 endCycleCount = __rdtsc();
+			i64 endCycleCount = __rdtsc();
 			lastCycleCount = endCycleCount;
 		}
 	}
@@ -337,7 +337,7 @@ internal GameMemory InitGameMemory()
 	size_t totalSize = gameMemory.PermanentStorageSize + gameMemory.TransiateStorageSize;
 
 	gameMemory.PermanentStorage = VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-	gameMemory.TransiateStorage = (uint8*)gameMemory.PermanentStorage + gameMemory.PermanentStorageSize;
+	gameMemory.TransiateStorage = (u8*)gameMemory.PermanentStorage + gameMemory.PermanentStorageSize;
 
 	gameMemory.FreeFile = DebugPlatformFreeFileMemory;
 	gameMemory.ReadFile = DebugPlatformReadEntireFile;
@@ -345,21 +345,21 @@ internal GameMemory InitGameMemory()
 
 	return gameMemory;
 }
-internal inline int64 Win32GetPerformanceFrequence()
+internal inline i64 Win32GetPerformanceFrequence()
 {
 	LARGE_INTEGER performanceFrequenceResult;
 	QueryPerformanceFrequency(&performanceFrequenceResult);
 	return performanceFrequenceResult.QuadPart;
 }
-internal inline int64 Win32GetWallClock()
+internal inline i64 Win32GetWallClock()
 {
 	LARGE_INTEGER counter;
 	QueryPerformanceCounter(&counter);
 	return counter.QuadPart;
 }
-internal real32 GetSecondsElapsed(uint64 start, uint64 end, uint64 performanceFrequence)
+internal r32 GetSecondsElapsed(u64 start, u64 end, u64 performanceFrequence)
 {
-	return (real32)(end - start) / (real32)performanceFrequence;
+	return (r32)(end - start) / (r32)performanceFrequence;
 }
 internal FILETIME GetFileLastWriteDate(const char* fileName)
 {
@@ -393,7 +393,7 @@ internal HRESULT Wind32InitializeMasterVoice(IXAudio2* xAudio, IXAudio2Mastering
 
 	return result;
 }
-internal WAVEFORMATEX Wind32InitializeWaveFormat(IXAudio2* xAudio, IXAudio2SourceVoice*& sourceVoice, GameAudioBuffer* audioBuffer)
+internal WAVEFORMATEX Wind32InitializeWaveFormat(IXAudio2* xAudio, IXAudio2SourceVoice*& sourceVoice, AudioBuffer* audioBuffer)
 {
 	HRESULT result;
 
@@ -418,7 +418,7 @@ internal void Win32PlayAudio(IXAudio2SourceVoice* sourceVoice)
 	if (sourceVoice)
 		sourceVoice->Start(0);
 }
-internal HRESULT Win32FillaudioBuffer(IXAudio2SourceVoice* sourceVoice, GameAudioBuffer* gameAudioBuffer, XAUDIO2_BUFFER& audioBuffer)
+internal HRESULT Win32FillaudioBuffer(IXAudio2SourceVoice* sourceVoice, AudioBuffer* gameAudioBuffer, XAUDIO2_BUFFER& audioBuffer)
 {
 	HRESULT result = {};
 
@@ -436,108 +436,100 @@ internal HRESULT Win32FillaudioBuffer(IXAudio2SourceVoice* sourceVoice, GameAudi
 }
 
 // Input
-internal void Win32ProcessDigitalButton(DWORD button, DWORD buttonBit, GameButtonState* oldState, GameButtonState* newState)
+internal void Win32ProcessDigitalButton(DWORD button, DWORD buttonBit, ButtonState* oldState, ButtonState* newState)
 {
 	newState->HalfTransitionCount = newState->HalfTransitionCount != oldState->HalfTransitionCount ? 1 : 0;
 	newState->EndedDown = (button & buttonBit) == buttonBit;
 }
-internal real32 Win32ProcessXInputStickValues(real32 value, int16 deadZoneThreshold)
+internal r32 Win32ProcessXInputStickValues(r32 value, i16 deadZoneThreshold)
 {
-	real32 result = 0.f;
+	r32 result = 0.f;
 
 	if (value < -deadZoneThreshold)
-		result = (real32)((value + deadZoneThreshold) / (32768.0f - deadZoneThreshold));
+		result = (r32)((value + deadZoneThreshold) / (32768.0f - deadZoneThreshold));
 	else if (value > deadZoneThreshold)
-		result = (real32)((value - deadZoneThreshold) / (32767.0f - deadZoneThreshold));
+		result = (r32)((value - deadZoneThreshold) / (32767.0f - deadZoneThreshold));
 
 	return result;
 }
 internal void ProccessControllerInput(GameInput* newInput, GameInput* oldInput)
 {
-	uint8 maxCount = XUSER_MAX_COUNT;
+	XINPUT_STATE controllerState;
 
-	if (maxCount > ArrayCount(newInput->Controllers) - 1)
-		maxCount = (ArrayCount(newInput->Controllers) - 1);
+	ControllerInput* oldController = &oldInput->Controller;
+	ControllerInput* newController = &newInput->Controller;
 
-	for (uint8 controllerIndex = 0; controllerIndex < maxCount; controllerIndex++)
+	// If the controller is connected
+	if (XInputGetState(0, &controllerState) == ERROR_SUCCESS)
 	{
-		XINPUT_STATE controllerState;
+		newController->IsConnected = true;
 
-		GameControllerInput* oldController = GetController(oldInput, controllerIndex + 1);
-		GameControllerInput* newController = GetController(newInput, controllerIndex + 1);
+		// Controller is connected
+		XINPUT_GAMEPAD* pad = &controllerState.Gamepad;
 
-		// If the controller is connected
-		if (XInputGetState(controllerIndex, &controllerState) == ERROR_SUCCESS)
+		newController->IsConnected = true;
+		newController->IsAnalog = true;
+
+		newController->LeftTrigger = Win32CalculateTriggerValue(pad->bLeftTrigger);
+		newController->RightTrigger = Win32CalculateTriggerValue(pad->bRightTrigger);
+
+		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_UP, &oldController->DpadUp, &newController->DpadUp);
+		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_DOWN, &oldController->DpadDown, &newController->DpadDown);
+		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_RIGHT, &oldController->DpadRight, &newController->DpadRight);
+		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_LEFT, &oldController->DpadLeft, &newController->DpadLeft);
+
+		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_START, &oldController->Start, &newController->Start);
+		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_BACK, &oldController->Back, &newController->Back);
+
+		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_RIGHT_SHOULDER, &oldController->RightShoulder, &newController->RightShoulder);
+		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_LEFT_SHOULDER, &oldController->LeftShoulder, &newController->LeftShoulder);
+
+		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_A, &oldController->A, &newController->A);
+		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_B, &oldController->B, &newController->B);
+		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_X, &oldController->X, &newController->X);
+		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_Y, &oldController->Y, &newController->Y);
+
+		// Normalize the numbers for sticks
+		r32 threshHold = 0.5f;
+
+		newController->LeftStickAverageX = Win32ProcessXInputStickValues(pad->sThumbLX, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+		newController->LeftStickAverageY = Win32ProcessXInputStickValues(pad->sThumbLY, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+
+		newController->RightStickAverageX = Win32ProcessXInputStickValues(pad->sThumbRX, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
+		newController->RightStickAverageY = Win32ProcessXInputStickValues(pad->sThumbRY, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
+
+		Win32ProcessDigitalButton(newController->LeftStickAverageX < -threshHold ? 1 : 0, 1, & oldController->MoveLeft, & newController->MoveLeft);
+		Win32ProcessDigitalButton(newController->LeftStickAverageX > threshHold ? 1 : 0, 1, &oldController->MoveRight, &newController->MoveRight);
+
+		Win32ProcessDigitalButton(newController->LeftStickAverageY < -threshHold ? 1 : 0, 1, & oldController->MoveDown, & newController->MoveDown);
+		Win32ProcessDigitalButton(newController->LeftStickAverageY > threshHold ? 1 : 0, 1, &oldController->MoveUp, &newController->MoveUp);
+
+		XINPUT_VIBRATION vibrations = {};
+
+		if (newController->A.EndedDown)
 		{
-			newController->IsConnected = true;
-
-			// Controller is connected
-			XINPUT_GAMEPAD* pad = &controllerState.Gamepad;
-
-			newController->IsConnected = true;
-			newController->IsAnalog = true;
-
-			newController->LeftTrigger = Win32CalculateTriggerValue(pad->bLeftTrigger);
-			newController->RightTrigger = Win32CalculateTriggerValue(pad->bRightTrigger);
-
-			Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_UP, &oldController->DpadUp, &newController->DpadUp);
-			Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_DOWN, &oldController->DpadDown, &newController->DpadDown);
-			Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_RIGHT, &oldController->DpadRight, &newController->DpadRight);
-			Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_LEFT, &oldController->DpadLeft, &newController->DpadLeft);
-
-			Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_START, &oldController->Start, &newController->Start);
-			Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_BACK, &oldController->Back, &newController->Back);
-
-			Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_RIGHT_SHOULDER, &oldController->RightShoulder, &newController->RightShoulder);
-			Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_LEFT_SHOULDER, &oldController->LeftShoulder, &newController->LeftShoulder);
-
-			Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_A, &oldController->A, &newController->A);
-			Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_B, &oldController->B, &newController->B);
-			Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_X, &oldController->X, &newController->X);
-			Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_Y, &oldController->Y, &newController->Y);
-
-			// Normalize the numbers for sticks
-			real32 threshHold = 0.5f;
-
-			newController->LeftStickAverageX = Win32ProcessXInputStickValues(pad->sThumbLX, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
-			newController->LeftStickAverageY = Win32ProcessXInputStickValues(pad->sThumbLY, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
-
-			newController->RightStickAverageX = Win32ProcessXInputStickValues(pad->sThumbRX, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
-			newController->RightStickAverageY = Win32ProcessXInputStickValues(pad->sThumbRY, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
-
-			Win32ProcessDigitalButton(newController->LeftStickAverageX < -threshHold ? 1 : 0, 1, & oldController->MoveLeft, & newController->MoveLeft);
-			Win32ProcessDigitalButton(newController->LeftStickAverageX > threshHold ? 1 : 0, 1, &oldController->MoveRight, &newController->MoveRight);
-
-			Win32ProcessDigitalButton(newController->LeftStickAverageY < -threshHold ? 1 : 0, 1, & oldController->MoveDown, & newController->MoveDown);
-			Win32ProcessDigitalButton(newController->LeftStickAverageY > threshHold ? 1 : 0, 1, &oldController->MoveUp, &newController->MoveUp);
-
-			XINPUT_VIBRATION vibrations = {};
-
-			if (newController->A.EndedDown)
-			{
-				vibrations.wLeftMotorSpeed = 60000;
-				vibrations.wRightMotorSpeed = 60000;
-			}
-
-			XInputSetState(controllerIndex, &vibrations);
+			vibrations.wLeftMotorSpeed = 60000;
+			vibrations.wRightMotorSpeed = 60000;
 		}
-		else
-		{
-			newController->IsConnected = false;
-		}
+
+		XInputSetState(0, &vibrations);
+	}
+	else
+	{
+		newController->IsConnected = false;
 	}
 }
-internal real32 Win32CalculateTriggerValue(real32 triggerValue)
+internal r32 Win32CalculateTriggerValue(r32 triggerValue)
 {
 	return triggerValue > XINPUT_GAMEPAD_TRIGGER_THRESHOLD ? triggerValue / 255 : 0;
 }
-internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, GameControllerInput* controller)
+internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, KeyboardInput* controller)
 {
-	uint32 vkCode = (uint32)message.wParam;
+	u32 vkCode = (u32)message.wParam;
 
-	bool32 wasDown = ((message.lParam & (1 << 30)) != 0);
-	bool32 isDown = ((message.lParam & ((uint32)1 << 31)) == 0);
-	bool32 altDown = message.lParam & (1 << 29);
+	b32 wasDown = ((message.lParam & (1 << 30)) != 0);
+	b32 isDown = ((message.lParam & ((u32)1 << 31)) == 0);
+	b32 altDown = message.lParam & (1 << 29);
 
 	if (isDown != wasDown)
 		switch (vkCode)
@@ -619,7 +611,7 @@ internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, GameC
 		} break;
 		}
 }
-internal void Win32ProccessKeyboardMessage(GameButtonState& state, bool32 isPressed)
+internal void Win32ProccessKeyboardMessage(ButtonState& state, b32 isPressed)
 {
 	if (state.EndedDown != isPressed)
 	{
@@ -657,7 +649,7 @@ internal WindowDimensions GetWindowDimensions(HWND windowHandle)
 	int height = clientRect.bottom - clientRect.top;
 	return { width, height };
 }
-internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, int32 width, int32 height)
+internal void Win32ResizeDIBSection(Win32BitmapBuffer* bitmapBuffer, i32 width, i32 height)
 {
 	if (bitmapBuffer->Memory)
 		VirtualFree(bitmapBuffer->Memory, NULL, MEM_RELEASE);
@@ -829,11 +821,11 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 	case WM_KEYDOWN:
 	case WM_KEYUP:
 	{
-		uint32 vkCode = (uint32)wParam;
+		u32 vkCode = (u32)wParam;
 
-		bool32 wasDown = ((lParam & (1 << 30)) != 0);
-		bool32 isDown = ((lParam & ((uint32)1 << 31)) == 0);
-		bool32 altDown = ((lParam & (1 << 29)) != 0);
+		b32 wasDown = ((lParam & (1 << 30)) != 0);
+		b32 isDown = ((lParam & ((u32)1 << 31)) == 0);
+		b32 altDown = ((lParam & (1 << 29)) != 0);
 
 		switch (vkCode)
 		{

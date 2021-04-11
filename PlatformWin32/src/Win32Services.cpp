@@ -15,7 +15,7 @@ DebugFileResult DebugPlatformReadEntireFile(ThreadContext* thread, const char* f
 		{
 			Assert(fileSize.QuadPart < 0xFFFFFFFF);
 
-			uint32 fileSize32 = (uint32)fileSize.QuadPart;
+			u32 fileSize32 = (u32)fileSize.QuadPart;
 
 			void* memResult = VirtualAlloc(NULL, fileSize32, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
@@ -49,9 +49,9 @@ void DebugPlatformFreeFileMemory(ThreadContext* thread, void* memory)
 		VirtualFree(memory, NULL, MEM_RELEASE);
 }
 
-bool32 DebugPlatformWriteEntireFile(ThreadContext* thread, const char* fileName, uint32 memorySize, void* memory)
+b32 DebugPlatformWriteEntireFile(ThreadContext* thread, const char* fileName, u32 memorySize, void* memory)
 {
-	bool32 result = 0;
+	b32 result = 0;
 	HANDLE fileHandle = CreateFileA(fileName, GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, NULL, NULL);
 
 	if (fileHandle != INVALID_HANDLE_VALUE)

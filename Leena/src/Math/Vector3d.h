@@ -1,23 +1,23 @@
 #pragma once
 
-struct Vector3d
+struct V3
 {
 	union
 	{
 		struct
 		{
-			real32 X;
-			real32 Y;
-			real32 Z;
+			r32 X;
+			r32 Y;
+			r32 Z;
 		};
 
-		real32 Elements[3];
+		r32 Elements[3];
 	};
 };
 
-inline Vector3d operator-(Vector3d a)
+inline V3 operator-(V3 a)
 {
-	Vector3d result = {};
+	V3 result = {};
 
 	result.X = -a.X;
 	result.Y = -a.Y;
@@ -26,9 +26,9 @@ inline Vector3d operator-(Vector3d a)
 	return result;
 }
 
-inline Vector3d operator+(Vector3d a, Vector3d b)
+inline V3 operator+(V3 a, V3 b)
 {
-	Vector3d result = {};
+	V3 result = {};
 
 	result.X = a.X + b.X;
 	result.Y = a.Y + b.Y;
@@ -37,9 +37,9 @@ inline Vector3d operator+(Vector3d a, Vector3d b)
 	return result;
 }
 
-inline Vector3d operator-(Vector3d a, Vector3d b)
+inline V3 operator-(V3 a, V3 b)
 {
-	Vector3d result = {};
+	V3 result = {};
 
 	result.X = a.X - b.X;
 	result.Y = a.Y - b.Y;
@@ -48,9 +48,9 @@ inline Vector3d operator-(Vector3d a, Vector3d b)
 	return result;
 }
 
-inline Vector3d operator*(Vector3d a, real32 b)
+inline V3 operator*(V3 a, r32 b)
 {
-	Vector3d result = {};
+	V3 result = {};
 
 	result.X = b * a.X;
 	result.Y = b * a.Y;
@@ -59,18 +59,18 @@ inline Vector3d operator*(Vector3d a, real32 b)
 	return result;
 }
 
-inline Vector3d operator*(real32 a, Vector3d b)
+inline V3 operator*(r32 a, V3 b)
 {
 	return b * a;
 }
 
-inline Vector3d& operator+=(Vector3d &a, Vector3d b)
+inline V3& operator+=(V3 &a, V3 b)
 {
 	a = a + b;
 	return a;
 }
 
-inline Vector3d& operator*=(Vector3d& a, real32 b)
+inline V3& operator*=(V3& a, r32 b)
 {
 	a = a * b;
 	return a;
