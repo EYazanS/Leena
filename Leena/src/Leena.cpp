@@ -14,7 +14,7 @@ void InitializePlayer(GameState* state);
 void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity* entity, r32 timeToAdvance, V2 playerAcceleration);
 u32 AddEntity(GameState* gameState);
 
-void TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r32 minY, r32 maxY);
+b32 TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r32 minY, r32 maxY);
 
 // To pack the struct tightly and prevent combiler from 
 // aligning the fields 
@@ -273,6 +273,10 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		{
 			playerAcceleration.X = -1.0f;
 		}
+		if (keyboard->Start.EndedDown)
+		{
+			gameMemory->IsInitialized = false;
+		}
 		if (keyboard->X.EndedDown)
 		{
 			player->Speed = 60.0f;
@@ -315,7 +319,11 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			}
 		}
 
-		if (keyboard->X.EndedDown)
+		if (controller->Start.EndedDown)
+		{
+			gameMemory->IsInitialized = false;
+		}
+		if (controller->X.EndedDown)
 		{
 			player->Speed = 60.0f;
 		}
@@ -387,6 +395,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		}
 	}
 
+	// Render player
 	RenderEntity(screenBuffer, map, gameState, screenCenter, metersToPixels, &gameState->PlayerEntity);
 
 	for (u8 entityIndex = 1; entityIndex <= gameState->EntitiesCount; entityIndex++)
@@ -643,7 +652,6 @@ AudioBuffer* ReadAudioBufferData(void* memory)
 	return result;
 }
 
-
 void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity* entity, r32 timeToAdvance, V2 playerAcceleration)
 {
 	// In Meters
@@ -669,6 +677,7 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity* 
 	playerAcceleration += friction * entity->Velocity;
 
 	V2 playerDelta = (0.5f * playerAcceleration * Sqaure(timeToAdvance) + (entity->Velocity * timeToAdvance));
+	V2 totalPlayerDelta = {};
 
 	// Equation of motion
 	entity->Velocity = playerAcceleration * timeToAdvance + entity->Velocity;
@@ -676,69 +685,82 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity* 
 	MapPosition newPlayerPosition = SetOffset(map, oldPlayerPosition, playerDelta);
 
 	// Search in player position for next location after hit detection;
-	u32 startTileX = oldPlayerPosition.X;
-	u32 startTileY = oldPlayerPosition.Y;
-	u32 endTileX = newPlayerPosition.X;
-	u32 endTileY = newPlayerPosition.Y;
+	u32 minTileX = Minimum(oldPlayerPosition.X, newPlayerPosition.X);
+	u32 minTileY = Minimum(oldPlayerPosition.Y, newPlayerPosition.Y);
+	u32 maxTileX = Maximum(oldPlayerPosition.X, newPlayerPosition.X);
+	u32 maxTileY = Maximum(oldPlayerPosition.Y, newPlayerPosition.Y);
 
-	i32 deltaX = SingOf(endTileX - startTileX);
-	i32 deltaY = SingOf(endTileY - startTileY);
+	i32 entityTileWidth = CeilReal32ToInt32(entity->Width / map->TileSideInMeters);
+	i32 entityTileHeight = CeilReal32ToInt32(entity->Height / map->TileSideInMeters);
+
+	minTileX -= entityTileWidth;
+	minTileY -= entityTileHeight;
+	maxTileX += entityTileWidth;
+	maxTileY += entityTileHeight;
 
 	u32 tileZ = entity->Position.Z;
-	// The relative distance to the closest thing we hit, between 0 and 1
-	// 0 didnt move, 1 moved the full amount
-	r32 tMin = 1.0f;
 
-	u32 tileY = startTileY;
-	for (;;)
+	r32 tRemaining = 1.0f;
+
+	for (u32 iteration = 0; (iteration < 4) && (tRemaining > 0.0f); iteration++)
 	{
-		u32 tileX = startTileX;
+		// The relative distance to the closest thing we hit, between 0 and 1
+		// 0 didnt move, 1 moved the full amount
+		r32 tMin = 1.0f;
+		V2 wallNormal = {};
 
-		for (;;)
+		for (u32 tileY = minTileY; tileY <= maxTileY; tileY++)
 		{
-			MapPosition testTilePosition = GenerateCeneteredTiledPosition(tileX, tileY, tileZ);
-			TileValue tileValue = GetTileValue(map, testTilePosition);
-
-			if (!IsTileValueEmpty(tileValue))
+			for (u32 tileX = minTileX; tileX <= maxTileX; tileX++)
 			{
-				V2 minCorner = -0.5f * V2{ map->TileSideInMeters, map->TileSideInMeters };
-				V2 maxCorner = 0.5f * V2{ map->TileSideInMeters, map->TileSideInMeters };
+				MapPosition testTilePosition = GenerateCeneteredTiledPosition(tileX, tileY, tileZ);
+				TileValue tileValue = GetTileValue(map, testTilePosition);
 
-				MapPositionDifference relOldPositionDifference = CalculatePositionDifference(map, &oldPlayerPosition, &testTilePosition);
+				if (!IsTileValueEmpty(tileValue))
+				{
+					r32 diameterWidth = map->TileSideInMeters + entity->Width;
+					r32 diameterHegiht = map->TileSideInMeters + entity->Height;
 
-				V2 relativeVector = relOldPositionDifference.DXY;
+					V2 minCorner = -0.5f * V2{ diameterWidth, diameterHegiht };
+					V2 maxCorner = 0.5f * V2{ diameterWidth, diameterHegiht };
 
-				// Side walls
-				TestWall(tMin, minCorner.X, relativeVector.X, relativeVector.Y, playerDelta.X, playerDelta.Y, minCorner.Y, maxCorner.Y);
-				TestWall(tMin, maxCorner.X, relativeVector.X, relativeVector.Y, playerDelta.X, playerDelta.Y, minCorner.Y, maxCorner.Y);
+					MapPositionDifference relOldPositionDifference = CalculatePositionDifference(map, &oldPlayerPosition, &testTilePosition);
 
-				// Upper walls
-				TestWall(tMin, minCorner.Y, relativeVector.Y, relativeVector.X, playerDelta.Y, playerDelta.X, minCorner.X, maxCorner.X);
-				TestWall(tMin, maxCorner.Y, relativeVector.Y, relativeVector.X, playerDelta.Y, playerDelta.X, minCorner.X, maxCorner.X);
-			}
+					V2 relativeVector = relOldPositionDifference.DXY;
 
-			if (tileX == endTileX)
-			{
-				break;
-			}
-			else
-			{
-				tileX += deltaX;
+					// Side walls
+					if (TestWall(tMin, minCorner.X, relativeVector.X, relativeVector.Y, playerDelta.X, playerDelta.Y, minCorner.Y, maxCorner.Y))
+					{
+						wallNormal = V2{ -1, 0 };
+					}
+
+					if (TestWall(tMin, maxCorner.X, relativeVector.X, relativeVector.Y, playerDelta.X, playerDelta.Y, minCorner.Y, maxCorner.Y))
+					{
+						wallNormal = V2{ 1, 0 };
+					}
+
+					// Upper walls
+					if (TestWall(tMin, minCorner.Y, relativeVector.Y, relativeVector.X, playerDelta.Y, playerDelta.X, minCorner.X, maxCorner.X))
+					{
+						wallNormal = V2{ 0, -1 };
+					}
+
+					if (TestWall(tMin, maxCorner.Y, relativeVector.Y, relativeVector.X, playerDelta.Y, playerDelta.X, minCorner.X, maxCorner.X))
+					{
+						wallNormal = V2{ 0, 1 };
+					}
+				}
 			}
 		}
 
-		if (tileY == endTileY)
-		{
-			break;
-		}
-		else
-		{
-			tileY += deltaY;
-		}
+		totalPlayerDelta += tMin * playerDelta;
+		entity->Velocity = entity->Velocity - 1 * InnerProduct(entity->Velocity, wallNormal) * wallNormal;
+		playerDelta = playerDelta - 1 * InnerProduct(playerDelta, wallNormal) * wallNormal;
+		tRemaining -= (tMin * tRemaining);
 	}
 
-	newPlayerPosition = oldPlayerPosition;
-	entity->Position = SetOffset(map, newPlayerPosition, (0.9f * tMin) * playerDelta);
+	entity->Position = SetOffset(map, oldPlayerPosition, totalPlayerDelta);
+
 
 	if (!AreOnSameTile(oldPlayerPosition, entity->Position))
 	{
@@ -786,8 +808,8 @@ void InitializePlayer(GameState* state)
 	// Order: X Y Z Offset
 	entity->Position = { 1, 4, 0, { 0.0f, 0.0f } };
 
-	entity->Height = 1.4f;
-	entity->Width = 0.75f * entity->Height;
+	entity->Height = 1.0f;
+	entity->Width = 0.75f;
 	entity->Speed = 30.0f; // M/S2
 }
 
@@ -803,7 +825,7 @@ void RenderEntity(ScreenBuffer* screenBuffer, Map* map, GameState* gameState, V2
 	r32 playerGroundPointY = screenCenter.Y - metersToPixels * camDiff.DXY.Y;
 
 	V2 playerDim = { metersToPixels * entity->Width, metersToPixels * entity->Height };
-	V2 playerLeftTop = { playerGroundPointX - 0.5f * metersToPixels * entity->Width, playerGroundPointY - metersToPixels * entity->Height };
+	V2 playerLeftTop = { playerGroundPointX - 0.5f * metersToPixels * entity->Width, playerGroundPointY - 0.5f * metersToPixels * entity->Height };
 
 	DrawRectangle(screenBuffer, playerLeftTop, playerLeftTop + playerDim, { playerR, playerG, playerB });
 
@@ -823,9 +845,10 @@ u32 AddEntity(GameState* gameState)
 	return entityIndex;
 }
 
-void TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r32 minY, r32 maxY)
+b32 TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r32 minY, r32 maxY)
 {
-	r32 tEpslion = 0.00001f;
+	b32 hitWall = false;
+	r32 tEpslion = 0.0001f;
 
 	if (playerDeltaX != 0)
 	{
@@ -838,7 +861,10 @@ void TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 pla
 			if ((y >= minY) && (y <= maxY))
 			{
 				tMin = Maximum(0.0f, tResult - tEpslion);
+				hitWall = true;
 			}
 		}
 	}
+
+	return hitWall;
 }

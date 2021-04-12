@@ -40,6 +40,12 @@ inline i32 FloorReal32ToInt32(r32 value)
 	return result;
 }
 
+inline i32 CeilReal32ToInt32(r32 value)
+{
+	i32 result = (i32)ceilf(value);
+	return result;
+}
+
 inline r32 Sin(r32 angel)
 {
 	r32 result = (r32)sin(angel);
