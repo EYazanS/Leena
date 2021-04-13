@@ -14,6 +14,20 @@ struct V2
 	};
 };
 
+struct R2
+{
+	union
+	{
+		struct
+		{
+			V2 Min;
+			V2 Max;
+		};
+
+		V2 Elements[2];
+	};
+};
+
 inline V2 operator-(V2 a)
 {
 	V2 result = {};
@@ -84,4 +98,41 @@ inline r32 LengthSq(V2 v)
 	r32 result = InnerProduct(v, v);
 
 	return result;
+}
+
+inline R2 RectMinMax(V2 min, V2 max)
+{
+	R2 rect = { min, max };
+
+	return rect;
+}
+
+inline R2 RectMinDim(V2 min, V2 halfDim)
+{
+	R2 rect = {};
+
+	rect.Min = min;
+	rect.Max = min + halfDim;
+
+	return rect;
+}
+
+inline R2 RectCenterHalfDim(V2 center, V2 halfDim)
+{
+	R2 rect = {};
+
+	rect.Min = center - halfDim;
+	rect.Max = center + halfDim;
+
+	return rect;
+}
+
+inline b32 IsInRect(R2 rectangle, V2 test)
+{
+	b32 result = ((test.X >= rectangle.Min.X) &&
+		(test.Y >= rectangle.Min.Y) &&
+		(test.X < rectangle.Max.X) &&
+		(test.Y < rectangle.Max.Y));
+
+	return(result);
 }

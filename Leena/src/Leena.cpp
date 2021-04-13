@@ -11,8 +11,10 @@ AudioBuffer* ReadAudioBufferData(void* memory);
 
 void InitializePlayer(GameState* state);
 void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration);
-u32 AddEntity(GameState* gameState);
+u32 AddEntity(GameState* gameState, EntityType type);
 b32 TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r32 minY, r32 maxY);
+u32 AddWall(GameState* gameState, MapPosition position);
+void SetCamera(GameState* gameState, MapPosition newPosition);
 
 // To pack the struct tightly and prevent combiler from 
 // aligning the fields 
@@ -49,7 +51,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 	if (!gameMemory->IsInitialized)
 	{
-		AddEntity(gameState);
+		AddEntity(gameState, EntityType::Null);
 
 		gameState->Background = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_background.bmp");
 
@@ -87,9 +89,6 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		playerBitMap->AlignX = 72;
 		playerBitMap->AlignY = 182;
 
-		gameState->CameraPosition.X = 17 / 2;
-		gameState->CameraPosition.Y = 9 / 2;
-		gameState->CameraPosition.Z = 0;
 
 		InitilizePool(&gameState->WorldMemoryPool, gameMemory->PermanentStorageSize - sizeof(GameState), (u8*)gameMemory->PermanentStorage + sizeof(GameState));
 
@@ -100,6 +99,11 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		Map* map = world->Map;
 
 		initializeMap(&gameState->WorldMemoryPool, map);
+
+		InitializePlayer(gameState);
+
+		MapPosition cameraPosition = { 17 / 2, 9 / 2, 0 };
+		SetCamera(gameState, cameraPosition);
 
 		u32 sandomNumberIndex = 0;
 
@@ -116,7 +120,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		b32 doorUp = false;
 		b32 doorDown = false;
 
-		for (u32 screenIndex = 0; screenIndex < 100; ++screenIndex)
+		for (u32 screenIndex = 0; screenIndex < 2; ++screenIndex)
 		{
 			Assert(sandomNumberIndex < ArrayCount(randomNumberTable));
 
@@ -197,6 +201,11 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 					}
 
 					SetTileValue(world->Map, absTileX, absTileY, absTileZ, tileValue);
+
+					if (tileValue == TileValue::Wall)
+					{
+						AddWall(gameState, GenerateCeneteredTiledPosition(absTileX, absTileY, absTileZ));
+					}
 				}
 			}
 
@@ -239,8 +248,6 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 				screenY++;
 			}
 		}
-
-		InitializePlayer(gameState);
 
 		gameMemory->IsInitialized = true;
 	}
@@ -349,7 +356,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	{
 		Entity entity = GetEntity(gameState, entityIndex, EntityResidence::High);
 
-		if (entity.Residence != EntityResidence::NoneExistent)
+		if (entity.Residence != EntityResidence::NoneExistent && entity.Dormant->Type == EntityType::Player)
 		{
 			MoveEntity(gameMemory, map, gameState, entity, (r32)input->TimeToAdvance, playerAcceleration);
 		}
@@ -357,39 +364,36 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 	// Smooth scrolling for the camera
 	Entity* playerEntity = &gameState->PlayerEntity;
-	V2 entityOffsetForFrame = {};
-	MapPosition oldCameraP = gameState->CameraPosition;
+
+	MapPosition NewCameraP = gameState->CameraPosition;
 
 #if 0
 	// Camera move as screens
 	if (playerEntity->High->Position.X > (9.0f * map->TileSideInMeters))
 	{
-		gameState->CameraPosition.X += 17;
+		NewCameraP.X += 17;
 	}
 	if (playerEntity->High->Position.X < -(9.0f * map->TileSideInMeters))
 	{
-		gameState->CameraPosition.X -= 17;
+		NewCameraP.X -= 17;
 	}
 	if (playerEntity->High->Position.Y > (5.0f * map->TileSideInMeters))
 	{
-		gameState->CameraPosition.Y += 9;
+		NewCameraP.Y += 9;
 	}
 	if (playerEntity->High->Position.Y < -(5.0f * map->TileSideInMeters))
 	{
-		gameState->CameraPosition.Y -= 9;
+		NewCameraP.Y -= 9;
 	}
-	gameState->CameraPosition.Z = playerEntity->Dormant->Position.Z;
+	NewCameraP.Z = playerEntity->Dormant->Position.Z;
 #else
 	// Smooth camera
-	gameState->CameraPosition.X = playerEntity->Dormant->Position.X;
-	gameState->CameraPosition.Y = playerEntity->Dormant->Position.Y;
-	gameState->CameraPosition.Z = playerEntity->Dormant->Position.Z;
-	gameState->CameraPosition.Offset = playerEntity->Dormant->Position.Offset;
+	NewCameraP.X = playerEntity->Dormant->Position.X;
+	NewCameraP.Y = playerEntity->Dormant->Position.Y;
+	NewCameraP.Z = playerEntity->Dormant->Position.Z;
+	NewCameraP.Offset = playerEntity->Dormant->Position.Offset;
 #endif
-	MapPositionDifference dCamera = CalculatePositionDifference(map, &gameState->CameraPosition, &oldCameraP);
-
-	// Its negative so everything is move against the camera, now with the camera.
-	entityOffsetForFrame = -dCamera.DXY;
+	SetCamera(gameState, NewCameraP);
 
 	//
 	// Draw New game status
@@ -451,8 +455,6 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			LowEntity* lowEntity = &gameState->LowEntities[entityIndex];
 			DormantEntity* dormantEntity = &gameState->DormantEntities[entityIndex];
 
-			highEntity->Position += entityOffsetForFrame;
-
 			r32 dt = (r32)input->TimeToAdvance;
 			r32 ddZ = -9.8f;
 			highEntity->Z = 0.5f * ddZ * Square(dt) + highEntity->dZ * dt + highEntity->Z;
@@ -476,17 +478,22 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 			r32 z = -metersToPixels * highEntity->Z;
 
-			V2 playerDim = { metersToPixels * dormantEntity->Width, metersToPixels * dormantEntity->Height };
-			V2 playerLeftTop = { playerGroundPointX - 0.5f * metersToPixels * dormantEntity->Width, playerGroundPointY - 0.5f * metersToPixels * dormantEntity->Height };
+			if (dormantEntity->Type == EntityType::Player)
+			{
+				PlayerBitMap* playerFacingDirectionMap = &gameState->BitMaps[highEntity->FacingDirection];
 
-			// DrawRectangle(screenBuffer, playerLeftTop, playerLeftTop + playerDim, { playerR, playerG, playerB });
+				DrawBitmap(&playerFacingDirectionMap->Head, screenBuffer, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
+				DrawBitmap(&playerFacingDirectionMap->Cape, screenBuffer, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
+				DrawBitmap(&playerFacingDirectionMap->Torso, screenBuffer, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
+				DrawBitmap(&playerFacingDirectionMap->Shadow, screenBuffer, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY, cAlpha);
+			}
+			else
+			{
+				V2 entityLeftTop = { playerGroundPointX - 0.5f * metersToPixels * dormantEntity->Width, playerGroundPointY - 0.5f * metersToPixels * dormantEntity->Height };
+				V2 entityDim = { metersToPixels * dormantEntity->Width, metersToPixels * dormantEntity->Height };
 
-			PlayerBitMap* playerFacingDirectionMap = &gameState->BitMaps[highEntity->FacingDirection];
-
-			DrawBitmap(&playerFacingDirectionMap->Head, screenBuffer, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
-			DrawBitmap(&playerFacingDirectionMap->Cape, screenBuffer, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
-			DrawBitmap(&playerFacingDirectionMap->Torso, screenBuffer, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
-			DrawBitmap(&playerFacingDirectionMap->Shadow, screenBuffer, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY, cAlpha);
+				DrawRectangle(screenBuffer, entityLeftTop, entityLeftTop + entityDim, { playerR, playerG, playerB });
+			}
 		}
 	}
 }
@@ -606,8 +613,8 @@ void DrawBitmap(LoadedBitmap* bitmap, ScreenBuffer* screenBuffer, r32 realX, r32
 
 	i64 minX = RoundReal32ToInt32(realX);
 	i64 minY = RoundReal32ToInt32(realY);
-	i32 maxX = RoundReal32ToInt32(realX + (r32)bitmap->Width);
-	i32 maxY = RoundReal32ToInt32(realY + (r32)bitmap->Height);
+	i64 maxX = minX + bitmap->Width;
+	i64 maxY = minY + bitmap->Height;
 
 	// Clip to the nearest valid pixel
 	i64 sourceOffsetX = 0;
@@ -636,7 +643,7 @@ void DrawBitmap(LoadedBitmap* bitmap, ScreenBuffer* screenBuffer, r32 realX, r32
 		maxY = screenBuffer->Height;
 	}
 
-	u32* sourceRow = bitmap->Data + bitmap->Width * bitmap->Height;
+	u32* sourceRow = bitmap->Data + bitmap->Width * (bitmap->Height - 1);
 	sourceRow += (-sourceOffsetY * bitmap->Width) + sourceOffsetX;
 
 	u8* destRow = (((u8*)screenBuffer->Memory) + minX * screenBuffer->BytesPerPixel + minY * screenBuffer->Pitch);
@@ -674,17 +681,17 @@ void DrawBitmap(LoadedBitmap* bitmap, ScreenBuffer* screenBuffer, r32 realX, r32
 			if (*source >> 24 > 124)
 			{
 				*dest = *source;
-			}
+		}
 #endif // 0
 
 
 			dest++;
 			source++;
-		}
+	}
 
 		destRow += screenBuffer->Pitch;
 		sourceRow -= bitmap->Width;
-	}
+}
 }
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* soundBuffer)
@@ -766,15 +773,15 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity e
 
 	V2 newPlayerPosition = oldPlayerPosition + playerDelta;
 
-	r32 tRemaining = 1.0f;
-
-	for (u32 iteration = 0; (iteration < 4) && (tRemaining > 0.0f); iteration++)
+	for (u32 iteration = 0; iteration < 4; iteration++)
 	{
 		// The relative distance to the closest thing we hit, between 0 and 1
 		// 0 didnt move, 1 moved the full amount
 		r32 tMin = 1.0f;
 		V2 wallNormal = {};
 		u32 hitEntityIndex = 0;
+
+		V2 desiredPosition = entity.High->Position + playerDelta;
 
 		for (u32 entityIndex = 1; entityIndex < gameState->EntitiesCount; entityIndex++)
 		{
@@ -827,8 +834,8 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity e
 		if (hitEntityIndex)
 		{
 			entity.High->Velocity = entity.High->Velocity - 1 * InnerProduct(entity.High->Velocity, wallNormal) * wallNormal;
+			playerDelta = desiredPosition - entity.High->Position;
 			playerDelta = playerDelta - 1 * InnerProduct(playerDelta, wallNormal) * wallNormal;
-			tRemaining -= (tMin * tRemaining);
 
 			Entity hitEntity = GetEntity(gameState, hitEntityIndex, EntityResidence::Dormant);
 			entity.High->PositionZ += hitEntity.Dormant->TileZ;
@@ -865,13 +872,12 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity e
 		}
 	}
 
-
 	entity.Dormant->Position = MapIntoTileSpace(map, gameState->CameraPosition, entity.High->Position);
 }
 
 void InitializePlayer(GameState* state)
 {
-	u32 playerIndex = AddEntity(state);
+	u32 playerIndex = AddEntity(state, EntityType::Player);
 	state->PlayerEntity = GetEntity(state, playerIndex, EntityResidence::Dormant);;
 
 	Entity* entity = &state->PlayerEntity;
@@ -887,38 +893,112 @@ void InitializePlayer(GameState* state)
 	ChangeEntityResidence(state, playerIndex, EntityResidence::High);
 }
 
-u32 AddEntity(GameState* gameState)
+u32 AddEntity(GameState* gameState, EntityType type)
 {
 	u32 entityIndex = gameState->EntitiesCount++;
 
 	Entity entity = GetEntity(gameState, entityIndex, EntityResidence::Dormant);
 	gameState->EntityResidence[entityIndex] = EntityResidence::Dormant;
 	gameState->DormantEntities[entityIndex] = {};
+	gameState->DormantEntities[entityIndex].Type = type;
 	gameState->LowEntities[entityIndex] = {};
 	gameState->HighEntities[entityIndex] = {};
 
 	return entityIndex;
 }
 
+u32 AddWall(GameState* gameState, MapPosition position)
+{
+	u32 entityIndex = AddEntity(gameState, EntityType::Wall);
+
+	Entity entity = GetEntity(gameState, entityIndex, EntityResidence::Dormant);
+
+	// Order: X Y Z Offset
+	entity.Dormant->Position = position;
+
+	entity.Dormant->Collides = true;
+	entity.Dormant->Height = gameState->World->Map->TileSideInMeters;
+	entity.Dormant->Width = entity.Dormant->Height;
+	entity.High->Speed = 0.0f; // M/S2
+
+	return entityIndex;
+}
+
 void ChangeEntityResidence(GameState* gameState, u32 entityIndex, EntityResidence state)
 {
-	if (GetCurrentEntityState(gameState, entityIndex) != EntityResidence::High)
+	if (state == EntityResidence::High)
 	{
-		Entity entity = { GetCurrentEntityState(gameState, entityIndex) };
-		entity.Dormant = &gameState->DormantEntities[entityIndex];
-		entity.Low = &gameState->LowEntities[entityIndex];
-		entity.High = &gameState->HighEntities[entityIndex];
-
-		if (entity.Residence != EntityResidence::High)
+		if (gameState->EntityResidence[entityIndex] != EntityResidence::High)
 		{
-			MapPositionDifference diff = CalculatePositionDifference(gameState->World->Map, &gameState->CameraPosition, &entity.Dormant->Position);
-			entity.High->Position = diff.DXY;
-			entity.High->PositionZ = entity.Dormant->Position.Z;
-			entity.High->Velocity = {};
+			HighEntity* entityHigh = &gameState->HighEntities[entityIndex];
+			DormantEntity* dormantEntity = &gameState->DormantEntities[entityIndex];
+
+			// NOTE(casey): Map the entity into camera space
+			MapPositionDifference Diff = CalculatePositionDifference(gameState->World->Map, &dormantEntity->Position, &gameState->CameraPosition);
+
+			entityHigh->Position = Diff.DXY;
+			entityHigh->Velocity = V2{ 0, 0 };
+			entityHigh->PositionZ = dormantEntity->Position.Z;
+			entityHigh->FacingDirection = 0;
 		}
 	}
 
 	gameState->EntityResidence[entityIndex] = state;
+}
+
+void SetCamera(GameState* gameState, MapPosition newPosition)
+{
+	Map* map = gameState->World->Map;
+
+	MapPositionDifference dCamera = CalculatePositionDifference(map, &newPosition, &gameState->CameraPosition);
+	gameState->CameraPosition = newPosition;
+
+	// Its negative so everything is move against the camera, now with the camera.
+	V2 entityOffsetForFrame = -dCamera.DXY;
+
+	// 3 screens in each direction
+	r32 tileSpanX = 17.0f * 3.0f;
+	r32 tileSpanY = 9.0f * 3.0f;
+
+	R2 cameraBounds = RectCenterHalfDim(V2{ 0, 0 }, map->TileSideInMeters * V2{ tileSpanX, tileSpanY });
+
+	for (u32 entityIndex = 1; entityIndex < ArrayCount(gameState->HighEntities); entityIndex++)
+	{
+		if (gameState->EntityResidence[entityIndex] == EntityResidence::High)
+		{
+			HighEntity* entity = gameState->HighEntities + entityIndex;
+
+			entity->Position += entityOffsetForFrame;
+
+			if (!IsInRect(cameraBounds, entity->Position))
+			{
+				ChangeEntityResidence(gameState, entityIndex, EntityResidence::Dormant);
+			}
+		}
+	}
+
+	r32 minTileX = newPosition.X - (tileSpanX / 2);
+	r32 minTileY = newPosition.Y - (tileSpanY / 2);
+
+	r32 maxTileX = newPosition.X + (tileSpanX / 2);
+	r32 maxTileY = newPosition.Y + (tileSpanY / 2);
+
+	for (u32 entityIndex = 1; entityIndex < ArrayCount(gameState->DormantEntities); entityIndex++)
+	{
+		if (gameState->EntityResidence[entityIndex] == EntityResidence::Dormant)
+		{
+			DormantEntity* entity = gameState->DormantEntities + entityIndex;
+
+			if ((entity->Position.Z == newPosition.Z) &&
+				(entity->Position.X >= minTileX) &&
+				(entity->Position.X <= maxTileX) &&
+				(entity->Position.Y >= minTileY) &&
+				(entity->Position.Y <= maxTileY))
+			{
+				ChangeEntityResidence(gameState, entityIndex, EntityResidence::High);
+			}
+		}
+	}
 }
 
 b32 TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r32 minY, r32 maxY)

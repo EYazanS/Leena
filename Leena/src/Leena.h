@@ -49,6 +49,13 @@ enum class EntityResidence
 	High
 };
 
+enum class EntityType
+{
+	Null,
+	Player,
+	Wall
+};
+
 struct HighEntity
 {
 	V2 Position;
@@ -69,6 +76,7 @@ struct LowEntity
 struct DormantEntity
 {
 	MapPosition Position;
+	EntityType Type;
 	r32 Width, Height;
 	b32 Collides;
 	// This is for vertical change, aka stairs
