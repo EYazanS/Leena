@@ -32,9 +32,10 @@ void RecanonicalizeCoordinant(Map* map, u32* tile, r32* tileRelative)
 	Assert(*tileRelative <= (0.5f * map->TileSideInMeters));
 }
 
-MapPosition RecanonicalizePosition(Map* map, MapPosition position)
+MapPosition MapIntoTileSpace(Map* map, MapPosition basePosition, V2 offset)
 {
-	MapPosition result = position;
+	MapPosition result = basePosition;
+	result.Offset += offset;
 
 	RecanonicalizeCoordinant(map, &result.X, &result.Offset.X);
 	RecanonicalizeCoordinant(map, &result.Y, &result.Offset.Y);

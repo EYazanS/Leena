@@ -55,7 +55,7 @@ b32 IsMapPointEmpty(Map* map, MapPosition position);
 TileValue GetTileValue(Map* map, u32 x, u32 y, u32 z);
 TileValue GetTileValue(Map* map, MapPosition position);
 void SetTileValue(Map* map, u32 tileX, u32 tileY, u32 tileZ, TileValue value);
-MapPosition RecanonicalizePosition(Map* map, MapPosition position);
+MapPosition MapIntoTileSpace(Map* map, MapPosition basePosition, V2 offset);
 void RecanonicalizeCoordinant(Map* map, u32* tile, r32* tileRelative);
 b32 AreOnSameTile(MapPosition position1, MapPosition position2);
 
@@ -89,11 +89,4 @@ inline MapPosition GenerateCeneteredTiledPosition(u32 x, u32 y, u32 z)
 	result = MapPosition{ x, y, z };
 
 	return result;
-}
-
-inline MapPosition SetOffset(Map* map, MapPosition position, V2 offset)
-{
-	position.Offset += offset;
-	position = RecanonicalizePosition(map, position);
-	return position;
 }

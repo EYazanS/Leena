@@ -77,15 +77,24 @@ inline u32 AbsoluteInt32ToUInt32(i32 number)
 
 inline u32 RotateLeft(u32 value, i32 amount)
 {
+#if COMPILER_MSVC
 	u32 result = _rotl(value, amount);
-
+#else
+	amount &= 31;
+	u32 result = (value << amount) | (value >> (32 - amount));
+#endif
 	return result;
 }
 
 inline u32 RotateRight(u32 value, i32 amount)
 {
-	u32 result = _rotr(value, amount);
+#if COMPILER_MSVC
 
+	u32 result = _rotr(value, amount);
+#else
+	amount &= 31;
+	u32 result = (value >> amount) | (value << (32 - amount));
+#endif
 	return result;
 }
 
@@ -93,6 +102,14 @@ inline u32 Sqaure(i32 number)
 {
 	return number * number;
 }
+
+inline r32 Square(r32 value)
+{
+	r32 Result = value * value;
+
+	return(Result);
+}
+
 
 inline r32 SqaureRoot(r32 number)
 {
@@ -136,7 +153,7 @@ inline BitScanResult FindLeastSigifigantSetBit(u32 value)
 			result.Found = true;
 			result.Index = currentScanningIndex;
 			break;
-}
+		}
 	}
 #endif
 	return result;

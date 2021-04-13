@@ -35,24 +35,52 @@ struct PlayerBitMap
 	LoadedBitmap Head;
 	LoadedBitmap Torso;
 	LoadedBitmap Cape;
+	LoadedBitmap Shadow;
 
 	i32 AlignX;
 	i32 AlignY;
 };
 
+enum class EntityResidence
+{
+	NoneExistent,
+	Dormant,
+	Low,
+	High
+};
+
+struct HighEntity
+{
+	V2 Position;
+	V2 Velocity;
+	i32 PositionZ;
+
+	r32 Speed;
+	u32 FacingDirection;
+
+	r32 Z;
+	r32 dZ;
+};
+
+struct LowEntity
+{
+};
+
+struct DormantEntity
+{
+	MapPosition Position;
+	r32 Width, Height;
+	b32 Collides;
+	// This is for vertical change, aka stairs
+	i32 TileZ;
+};
+
 struct Entity
 {
-	b32 Exists;
-
-	r32 Width;
-	r32 Height;
-
-	MapPosition Position;
-	V2 Velocity;
-	
-	r32 Speed;
-
-	u32 FacingDirection;
+	EntityResidence Residence;
+	DormantEntity* Dormant;
+	LowEntity* Low;
+	HighEntity* High;
 };
 
 struct GameState
@@ -63,7 +91,10 @@ struct GameState
 
 	u32 EntitiesCount;
 
-	Entity Entities[250];
+	EntityResidence EntityResidence[256];
+	HighEntity HighEntities[256];
+	LowEntity LowEntities[256];
+	DormantEntity DormantEntities[256];
 
 	Entity PlayerEntity;
 
@@ -73,14 +104,33 @@ struct GameState
 	World* World;
 };
 
-inline Entity* GetEntity(GameState* gameState, u32 index)
-{
-	Entity* result = {};
+void ChangeEntityResidence(GameState* gameState, u32 entityIndex, EntityResidence state);
 
-	if (index > 0 && (index < ArrayCount(gameState->Entities)))
+inline EntityResidence GetCurrentEntityState(GameState* gameState, u32 index)
+{
+	EntityResidence reuslt = EntityResidence::NoneExistent;
+	reuslt = gameState->EntityResidence[index];
+	return reuslt;
+}
+
+inline Entity GetEntity(GameState* gameState, u32 index, EntityResidence state)
+{
+	Entity result = {};
+
+	if (index > 0 && (index < gameState->EntitiesCount))
 	{
-		result = &gameState->Entities[index];
+		if (GetCurrentEntityState(gameState, index) < state)
+		{
+			ChangeEntityResidence(gameState, index, state);
+			Assert(gameState->EntityResidence[index] >= state);
+		}
+
+		result.Residence = state;
+		result.Dormant = &gameState->DormantEntities[index];
+		result.Low = &gameState->LowEntities[index];
+		result.High = &gameState->HighEntities[index];
 	}
+
 	return result;
 }
 
