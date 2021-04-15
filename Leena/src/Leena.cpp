@@ -356,7 +356,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	{
 		Entity entity = GetEntity(gameState, entityIndex, EntityResidence::High);
 
-		if (entity.Residence != EntityResidence::NoneExistent && entity.Dormant->Type == EntityType::Player)
+		if (entity.Residence != EntityResidence::NoneExistent && entity.Low->Type == EntityType::Player)
 		{
 			MoveEntity(gameMemory, map, gameState, entity, (r32)input->TimeToAdvance, playerAcceleration);
 		}
@@ -385,13 +385,13 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	{
 		NewCameraP.Y -= 9;
 	}
-	NewCameraP.Z = playerEntity->Dormant->Position.Z;
+	NewCameraP.Z = playerEntity->Low->Position.Z;
 #else
 	// Smooth camera
-	NewCameraP.X = playerEntity->Dormant->Position.X;
-	NewCameraP.Y = playerEntity->Dormant->Position.Y;
-	NewCameraP.Z = playerEntity->Dormant->Position.Z;
-	NewCameraP.Offset = playerEntity->Dormant->Position.Offset;
+	NewCameraP.X = playerEntity->Low->Position.X;
+	NewCameraP.Y = playerEntity->Low->Position.Y;
+	NewCameraP.Z = playerEntity->Low->Position.Z;
+	NewCameraP.Offset = playerEntity->Low->Position.Offset;
 #endif
 	SetCamera(gameState, NewCameraP);
 
@@ -453,7 +453,6 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		{
 			HighEntity* highEntity = &gameState->HighEntities[entityIndex];
 			LowEntity* lowEntity = &gameState->LowEntities[entityIndex];
-			DormantEntity* dormantEntity = &gameState->DormantEntities[entityIndex];
 
 			r32 dt = (r32)input->TimeToAdvance;
 			r32 ddZ = -9.8f;
@@ -478,7 +477,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 			r32 z = -metersToPixels * highEntity->Z;
 
-			if (dormantEntity->Type == EntityType::Player)
+			if (lowEntity->Type == EntityType::Player)
 			{
 				PlayerBitMap* playerFacingDirectionMap = &gameState->BitMaps[highEntity->FacingDirection];
 
@@ -489,8 +488,8 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			}
 			else
 			{
-				V2 entityLeftTop = { playerGroundPointX - 0.5f * metersToPixels * dormantEntity->Width, playerGroundPointY - 0.5f * metersToPixels * dormantEntity->Height };
-				V2 entityDim = { metersToPixels * dormantEntity->Width, metersToPixels * dormantEntity->Height };
+				V2 entityLeftTop = { playerGroundPointX - 0.5f * metersToPixels * lowEntity->Width, playerGroundPointY - 0.5f * metersToPixels * lowEntity->Height };
+				V2 entityDim = { metersToPixels * lowEntity->Width, metersToPixels * lowEntity->Height };
 
 				DrawRectangle(screenBuffer, entityLeftTop, entityLeftTop + entityDim, { playerR, playerG, playerB });
 			}
@@ -789,11 +788,11 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity e
 
 			if (entity.High != testEntity.High)
 			{
-				if (testEntity.Dormant->Collides)
+				if (testEntity.Low->Collides)
 				{
 
-					r32 diameterWidth = testEntity.Dormant->Width + entity.Dormant->Width;
-					r32 diameterHegiht = testEntity.Dormant->Height + entity.Dormant->Height;
+					r32 diameterWidth = testEntity.Low->Width + entity.Low->Width;
+					r32 diameterHegiht = testEntity.Low->Height + entity.Low->Height;
 
 					V2 minCorner = -0.5f * V2{ diameterWidth, diameterHegiht };
 					V2 maxCorner = 0.5f * V2{ diameterWidth, diameterHegiht };
@@ -837,8 +836,8 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity e
 			playerDelta = desiredPosition - entity.High->Position;
 			playerDelta = playerDelta - 1 * InnerProduct(playerDelta, wallNormal) * wallNormal;
 
-			Entity hitEntity = GetEntity(gameState, hitEntityIndex, EntityResidence::Dormant);
-			entity.High->PositionZ += hitEntity.Dormant->TileZ;
+			Entity hitEntity = GetEntity(gameState, hitEntityIndex, EntityResidence::Low);
+			entity.High->PositionZ += hitEntity.Low->TileZ;
 		}
 		else
 		{
@@ -872,22 +871,22 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity e
 		}
 	}
 
-	entity.Dormant->Position = MapIntoTileSpace(map, gameState->CameraPosition, entity.High->Position);
+	entity.Low->Position = MapIntoTileSpace(map, gameState->CameraPosition, entity.High->Position);
 }
 
 void InitializePlayer(GameState* state)
 {
 	u32 playerIndex = AddEntity(state, EntityType::Player);
-	state->PlayerEntity = GetEntity(state, playerIndex, EntityResidence::Dormant);;
+	state->PlayerEntity = GetEntity(state, playerIndex, EntityResidence::Low);;
 
 	Entity* entity = &state->PlayerEntity;
 
 	// Order: X Y Z Offset
-	entity->Dormant->Position = { 1, 4, 0, { 0.0f, 0.0f } };
+	entity->Low->Position = { 1, 4, 0, { 0.0f, 0.0f } };
 
-	entity->Dormant->Collides = true;
-	entity->Dormant->Height = 1.0f;
-	entity->Dormant->Width = 0.75f;
+	entity->Low->Collides = true;
+	entity->Low->Height = 1.0f;
+	entity->Low->Width = 0.75f;
 	entity->High->Speed = 30.0f; // M/S2
 
 	ChangeEntityResidence(state, playerIndex, EntityResidence::High);
@@ -897,11 +896,10 @@ u32 AddEntity(GameState* gameState, EntityType type)
 {
 	u32 entityIndex = gameState->EntitiesCount++;
 
-	Entity entity = GetEntity(gameState, entityIndex, EntityResidence::Dormant);
-	gameState->EntityResidence[entityIndex] = EntityResidence::Dormant;
-	gameState->DormantEntities[entityIndex] = {};
-	gameState->DormantEntities[entityIndex].Type = type;
+	Entity entity = GetEntity(gameState, entityIndex, EntityResidence::Low);
+	gameState->EntityResidence[entityIndex] = EntityResidence::Low;
 	gameState->LowEntities[entityIndex] = {};
+	gameState->LowEntities[entityIndex].Type = type;
 	gameState->HighEntities[entityIndex] = {};
 
 	return entityIndex;
@@ -911,14 +909,14 @@ u32 AddWall(GameState* gameState, MapPosition position)
 {
 	u32 entityIndex = AddEntity(gameState, EntityType::Wall);
 
-	Entity entity = GetEntity(gameState, entityIndex, EntityResidence::Dormant);
+	Entity entity = GetEntity(gameState, entityIndex, EntityResidence::Low);
 
 	// Order: X Y Z Offset
-	entity.Dormant->Position = position;
+	entity.Low->Position = position;
 
-	entity.Dormant->Collides = true;
-	entity.Dormant->Height = gameState->World->Map->TileSideInMeters;
-	entity.Dormant->Width = entity.Dormant->Height;
+	entity.Low->Collides = true;
+	entity.Low->Height = gameState->World->Map->TileSideInMeters;
+	entity.Low->Width = entity.Low->Height;
 	entity.High->Speed = 0.0f; // M/S2
 
 	return entityIndex;
@@ -931,14 +929,14 @@ void ChangeEntityResidence(GameState* gameState, u32 entityIndex, EntityResidenc
 		if (gameState->EntityResidence[entityIndex] != EntityResidence::High)
 		{
 			HighEntity* entityHigh = &gameState->HighEntities[entityIndex];
-			DormantEntity* dormantEntity = &gameState->DormantEntities[entityIndex];
+			LowEntity* lowEntity = &gameState->LowEntities[entityIndex];
 
 			// NOTE(casey): Map the entity into camera space
-			MapPositionDifference Diff = CalculatePositionDifference(gameState->World->Map, &dormantEntity->Position, &gameState->CameraPosition);
+			MapPositionDifference Diff = CalculatePositionDifference(gameState->World->Map, &lowEntity->Position, &gameState->CameraPosition);
 
 			entityHigh->Position = Diff.DXY;
 			entityHigh->Velocity = V2{ 0, 0 };
-			entityHigh->PositionZ = dormantEntity->Position.Z;
+			entityHigh->PositionZ = lowEntity->Position.Z;
 			entityHigh->FacingDirection = 0;
 		}
 	}
@@ -972,7 +970,7 @@ void SetCamera(GameState* gameState, MapPosition newPosition)
 
 			if (!IsInRect(cameraBounds, entity->Position))
 			{
-				ChangeEntityResidence(gameState, entityIndex, EntityResidence::Dormant);
+				ChangeEntityResidence(gameState, entityIndex, EntityResidence::Low);
 			}
 		}
 	}
@@ -983,11 +981,11 @@ void SetCamera(GameState* gameState, MapPosition newPosition)
 	r32 maxTileX = newPosition.X + (tileSpanX / 2);
 	r32 maxTileY = newPosition.Y + (tileSpanY / 2);
 
-	for (u32 entityIndex = 1; entityIndex < ArrayCount(gameState->DormantEntities); entityIndex++)
+	for (u32 entityIndex = 1; entityIndex < ArrayCount(gameState->LowEntities); entityIndex++)
 	{
-		if (gameState->EntityResidence[entityIndex] == EntityResidence::Dormant)
+		if (gameState->EntityResidence[entityIndex] == EntityResidence::Low)
 		{
-			DormantEntity* entity = gameState->DormantEntities + entityIndex;
+			LowEntity* entity = gameState->LowEntities + entityIndex;
 
 			if ((entity->Position.Z == newPosition.Z) &&
 				(entity->Position.X >= minTileX) &&

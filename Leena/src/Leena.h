@@ -44,7 +44,6 @@ struct PlayerBitMap
 enum class EntityResidence
 {
 	NoneExistent,
-	Dormant,
 	Low,
 	High
 };
@@ -71,10 +70,6 @@ struct HighEntity
 
 struct LowEntity
 {
-};
-
-struct DormantEntity
-{
 	MapPosition Position;
 	EntityType Type;
 	r32 Width, Height;
@@ -86,7 +81,6 @@ struct DormantEntity
 struct Entity
 {
 	EntityResidence Residence;
-	DormantEntity* Dormant;
 	LowEntity* Low;
 	HighEntity* High;
 };
@@ -102,7 +96,6 @@ struct GameState
 	EntityResidence EntityResidence[256];
 	HighEntity HighEntities[256];
 	LowEntity LowEntities[256];
-	DormantEntity DormantEntities[256];
 
 	Entity PlayerEntity;
 
@@ -134,7 +127,6 @@ inline Entity GetEntity(GameState* gameState, u32 index, EntityResidence state)
 		}
 
 		result.Residence = state;
-		result.Dormant = &gameState->DormantEntities[index];
 		result.Low = &gameState->LowEntities[index];
 		result.High = &gameState->HighEntities[index];
 	}
