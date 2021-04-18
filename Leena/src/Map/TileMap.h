@@ -25,9 +25,9 @@ struct MapPositionDifference
 struct MapPosition
 {
 	// These are fixed points tile locations, the high bits are for tile chunk index, low bita are for tile index in the chunk
-	u32 X;
-	u32 Y;
-	u32 Z;
+	i32 X;
+	i32 Y;
+	i32 Z;
 
 	// Relative to the tile 
 	V2 Offset;
@@ -56,7 +56,7 @@ TileValue GetTileValue(Map* map, u32 x, u32 y, u32 z);
 TileValue GetTileValue(Map* map, MapPosition position);
 void SetTileValue(Map* map, u32 tileX, u32 tileY, u32 tileZ, TileValue value);
 MapPosition MapIntoTileSpace(Map* map, MapPosition basePosition, V2 offset);
-void RecanonicalizeCoordinant(Map* map, u32* tile, r32* tileRelative);
+void RecanonicalizeCoordinant(Map* map, i32* tile, r32* tileRelative);
 b32 AreOnSameTile(MapPosition position1, MapPosition position2);
 
 inline MapPositionDifference CalculatePositionDifference(Map* map, MapPosition* position1, MapPosition* position2)
@@ -82,7 +82,7 @@ inline b32 IsTileValueEmpty(TileValue tileValue)
 	return result;
 }
 
-inline MapPosition GenerateCeneteredTiledPosition(u32 x, u32 y, u32 z)
+inline MapPosition GenerateCeneteredTiledPosition(i32 x, i32 y, i32 z)
 {
 	MapPosition result = {};
 

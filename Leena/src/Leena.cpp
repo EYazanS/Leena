@@ -110,8 +110,8 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 		u32 tilesPerWidth = 17;
 		u32 tilesPerHeight = 9;
-		u32 screenX = 30;
-		u32 screenY = 30;
+		u32 screenX = 0;
+		u32 screenY = 0;
 		u32 absTileZ = 0;
 
 		b32 doorLeft = false;
@@ -394,9 +394,9 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	{
 		for (i32 relColumn = -20; relColumn < 20; ++relColumn)
 		{
-			u32 column = gameState->CameraPosition.X + relColumn;
-			u32 row = gameState->CameraPosition.Y + relRow;
-			u32 floor = gameState->CameraPosition.Z;
+			i32 column = gameState->CameraPosition.X + relColumn;
+			i32 row = gameState->CameraPosition.Y + relRow;
+			i32 floor = gameState->CameraPosition.Z;
 
 			TileValue tileValue = GetTileValue(map, column, row, floor);
 
@@ -871,7 +871,7 @@ void InitializePlayer(GameState* state)
 	Entity* entity = &state->PlayerEntity;
 
 	// Order: X Y Z Offset
-	entity->Low->Position = { 512, 273, 0, { 0.0f, 0.0f } };
+	entity->Low->Position = { 2, 4, 0, { 0.0f, 0.0f } };
 
 	entity->Low->Collides = true;
 	entity->Low->Height = 1.0f;

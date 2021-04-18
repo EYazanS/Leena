@@ -19,7 +19,7 @@ void initializeMap(MemoryPool* pool, Map* map)
 /// <param name="map">current map to recalculate for</param>
 /// <param name="tile">the current tile that will be recalculated</param>
 /// <param name="tileRelative">Where relatively are we to the tile</param>
-void RecanonicalizeCoordinant(Map* map, u32* tile, r32* tileRelative)
+void RecanonicalizeCoordinant(Map* map, i32* tile, r32* tileRelative)
 {
 	// Map is toroidal, so it can wrap
 
