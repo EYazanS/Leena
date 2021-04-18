@@ -191,7 +191,7 @@ int WINAPI wWinMain(
 			else
 			{
 				// missed a frame
-				OutputDebugStringA("Missed a frame");
+				OutputDebugStringA("Missed a frame\n");
 			}
 
 			// Display performance counter
@@ -331,7 +331,7 @@ internal GameMemory InitGameMemory()
 	LPVOID baseAddress = 0;
 #endif
 
-	gameMemory.PermanentStorageSize = Megabytes(64);
+	gameMemory.PermanentStorageSize = Megabytes(256);
 	gameMemory.TransiateStorageSize = Gigabytes(1);
 
 	size_t totalSize = gameMemory.PermanentStorageSize + gameMemory.TransiateStorageSize;
