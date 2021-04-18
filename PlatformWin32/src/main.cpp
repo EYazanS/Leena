@@ -39,7 +39,7 @@ int WINAPI wWinMain(
 		UINT desiredSchedularTimeInMs = 1;
 
 		// Set the windows schedueler granularity to 1ms
-		// Which means can we sleep for exactly 1ms?
+		// Which means can we sleep for exactly 1ms
 		b32 isSleepGranular = timeBeginPeriod(desiredSchedularTimeInMs) == TIMERR_NOERROR;
 
 		HDC dc = GetDC(windowHandle);
@@ -504,6 +504,7 @@ internal void ProccessControllerInput(GameInput* newInput, GameInput* oldInput)
 		Win32ProcessDigitalButton(newController->LeftStickAverageY < -threshHold ? 1 : 0, 1, & oldController->MoveDown, & newController->MoveDown);
 		Win32ProcessDigitalButton(newController->LeftStickAverageY > threshHold ? 1 : 0, 1, &oldController->MoveUp, &newController->MoveUp);
 
+#if 0
 		XINPUT_VIBRATION vibrations = {};
 
 		if (newController->A.EndedDown)
@@ -513,6 +514,7 @@ internal void ProccessControllerInput(GameInput* newInput, GameInput* oldInput)
 		}
 
 		XInputSetState(0, &vibrations);
+#endif // 0
 	}
 	else
 	{

@@ -264,8 +264,6 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 	if (keyboard->IsConnected)
 	{
-		playerAcceleration = {};
-
 		//NOTE: Use digital movement tuning
 		if (keyboard->MoveRight.EndedDown)
 		{
@@ -287,30 +285,19 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		{
 			gameMemory->IsInitialized = false;
 		}
-		if (keyboard->X.EndedDown)
-		{
-			player->Low->Speed = 60.0f;
-		}
-		else
-		{
-			player->Low->Speed = 30.0f;
-		}
-		if (keyboard->A.EndedDown && player->High->Z == 0.0f)
-		{
-			player->High->dZ = 3.0f;
-		}
 	}
 
 	ControllerInput* controller = &input->Controller;
 
 	if (controller->IsConnected)
 	{
-		playerAcceleration = {};
-
 		if (controller->IsAnalog)
 		{
-			//NOTE: Use analog movement tuning
-			playerAcceleration = { controller->LeftStickAverageX , controller->LeftStickAverageY };
+			if (controller->LeftStickAverageX || controller->LeftStickAverageY)
+			{
+				//NOTE: Use analog movement tuning
+				playerAcceleration = { controller->LeftStickAverageX , controller->LeftStickAverageY };
+			}
 		}
 		else
 		{
@@ -333,11 +320,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			}
 		}
 
-		if (controller->Start.EndedDown)
-		{
-			gameMemory->IsInitialized = false;
-		}
-		if (controller->X.EndedDown)
+		if (keyboard->X.EndedDown || controller->X.EndedDown)
 		{
 			player->Low->Speed = 60.0f;
 		}
@@ -345,9 +328,23 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		{
 			player->Low->Speed = 30.0f;
 		}
-		if (controller->A.EndedDown && player->High->dZ == 0)
+
+		if ((keyboard->A.EndedDown || controller->A.EndedDown) && player->High->Z == 0.0f)
 		{
 			player->High->dZ = 3.0f;
+		}
+
+		if (controller->Start.EndedDown)
+		{
+			gameMemory->IsInitialized = false;
+		}
+		if (keyboard->X.EndedDown || controller->X.EndedDown)
+		{
+			player->Low->Speed = 60.0f;
+		}
+		else
+		{
+			player->Low->Speed = 30.0f;
 		}
 	}
 
@@ -620,17 +617,17 @@ void DrawBitmap(LoadedBitmap* bitmap, ScreenBuffer* screenBuffer, r32 realX, r32
 			if (*source >> 24 > 124)
 			{
 				*dest = *source;
-			}
+		}
 #endif // 0
 
 
 			dest++;
 			source++;
-		}
+	}
 
 		destRow += screenBuffer->Pitch;
 		sourceRow -= bitmap->Width;
-	}
+}
 }
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* soundBuffer)
