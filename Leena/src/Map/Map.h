@@ -51,10 +51,6 @@ struct Map
 
 // TODO: Add function to load map from file and set its value
 void initializeMap(MemoryPool* pool, Map* map);
-b32 IsMapPointEmpty(Map* map, MapPosition position);
-TileValue GetTileValue(Map* map, u32 x, u32 y, u32 z);
-TileValue GetTileValue(Map* map, MapPosition position);
-void SetTileValue(Map* map, u32 tileX, u32 tileY, u32 tileZ, TileValue value);
 MapPosition MapIntoTileSpace(Map* map, MapPosition basePosition, V2 offset);
 void RecanonicalizeCoordinant(Map* map, i32* tile, r32* tileRelative);
 b32 AreOnSameTile(MapPosition position1, MapPosition position2);

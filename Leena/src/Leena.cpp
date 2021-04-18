@@ -201,8 +201,6 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 						}
 					}
 
-					SetTileValue(world->Map, absTileX, absTileY, absTileZ, tileValue);
-
 					if (tileValue == TileValue::Wall)
 					{
 						AddWall(gameState, GenerateCeneteredTiledPosition(absTileX, absTileY, absTileZ));
@@ -389,47 +387,6 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	V2 screenCenter = 0.5f * V2{ (r32)screenBuffer->Width, (r32)screenBuffer->Height };
 
 	DrawBitmap(&gameState->Background, screenBuffer, 0, 0);
-
-	for (i32 relRow = -10; relRow < 10; ++relRow)
-	{
-		for (i32 relColumn = -20; relColumn < 20; ++relColumn)
-		{
-			i32 column = gameState->CameraPosition.X + relColumn;
-			i32 row = gameState->CameraPosition.Y + relRow;
-			i32 floor = gameState->CameraPosition.Z;
-
-			TileValue tileValue = GetTileValue(map, column, row, floor);
-
-			if (tileValue != TileValue::Invalid && tileValue != TileValue::Empty)
-			{
-				r32 colour = 0.5f;
-
-				if (tileValue == TileValue::Wall)
-				{
-					colour = 1.0f;
-				}
-
-				if (tileValue > TileValue::Wall)
-				{
-					colour = 0.25f;
-				}
-
-				if ((column == gameState->CameraPosition.X) && (row == gameState->CameraPosition.Y))
-				{
-					colour = 0;
-				}
-
-				V2 center = { (screenCenter.X - metersToPixels * gameState->CameraPosition.Offset.X) + ((r32)relColumn) * tileSideInPixels, (screenCenter.Y + metersToPixels * gameState->CameraPosition.Offset.Y) - ((r32)relRow) * tileSideInPixels };
-
-				V2 halfTileSide = { 0.5f * tileSideInPixels , 0.5f * tileSideInPixels };
-
-				V2 min = center - halfTileSide;
-				V2 max = center + halfTileSide;
-
-				DrawRectangle(screenBuffer, min, max, { colour, colour, colour });
-			}
-		}
-	}
 
 	// Render Entities
 	for (u8 highEntityIndex = 1; highEntityIndex <= gameState->HighEntitiesCount; highEntityIndex++)

@@ -9,7 +9,7 @@
 #include "RandomNumbers.h"
 #include "Memory/Memory.h"
 #include "Utilities/Intrinsics.h"
-#include "Map/TileMap.h"
+#include "Map/Map.h"
 
 // Functions provided for the platform layer
 DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory, ScreenBuffer* gameScreenBuffer, GameInput* input);

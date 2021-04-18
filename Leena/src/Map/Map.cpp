@@ -1,4 +1,4 @@
-#include "TileMap.h"
+#include "Map.h"
 
 void initializeMap(MemoryPool* pool, Map* map)
 {
@@ -41,46 +41,6 @@ MapPosition MapIntoTileSpace(Map* map, MapPosition basePosition, V2 offset)
 	RecanonicalizeCoordinant(map, &result.Y, &result.Offset.Y);
 
 	return result;
-}
-
-TileValue GetTileValue(Map* map, u32 x, u32 y, u32 z)
-{
-	TileValue tileValue = TileValue::Invalid;
-
-	if ((x >= 0) && (x < map->TileCountX) &&
-		(y >= 0) && (y < map->TileCountY) &&
-		(z >= 0) && (z < map->TileCountZ))
-	{
-		tileValue = map->Tiles[(z * map->TileCountY * map->TileCountX) + (y * map->TileCountX) + x];
-	}
-
-	return tileValue;
-}
-
-TileValue GetTileValue(Map* map, MapPosition position)
-{
-	TileValue tileValue = GetTileValue(map, position.X, position.Y, position.Z);
-
-	return tileValue;
-}
-
-b32 IsMapPointEmpty(Map* map, MapPosition position)
-{
-	TileValue tileValue = GetTileValue(map, position.X, position.Y, position.Z);
-
-	i32 isEmpty = IsTileValueEmpty(tileValue);
-
-	return isEmpty;
-}
-
-void SetTileValue(Map* map, u32 x, u32 y, u32 z, TileValue value)
-{
-	if ((x >= 0) && (x < map->TileCountX) &&
-		(y >= 0) && (y < map->TileCountY) &&
-		(z >= 0) && (z < map->TileCountZ))
-	{
-		map->Tiles[(z * map->TileCountY * map->TileCountX) + (y * map->TileCountX) + x] = value;
-	}
 }
 
 b32 AreOnSameTile(MapPosition position1, MapPosition position2)
