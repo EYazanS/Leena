@@ -885,12 +885,13 @@ void InitializePlayer(GameState* state)
 
 u32 AddLowEntity(GameState* gameState, EntityType type)
 {
-	Assert(gameState->LowEntitiesCount < ArrayCount(gameState->LowEntities));
-	u32 entityIndex = gameState->LowEntitiesCount++;
-
-	gameState->LowEntities[entityIndex] = {};
-	gameState->LowEntities[entityIndex].Type = type;
-
+	u32 entityIndex = 0;
+	if (gameState->LowEntitiesCount < ArrayCount(gameState->LowEntities))
+	{
+		entityIndex = gameState->LowEntitiesCount++;
+		gameState->LowEntities[entityIndex] = {};
+		gameState->LowEntities[entityIndex].Type = type;
+	}
 	return entityIndex;
 }
 
