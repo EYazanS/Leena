@@ -41,13 +41,6 @@ struct PlayerBitMap
 	i32 AlignY;
 };
 
-enum class EntityResidence
-{
-	NoneExistent,
-	Low,
-	High
-};
-
 enum class EntityType
 {
 	Null,
@@ -61,26 +54,31 @@ struct HighEntity
 	V2 Velocity;
 	i32 PositionZ;
 
-	r32 Speed;
 	u32 FacingDirection;
 
 	r32 Z;
 	r32 dZ;
+
+	u32 LowEntityIndex;
 };
 
 struct LowEntity
 {
-	MapPosition Position;
 	EntityType Type;
+	MapPosition Position;
 	r32 Width, Height;
+	r32 Speed;
 	b32 Collides;
+
 	// This is for vertical change, aka stairs
 	i32 TileZ;
+
+	u32 HighEntityIndex;
 };
 
 struct Entity
 {
-	EntityResidence Residence;
+	u32 LowEntityIndex;
 	LowEntity* Low;
 	HighEntity* High;
 };
@@ -91,11 +89,11 @@ struct GameState
 
 	MapPosition CameraPosition;
 
-	u32 EntitiesCount;
+	u32 LowEntitiesCount;
+	u32 HighEntitiesCount;
 
-	EntityResidence EntityResidence[256];
 	HighEntity HighEntities[256];
-	LowEntity LowEntities[256];
+	LowEntity LowEntities[4096];
 
 	Entity PlayerEntity;
 
@@ -105,33 +103,50 @@ struct GameState
 	World* World;
 };
 
-void ChangeEntityResidence(GameState* gameState, u32 entityIndex, EntityResidence state);
+void MakeEntityLowFreq(GameState* gameState, u32 index);
+void MakeEntityHighFreq(GameState* gameState, u32 entityIndex);
 
-inline EntityResidence GetCurrentEntityState(GameState* gameState, u32 index)
+inline LowEntity* GetLowEntity(GameState* gameState, u32 index)
 {
-	EntityResidence reuslt = EntityResidence::NoneExistent;
-	reuslt = gameState->EntityResidence[index];
-	return reuslt;
-}
+	LowEntity* result = nullptr;
 
-inline Entity GetEntity(GameState* gameState, u32 index, EntityResidence state)
-{
-	Entity result = {};
-
-	if (index > 0 && (index < gameState->EntitiesCount))
+	if (index > 0 && index < gameState->LowEntitiesCount)
 	{
-		if (GetCurrentEntityState(gameState, index) < state)
-		{
-			ChangeEntityResidence(gameState, index, state);
-			Assert(gameState->EntityResidence[index] >= state);
-		}
-
-		result.Residence = state;
-		result.Low = &gameState->LowEntities[index];
-		result.High = &gameState->HighEntities[index];
+		result = gameState->LowEntities + index;
 	}
 
 	return result;
+}
+
+inline HighEntity* GetHighEntity(GameState* gameState, u32 index)
+{
+	HighEntity* result = nullptr;
+
+	if (index > 0 && index < gameState->HighEntitiesCount)
+	{
+		result = gameState->HighEntities + index;
+	}
+
+	return result;
+}
+
+inline void OffsetAndCheckFrequencyByArea(GameState* gameState, V2 offset, R2 cameraBounds)
+{
+	for (u32 highEntityIndex = 1; highEntityIndex < gameState->HighEntitiesCount; )
+	{
+		HighEntity* highEntity = gameState->HighEntities + highEntityIndex;
+
+		highEntity->Position += offset;
+
+		if (IsInRect(cameraBounds, highEntity->Position))
+		{
+			highEntityIndex++;
+		}
+		else
+		{
+			MakeEntityLowFreq(gameState, highEntity->LowEntityIndex);
+		}
+	}
 }
 
 #define LeenaH
