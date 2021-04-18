@@ -93,7 +93,7 @@ struct GameState
 	u32 HighEntitiesCount;
 
 	HighEntity HighEntities[256];
-	LowEntity LowEntities[4096];
+	LowEntity LowEntities[100000];
 
 	Entity PlayerEntity;
 
@@ -130,7 +130,7 @@ inline HighEntity* GetHighEntity(GameState* gameState, u32 index)
 	return result;
 }
 
-inline void OffsetAndCheckFrequencyByArea(GameState* gameState, V2 offset, R2 cameraBounds)
+inline void OffsetAndCheckFrequencyByArea(GameState* gameState, V2 offset, R2 highFreqBounds)
 {
 	for (u32 highEntityIndex = 1; highEntityIndex < gameState->HighEntitiesCount; )
 	{
@@ -138,7 +138,7 @@ inline void OffsetAndCheckFrequencyByArea(GameState* gameState, V2 offset, R2 ca
 
 		highEntity->Position += offset;
 
-		if (IsInRect(cameraBounds, highEntity->Position))
+		if (IsInRect(highFreqBounds, highEntity->Position))
 		{
 			highEntityIndex++;
 		}
