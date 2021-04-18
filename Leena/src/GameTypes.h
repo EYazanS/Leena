@@ -37,7 +37,8 @@ typedef double r64;
 
 #if Leena_Speed
 #define Assert(Expression)
+#define InvalidCodePath
 #else
-#define Assert(Expression) \
-	if (!(Expression)) { *(int*)0 = 0; }
+#define Assert(Expression) if (!(Expression)) { *(int*)0 = 0; }
+#define InvalidCodePath Assert(!"InvalidCodePath")
 #endif // Leena_Speed
