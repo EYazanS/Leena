@@ -8,7 +8,7 @@ void initializeMap(MemoryPool* pool, Map* map)
 		map->TileCountY = 5000;
 		map->TileCountZ = 3;
 		u32 tileCount = map->TileCountX * map->TileCountY * map->TileCountZ;
-		map->Tiles = PushArray(pool, tileCount, TileValue);
+
 		map->TileSideInMeters = 1.4f;
 	}
 }

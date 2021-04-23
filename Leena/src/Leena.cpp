@@ -166,42 +166,42 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 					u32 absTileX = screenX * tilesPerWidth + tileX;
 					u32 absTileY = screenY * tilesPerHeight + tileY;
 
-					TileValue tileValue = TileValue::Empty;
+					u32 tileValue = 1;
 
 					if (tileX == 0 && (!doorLeft || (tileY != (tilesPerHeight / 2))))
 					{
-						tileValue = TileValue::Wall;
+						tileValue = 2;
 					}
 
 					if ((tileX == (tilesPerWidth - 1)) && (!doorRight || (tileY != (tilesPerHeight / 2))))
 					{
-						tileValue = TileValue::Wall;
+						tileValue = 2;
 					}
 
 					if (tileY == 0 && (!doorBottom || (tileX != (tilesPerWidth / 2))))
 					{
-						tileValue = TileValue::Wall;
+						tileValue = 2;
 					}
 
 					if ((tileY == (tilesPerHeight - 1)) && (!doorTop || (tileX != (tilesPerWidth / 2))))
 					{
-						tileValue = TileValue::Wall;
+						tileValue = 2;
 					}
 
 					if (tileX == 10 && tileY == 6)
 					{
 						if (doorUp)
 						{
-							tileValue = TileValue::DoorUp;
+							tileValue = 2;
 						}
 
 						if (doorDown)
 						{
-							tileValue = TileValue::DoorDown;
+							tileValue = 2;
 						}
 					}
 
-					if (tileValue == TileValue::Wall)
+					if (tileValue == 2)
 					{
 						AddWall(gameState, GenerateCeneteredTiledPosition(absTileX, absTileY, absTileZ));
 					}

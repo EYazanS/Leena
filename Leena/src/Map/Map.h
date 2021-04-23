@@ -6,16 +6,6 @@
 #include "Memory/Memory.h"
 #include "Math/Math.h"
 
-enum class TileValue
-{
-	Invalid = 0,
-	Empty = 1,
-	Wall = 2,
-	Water = 3,
-	DoorUp = 4,
-	DoorDown = 5
-};
-
 struct MapPositionDifference
 {
 	V2 DXY;
@@ -33,9 +23,23 @@ struct MapPosition
 	V2 Offset;
 };
 
+struct WorldEntity
+{
+	u32 LowEntityIndex;
+	MapPosition Position;
+};
+
+struct PositionChunks
+{
+	u32 EntitiesCount;
+	WorldEntity Entities[30];
+	PositionChunks* Next;
+};
+
 struct Map
 {
-	TileValue* Tiles;
+	// We should see how many we can fit into world as one
+	PositionChunks FirstChunkOfEntities;
 
 	// How many tiles we have in each direction
 	// it's unsinged so it's always positive
@@ -69,15 +73,6 @@ inline MapPositionDifference CalculatePositionDifference(Map* map, MapPosition* 
 	return result;
 }
 
-inline b32 IsTileValueEmpty(TileValue tileValue)
-{
-	b32 result = {};
-
-	result = tileValue == TileValue::Empty || tileValue == TileValue::DoorUp || tileValue == TileValue::DoorDown;
-
-	return result;
-}
-
 inline MapPosition GenerateCeneteredTiledPosition(i32 x, i32 y, i32 z)
 {
 	MapPosition result = {};
@@ -85,4 +80,41 @@ inline MapPosition GenerateCeneteredTiledPosition(i32 x, i32 y, i32 z)
 	result = MapPosition{ x, y, z };
 
 	return result;
+}
+
+inline b32 AreOnSameLocation(MapPosition* oldPosition, MapPosition* newPosition)
+{
+	b32 result = 0;
+
+	return result;
+}
+
+inline void ChangeEntityLocation(MemoryPool* pool, Map* map, u32 index, MapPosition* oldPosition, MapPosition* newPosition)
+{
+	if (!oldPosition || !AreOnSameLocation(oldPosition, newPosition))
+	{
+		if (oldPosition)
+		{
+
+		}
+
+		// Insert entity into its new position
+
+		PositionChunks chunk = map->FirstChunkOfEntities;
+
+		u32 newIndex = chunk.EntitiesCount + 1;
+
+		if (chunk.EntitiesCount == ArrayCount(chunk.Entities))
+		{
+			PositionChunks* oldChunk = PushSize(pool, PositionChunks);
+			*oldChunk = chunk;
+			chunk.Next = oldChunk;
+			chunk.EntitiesCount = 0;
+		}
+
+		chunk.Entities[newIndex].LowEntityIndex = index;
+		chunk.Entities[newIndex].Position = *newPosition;
+
+		chunk.EntitiesCount = newIndex;
+	}
 }
