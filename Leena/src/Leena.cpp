@@ -10,11 +10,11 @@ void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer*
 AudioBuffer* ReadAudioBufferData(void* memory);
 
 void InitializePlayer(GameState* state);
-void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration);
+void MoveEntity(GameMemory* gameMemory, World* world, GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration);
 u32 AddLowEntity(GameState* gameState, EntityType type);
 b32 TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r32 minY, r32 maxY);
-u32 AddWall(GameState* gameState, MapPosition position);
-void SetCamera(GameState* gameState, MapPosition newPosition);
+u32 AddWall(GameState* gameState, WorldPosition position);
+void SetCamera(GameState* gameState, WorldPosition newPosition);
 
 // To pack the struct tightly and prevent combiler from 
 // aligning the fields 
@@ -54,12 +54,10 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		InitilizePool(&gameState->WorldMemoryPool, gameMemory->PermanentStorageSize - sizeof(GameState), (u8*)gameMemory->PermanentStorage + sizeof(GameState));
 
 		gameState->World = PushSize(&gameState->WorldMemoryPool, World);
+
 		World* world = gameState->World;
-		world->Map = PushSize(&gameState->WorldMemoryPool, Map);
 
-		Map* map = world->Map;
-
-		initializeMap(&gameState->WorldMemoryPool, map);
+		initializeWorld(world);
 
 		gameState->Background = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_background.bmp");
 
@@ -103,7 +101,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 		InitializePlayer(gameState);
 
-		MapPosition cameraPosition = { 17 / 2, 9 / 2, 0 };
+		WorldPosition cameraPosition = { 17 / 2, 9 / 2, 0 };
 		SetCamera(gameState, cameraPosition);
 
 		u32 sandomNumberIndex = 0;
@@ -252,7 +250,6 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	}
 
 	World* world = gameState->World;
-	Map* map = gameState->World->Map;
 	Entity* player = &gameState->PlayerEntity;
 
 	//
@@ -319,33 +316,33 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 				playerAcceleration.X = -1.0f;
 			}
 		}
+	}
 
-		if (keyboard->X.EndedDown || controller->X.EndedDown)
-		{
-			player->Low->Speed = 60.0f;
-		}
-		else
-		{
-			player->Low->Speed = 30.0f;
-		}
+	if (keyboard->X.EndedDown || controller->X.EndedDown)
+	{
+		player->Low->Speed = 60.0f;
+	}
+	else
+	{
+		player->Low->Speed = 30.0f;
+	}
 
-		if ((keyboard->A.EndedDown || controller->A.EndedDown) && player->High->Z == 0.0f)
-		{
-			player->High->dZ = 3.0f;
-		}
+	if ((keyboard->A.EndedDown || controller->A.EndedDown) && player->High->Z == 0.0f)
+	{
+		player->High->dZ = 3.0f;
+	}
 
-		if (controller->Start.EndedDown)
-		{
-			gameMemory->IsInitialized = false;
-		}
-		if (keyboard->X.EndedDown || controller->X.EndedDown)
-		{
-			player->Low->Speed = 60.0f;
-		}
-		else
-		{
-			player->Low->Speed = 30.0f;
-		}
+	if (controller->Start.EndedDown)
+	{
+		gameMemory->IsInitialized = false;
+	}
+	if (keyboard->X.EndedDown || controller->X.EndedDown)
+	{
+		player->Low->Speed = 60.0f;
+	}
+	else
+	{
+		player->Low->Speed = 30.0f;
 	}
 
 	for (u32 highEntityIndex = 1; highEntityIndex < gameState->HighEntitiesCount; highEntityIndex++)
@@ -358,14 +355,14 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 		if (entity.Low->Type == EntityType::Player)
 		{
-			MoveEntity(gameMemory, map, gameState, entity, (r32)input->TimeToAdvance, playerAcceleration);
+			MoveEntity(gameMemory, world, gameState, entity, (r32)input->TimeToAdvance, playerAcceleration);
 		}
 	}
 
 	// Smooth scrolling for the camera
 	Entity* playerEntity = &gameState->PlayerEntity;
 
-	MapPosition NewCameraP = gameState->CameraPosition;
+	WorldPosition NewCameraP = gameState->CameraPosition;
 
 	// Smooth camera
 	NewCameraP.X = playerEntity->Low->Position.X;
@@ -379,7 +376,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	// Draw New game status
 	//
 	i32 tileSideInPixels = 60;
-	r32 metersToPixels = (r32)tileSideInPixels / (r32)map->TileSideInMeters;
+	r32 metersToPixels = (r32)tileSideInPixels / (r32)world->TileSideInMeters;
 
 	V2 screenCenter = 0.5f * V2{ (r32)screenBuffer->Width, (r32)screenBuffer->Height };
 
@@ -678,7 +675,7 @@ AudioBuffer* ReadAudioBufferData(void* memory)
 	return result;
 }
 
-void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration)
+void MoveEntity(GameMemory* gameMemory, World* world, GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration)
 {
 	// In Meters
 	V2 oldPlayerPosition = entity.High->Position;
@@ -814,7 +811,7 @@ void MoveEntity(GameMemory* gameMemory, Map* map, GameState* gameState, Entity e
 		}
 	}
 
-	entity.Low->Position = MapIntoTileSpace(map, gameState->CameraPosition, entity.High->Position);
+	entity.Low->Position = MapIntoWorldSpace(world, gameState->CameraPosition, entity.High->Position);
 }
 
 void InitializePlayer(GameState* state)
@@ -849,7 +846,7 @@ u32 AddLowEntity(GameState* gameState, EntityType type)
 	return entityIndex;
 }
 
-u32 AddWall(GameState* gameState, MapPosition position)
+u32 AddWall(GameState* gameState, WorldPosition position)
 {
 	u32 entityIndex = AddLowEntity(gameState, EntityType::Wall);
 
@@ -859,7 +856,7 @@ u32 AddWall(GameState* gameState, MapPosition position)
 	entity->Position = position;
 
 	entity->Collides = true;
-	entity->Height = gameState->World->Map->TileSideInMeters;
+	entity->Height = gameState->World->TileSideInMeters;
 	entity->Width = entity->Height;
 
 	return entityIndex;
@@ -876,9 +873,9 @@ void MakeEntityHighFreq(GameState* gameState, u32 index)
 			u32 highEntityIndex = gameState->HighEntitiesCount++;
 			HighEntity* highEntity = &gameState->HighEntities[highEntityIndex];
 
-			MapPositionDifference Diff = CalculatePositionDifference(gameState->World->Map, &lowEntity->Position, &gameState->CameraPosition);
+			WorldPositionDifference diff = CalculatePositionDifference(gameState->World, &lowEntity->Position, &gameState->CameraPosition);
 
-			highEntity->Position = Diff.DXY;
+			highEntity->Position = diff.DXY;
 			highEntity->Velocity = V2{ 0, 0 };
 			highEntity->PositionZ = lowEntity->Position.Z;
 			highEntity->FacingDirection = 0;
@@ -915,11 +912,11 @@ void MakeEntityLowFreq(GameState* gameState, u32 index)
 	}
 }
 
-void SetCamera(GameState* gameState, MapPosition newPosition)
+void SetCamera(GameState* gameState, WorldPosition newPosition)
 {
-	Map* map = gameState->World->Map;
+	World* world = gameState->World;
 
-	MapPositionDifference dCamera = CalculatePositionDifference(map, &newPosition, &gameState->CameraPosition);
+	WorldPositionDifference dCamera = CalculatePositionDifference(world, &newPosition, &gameState->CameraPosition);
 	gameState->CameraPosition = newPosition;
 
 	// Its negative so everything is move against the camera, now with the camera.
@@ -929,7 +926,7 @@ void SetCamera(GameState* gameState, MapPosition newPosition)
 	r32 tileSpanX = 17.0f * 3.0f;
 	r32 tileSpanY = 9.0f * 3.0f;
 
-	R2 cameraBounds = RectCenterHalfDim(V2{ 0, 0 }, map->TileSideInMeters * V2{ tileSpanX, tileSpanY });
+	R2 cameraBounds = RectCenterHalfDim(V2{ 0, 0 }, world->TileSideInMeters * V2{ tileSpanX, tileSpanY });
 
 	OffsetAndCheckFrequencyByArea(gameState, entityOffsetForFrame, cameraBounds);
 

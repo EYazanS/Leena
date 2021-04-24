@@ -26,7 +26,7 @@
     <ClInclude Include="src\GameStructs.h" />
     <ClInclude Include="src\GameTypes.h" />
     <ClInclude Include="src\Leena.h" />
-    <ClInclude Include="src\Map\Map.h" />
+    <ClInclude Include="src\World\World.h" />
     <ClInclude Include="src\Math\Math.h" />
     <ClInclude Include="src\Math\Vector2d.h" />
     <ClInclude Include="src\Math\Vector3d.h" />
@@ -36,11 +36,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Leena.cpp" />
-    <ClCompile Include="src\Map\Map.cpp" />
+    <ClCompile Include="src\World\World.cpp" />
     <ClCompile Include="src\Memory\Memory.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\Map\Map.md" />
+    <None Include="src\World\World.md" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

@@ -35,7 +35,7 @@
     <ClInclude Include="src\Utilities\Intrinsics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Map\Map.h">
+    <ClInclude Include="src\World\World.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\RandomNumbers.h">
@@ -58,7 +58,7 @@
     <ClCompile Include="src\Leena.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Map\Map.cpp">
+    <ClCompile Include="src\World\World.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Memory\Memory.cpp">
@@ -66,6 +66,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\Map\Map.md" />
+    <None Include="src\World\World.md" />
   </ItemGroup>
 </Project>

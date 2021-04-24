@@ -9,7 +9,7 @@
 #include "RandomNumbers.h"
 #include "Memory/Memory.h"
 #include "Utilities/Intrinsics.h"
-#include "Map/Map.h"
+#include "World/World.h"
 
 // Functions provided for the platform layer
 DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory, ScreenBuffer* gameScreenBuffer, GameInput* input);
@@ -17,11 +17,6 @@ DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, Au
 
 #define Minimum(a, b) ((a < b) ? a : b)
 #define Maximum(a, b) ((a > b) ? a : b)
-
-struct World
-{
-	Map* Map;
-};
 
 struct LoadedBitmap
 {
@@ -65,7 +60,7 @@ struct HighEntity
 struct LowEntity
 {
 	EntityType Type;
-	MapPosition Position;
+	WorldPosition Position;
 	r32 Width, Height;
 	r32 Speed;
 	b32 Collides;
@@ -87,7 +82,7 @@ struct GameState
 {
 	MemoryPool WorldMemoryPool;
 
-	MapPosition CameraPosition;
+	WorldPosition CameraPosition;
 
 	u32 LowEntitiesCount;
 	u32 HighEntitiesCount;
