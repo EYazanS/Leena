@@ -31,9 +31,9 @@ WorldChunk GetChunkPosition(World* world, u32 x, u32 y, u32 z)
 /// <summary>
 /// Recalculate where the position should be for the new coordinat, either X or Y side
 /// </summary>
-/// <param name="map">current map to recalculate for</param>
-/// <param name="tile">the current tile that will be recalculated</param>
-/// <param name="tileRelative">Where relatively are we to the tile</param>
+/// <param name="world">current world to recalculate for</param>
+/// <param name="coordinate">the current coordinate that will be recalculated</param>
+/// <param name="tileRelative">Where relatively are we to the coordinate</param>
 void RecanonicalizeCoordinant(World* world, i32* coordinate, r32* coordRelative)
 {
 	// Map is toroidal, so it can wrap

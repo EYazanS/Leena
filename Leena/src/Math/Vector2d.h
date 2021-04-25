@@ -127,6 +127,13 @@ inline R2 RectCenterHalfDim(V2 center, V2 halfDim)
 	return rect;
 }
 
+inline R2 RectCenterDim(V2 center, V2 dim)
+{
+	R2 result = RectCenterHalfDim(center, 0.5f * dim);
+
+	return result;
+}
+
 inline b32 IsInRect(R2 rectangle, V2 test)
 {
 	b32 result = ((test.X >= rectangle.Min.X) &&

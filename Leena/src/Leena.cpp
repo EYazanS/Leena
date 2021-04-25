@@ -115,7 +115,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		b32 doorLeft = false;
 		b32 doorRight = false;
 		b32 doorTop = false;
-		b32 doorBottom = false;
+		b32 doorBottom = false; 
 		b32 doorUp = false;
 		b32 doorDown = false;
 
@@ -383,7 +383,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	DrawBitmap(&gameState->Background, screenBuffer, 0, 0);
 
 	// Render Entities
-	for (u8 highEntityIndex = 1; highEntityIndex <= gameState->HighEntitiesCount; highEntityIndex++)
+	for (u32 highEntityIndex = 1; highEntityIndex <= gameState->HighEntitiesCount; highEntityIndex++)
 	{
 		HighEntity* highEntity = gameState->HighEntities + highEntityIndex;
 		LowEntity* lowEntity = gameState->LowEntities + highEntity->LowEntityIndex;
@@ -614,17 +614,17 @@ void DrawBitmap(LoadedBitmap* bitmap, ScreenBuffer* screenBuffer, r32 realX, r32
 			if (*source >> 24 > 124)
 			{
 				*dest = *source;
-		}
+			}
 #endif // 0
 
 
 			dest++;
 			source++;
-	}
+		}
 
 		destRow += screenBuffer->Pitch;
 		sourceRow -= bitmap->Width;
-}
+	}
 }
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* soundBuffer)
@@ -899,15 +899,16 @@ void MakeEntityLowFreq(GameState* gameState, u32 index)
 	{
 		u32 lastHighEntityIndex = gameState->HighEntitiesCount - 1;
 
-		if (highEntityIndex != gameState->HighEntitiesCount)
+		if (highEntityIndex != lastHighEntityIndex)
 		{
 			HighEntity* lastHighEntity = gameState->HighEntities + lastHighEntityIndex;
 			HighEntity* deletedEntity = gameState->HighEntities + highEntityIndex;
-			deletedEntity = lastHighEntity;
+
+			*deletedEntity = *lastHighEntity;
 			gameState->LowEntities[lastHighEntity->LowEntityIndex].HighEntityIndex = highEntityIndex;
 		}
 
-		gameState->HighEntitiesCount--;
+		--gameState->HighEntitiesCount;
 		lowEntity->HighEntityIndex = 0;
 	}
 }
@@ -926,7 +927,7 @@ void SetCamera(GameState* gameState, WorldPosition newPosition)
 	r32 tileSpanX = 17.0f * 3.0f;
 	r32 tileSpanY = 9.0f * 3.0f;
 
-	R2 cameraBounds = RectCenterHalfDim(V2{ 0, 0 }, world->TileSideInMeters * V2{ tileSpanX, tileSpanY });
+	R2 cameraBounds = RectCenterDim(V2{ 0, 0 }, world->TileSideInMeters * V2{ tileSpanX, tileSpanY });
 
 	OffsetAndCheckFrequencyByArea(gameState, entityOffsetForFrame, cameraBounds);
 
