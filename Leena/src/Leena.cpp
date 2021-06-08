@@ -99,7 +99,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		// 0 is reseved as a null entity
 		gameState->HighEntitiesCount = 1;
 
-		WorldPosition cameraPosition = { 9, 7, 0 };
+		WorldPosition cameraPosition = { 0, 0, 0, { 2, 2 } };
 		SetCamera(gameState, cameraPosition);
 
 		InitializePlayer(gameState);
@@ -360,11 +360,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	}
 
 	// Smooth scrolling for the camera
-	Entity* playerEntity = &gameState->PlayerEntity;
-
-	WorldPosition NewCameraP = gameState->CameraPosition;
-
-	NewCameraP = ChunkPositionFromWorldPosition(world, playerEntity->Low->Position.X, playerEntity->Low->Position.Y, 0);
+	WorldPosition NewCameraP = gameState->PlayerEntity.Low->Position;
 
 	SetCamera(gameState, NewCameraP);
 
@@ -378,6 +374,8 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 	DrawBitmap(&gameState->Background, screenBuffer, 0, 0);
 
+	int rendered = 0;
+	int renderedA[10];
 	// Render Entities
 	for (u32 highEntityIndex = 1; highEntityIndex <= gameState->HighEntitiesCount; highEntityIndex++)
 	{
@@ -411,7 +409,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		if (lowEntity->Type == EntityType::Player)
 		{
 			PlayerBitMap* playerFacingDirectionMap = &gameState->BitMaps[highEntity->FacingDirection];
-
+			renderedA[rendered++] = highEntityIndex;
 			DrawBitmap(&playerFacingDirectionMap->Head, screenBuffer, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
 			DrawBitmap(&playerFacingDirectionMap->Cape, screenBuffer, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
 			DrawBitmap(&playerFacingDirectionMap->Torso, screenBuffer, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
@@ -424,6 +422,11 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 			DrawRectangle(screenBuffer, entityLeftTop, entityLeftTop + entityDim, { playerR, playerG, playerB });
 		}
+	}
+
+	if (rendered > 1)
+	{
+		int a = 2;
 	}
 }
 
@@ -979,15 +982,17 @@ void SetCamera(GameState* gameState, WorldPosition newPosition)
 				{
 					for (u32 entityIndex = 0; entityIndex < block->EntitiesCount; entityIndex++)
 					{
-						LowEntity* entity = gameState->LowEntities + block->LowEntitiyIndex[entityIndex];
+						u32 lowEntityIndex = block->LowEntitiyIndex[entityIndex];
 
-						V2 cameraSpaceP = GetCameraSpacePosition(gameState, entity);
+						LowEntity* entity = gameState->LowEntities + lowEntityIndex;
 
 						if (!entity->HighEntityIndex)
 						{
+							V2 cameraSpaceP = GetCameraSpacePosition(gameState, entity);
+
 							if (IsInRect(cameraBounds, cameraSpaceP))
 							{
-								MakeEntityHighFreq(gameState, entity, entityIndex, cameraSpaceP);
+								MakeEntityHighFreq(gameState, entity, lowEntityIndex, cameraSpaceP);
 							}
 						}
 					}

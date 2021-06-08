@@ -8,6 +8,7 @@
 
 #define ChunkSafeMargin 16
 #define TilesPerChunk 16
+#define TILE_CHUNK_UNINITIALIZED INT32_MAX
 
 struct WorldPositionDifference
 {
@@ -119,52 +120,52 @@ inline b32 AreOnSameLocation(World* world, WorldPosition* oldPosition, WorldPosi
 	return result;
 }
 
-inline WorldChunk* GetWorldChunk(World* world, u32 x, u32 y, u32 z, MemoryPool* pool = 0)
+inline WorldChunk* GetWorldChunk(World* world, u32 ChunkX, u32 ChunkY, u32 ChunkZ, MemoryPool* pool = 0)
 {
 	//Assert(x > ChunkSafeMargin);
 	//Assert(z > ChunkSafeMargin);
 	//Assert(y > ChunkSafeMargin);
 
-	//Assert(x < (UINT32_MAX - ChunkSafeMargin));
-	//Assert(z < (UINT32_MAX - ChunkSafeMargin));
-	//Assert(y < (UINT32_MAX - ChunkSafeMargin));
+	//Assert(x < (u32_MAX - ChunkSafeMargin));
+	//Assert(z < (u32_MAX - ChunkSafeMargin));
+	//Assert(y < (u32_MAX - ChunkSafeMargin));
 
 	// TODO: Better hash function!
-	u32 hashValue = 16 * x + 7 * z + 3 * y;
-	u32 hashSlot = hashValue & (ArrayCount(world->TileChunkHash) - 1);
-	Assert(hashSlot < ArrayCount(world->TileChunkHash));
+	u32 HashValue = 19 * ChunkX + 7 * ChunkY + 3 * ChunkZ;
+	u32 HashSlot = HashValue & (ArrayCount(world->TileChunkHash) - 1);
+	Assert(HashSlot < ArrayCount(world->TileChunkHash));
 
-	WorldChunk* chunk = world->TileChunkHash + hashSlot;
-
+	WorldChunk* Chunk = world->TileChunkHash + HashSlot;
 	do
 	{
-		if (chunk->X == x && chunk->Y == y && chunk->Z == z)
+		if ((ChunkX == Chunk->X) &&
+			(ChunkY == Chunk->Y) &&
+			(ChunkZ == Chunk->Z))
 		{
 			break;
 		}
 
-		if (pool && chunk->X != 0 && !chunk->NextInHash)
+		if (pool && (Chunk->X != TILE_CHUNK_UNINITIALIZED) && (!Chunk->NextInHash))
 		{
-			chunk->NextInHash = PushStruct(pool, WorldChunk);
-			chunk->X = 0;
-			chunk = chunk->NextInHash;
+			Chunk->NextInHash = PushStruct(pool, WorldChunk);
+			Chunk = Chunk->NextInHash;
+			Chunk->X = TILE_CHUNK_UNINITIALIZED;
 		}
 
-		if (pool && chunk->X == 0)
+		if (pool && (Chunk->X == TILE_CHUNK_UNINITIALIZED))
 		{
-			chunk->X = x;
-			chunk->Y = y;
-			chunk->Z = z;
+			Chunk->X = ChunkX;
+			Chunk->Y = ChunkY;
+			Chunk->Z = ChunkZ;
 
-			chunk->NextInHash = 0;
-
+			Chunk->NextInHash = 0;
 			break;
 		}
 
-		chunk = chunk->NextInHash;
-	} while (chunk);
+		Chunk = Chunk->NextInHash;
+	} while (Chunk);
 
-	return chunk;
+	return(Chunk);
 }
 
 inline void ChangeEntityLocation(MemoryPool* pool, World* world, u32 lowEntityIndex, WorldPosition* oldPosition, WorldPosition* newPosition)
