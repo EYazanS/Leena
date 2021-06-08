@@ -143,3 +143,24 @@ inline b32 IsInRect(R2 rectangle, V2 test)
 
 	return(result);
 }
+
+inline V2 GetMinCorner(R2 rectangle)
+{
+	V2 result = rectangle.Min;
+
+	return(result);
+}
+
+inline V2 GetMaxCorner(R2 rectangle)
+{
+	V2 result = rectangle.Max;
+
+	return(result);
+}
+
+inline V2 GetCenterCorner(R2 rectangle)
+{
+	V2 result = 0.5f * (rectangle.Min + rectangle.Max);
+
+	return(result);
+}

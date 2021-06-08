@@ -11,7 +11,7 @@ AudioBuffer* ReadAudioBufferData(void* memory);
 
 void InitializePlayer(GameState* state);
 void MoveEntity(GameMemory* gameMemory, World* world, GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration);
-u32 AddLowEntity(GameState* gameState, EntityType type);
+u32 AddLowEntity(GameState* gameState, EntityType type, WorldPosition* post);
 b32 TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r32 minY, r32 maxY);
 u32 AddWall(GameState* gameState, WorldPosition position);
 void SetCamera(GameState* gameState, WorldPosition newPosition);
@@ -51,9 +51,9 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 	if (!gameMemory->IsInitialized)
 	{
-		InitilizePool(&gameState->WorldMemoryPool, gameMemory->PermanentStorageSize - sizeof(GameState), (u8*)gameMemory->PermanentStorage + sizeof(GameState));
+		initializePool(&gameState->WorldMemoryPool, gameMemory->PermanentStorageSize - sizeof(GameState), (u8*)gameMemory->PermanentStorage + sizeof(GameState));
 
-		gameState->World = PushSize(&gameState->WorldMemoryPool, World);
+		gameState->World = PushStruct(&gameState->WorldMemoryPool, World);
 
 		World* world = gameState->World;
 
@@ -95,14 +95,14 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		playerBitMap->AlignX = 72;
 		playerBitMap->AlignY = 182;
 
-		AddLowEntity(gameState, EntityType::Null);
+		AddLowEntity(gameState, EntityType::Null, {});
 		// 0 is reseved as a null entity
 		gameState->HighEntitiesCount = 1;
 
-		InitializePlayer(gameState);
-
-		WorldPosition cameraPosition = { 17 / 2, 9 / 2, 0 };
+		WorldPosition cameraPosition = { 9, 7, 0 };
 		SetCamera(gameState, cameraPosition);
+
+		InitializePlayer(gameState);
 
 		u32 sandomNumberIndex = 0;
 
@@ -115,7 +115,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		b32 doorLeft = false;
 		b32 doorRight = false;
 		b32 doorTop = false;
-		b32 doorBottom = false; 
+		b32 doorBottom = false;
 		b32 doorUp = false;
 		b32 doorDown = false;
 
@@ -201,7 +201,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 					if (tileValue == 2)
 					{
-						AddWall(gameState, GenerateCeneteredTiledPosition(absTileX, absTileY, absTileZ));
+						AddWall(gameState, GenerateChunkTiledPosition(absTileX, absTileY, absTileZ));
 					}
 				}
 			}
@@ -364,11 +364,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 	WorldPosition NewCameraP = gameState->CameraPosition;
 
-	// Smooth camera
-	NewCameraP.X = playerEntity->Low->Position.X;
-	NewCameraP.Y = playerEntity->Low->Position.Y;
-	NewCameraP.Z = playerEntity->Low->Position.Z;
-	NewCameraP.Offset = playerEntity->Low->Position.Offset;
+	NewCameraP = ChunkPositionFromWorldPosition(world, playerEntity->Low->Position.X, playerEntity->Low->Position.Y, 0);
 
 	SetCamera(gameState, NewCameraP);
 
@@ -777,7 +773,9 @@ void MoveEntity(GameMemory* gameMemory, World* world, GameState* gameState, Enti
 
 			HighEntity* hitEntity = gameState->HighEntities + hitHighEntityIndex;
 			LowEntity* lowHitEntity = gameState->LowEntities + hitEntity->LowEntityIndex;
-			entity.High->PositionZ += lowHitEntity->TileZ;
+
+			// TODO: stairs
+			// entity.High->PositionZ += lowHitEntity->TileZ;
 		}
 		else
 		{
@@ -811,19 +809,19 @@ void MoveEntity(GameMemory* gameMemory, World* world, GameState* gameState, Enti
 		}
 	}
 
-	entity.Low->Position = MapIntoWorldSpace(world, gameState->CameraPosition, entity.High->Position);
+	WorldPosition newPosition = MapIntoChunkSpace(world, gameState->CameraPosition, entity.High->Position);
+	ChangeEntityLocation(&gameState->WorldMemoryPool, gameState->World, entity.LowEntityIndex, &entity.Low->Position, &newPosition);
+	entity.Low->Position = newPosition;
 }
 
 void InitializePlayer(GameState* state)
 {
-	u32 playerIndex = AddLowEntity(state, EntityType::Player);
+	u32 playerIndex = AddLowEntity(state, EntityType::Player, &state->CameraPosition);
 	state->PlayerEntity = { playerIndex , GetLowEntity(state, playerIndex) };
 
 	Entity* entity = &state->PlayerEntity;
 
 	// Order: X Y Z Offset
-	entity->Low->Position = { 2, 4, 0, { 0.0f, 0.0f } };
-
 	entity->Low->Collides = true;
 	entity->Low->Height = 1.0f;
 	entity->Low->Width = 0.75f;
@@ -834,27 +832,36 @@ void InitializePlayer(GameState* state)
 	entity->High = state->HighEntities + entity->Low->HighEntityIndex;
 }
 
-u32 AddLowEntity(GameState* gameState, EntityType type)
+u32 AddLowEntity(GameState* gameState, EntityType type, WorldPosition* position)
 {
 	u32 entityIndex = 0;
 	if (gameState->LowEntitiesCount < ArrayCount(gameState->LowEntities))
 	{
 		entityIndex = gameState->LowEntitiesCount++;
-		gameState->LowEntities[entityIndex] = {};
-		gameState->LowEntities[entityIndex].Type = type;
+
+		LowEntity* lowEnttiy = gameState->LowEntities + entityIndex;
+
+		*lowEnttiy = {};
+		(*lowEnttiy).Type = type;
+
+		if (position)
+		{
+			(*lowEnttiy).Position = *position;
+			ChangeEntityLocation(&gameState->WorldMemoryPool, gameState->World, entityIndex, 0, position);
+		}
 	}
 	return entityIndex;
 }
 
 u32 AddWall(GameState* gameState, WorldPosition position)
 {
-	u32 entityIndex = AddLowEntity(gameState, EntityType::Wall);
+	WorldPosition pos = ChunkPositionFromWorldPosition(gameState->World, position.X, position.Y, position.Z);
+
+	u32 entityIndex = AddLowEntity(gameState, EntityType::Wall, &pos);
 
 	LowEntity* entity = GetLowEntity(gameState, entityIndex);
 
 	// Order: X Y Z Offset
-	entity->Position = position;
-
 	entity->Collides = true;
 	entity->Height = gameState->World->TileSideInMeters;
 	entity->Width = entity->Height;
@@ -862,32 +869,58 @@ u32 AddWall(GameState* gameState, WorldPosition position)
 	return entityIndex;
 }
 
-void MakeEntityHighFreq(GameState* gameState, u32 index)
+inline V2 GetCameraSpacePosition(GameState* gameState, LowEntity* lowEntity)
 {
-	LowEntity* lowEntity = &gameState->LowEntities[index];
+	WorldPositionDifference diff = CalculatePositionDifference(gameState->World, &lowEntity->Position, &gameState->CameraPosition);
+	V2 resutlt = diff.DXY;
+	return resutlt;
+}
 
-	if (!lowEntity->HighEntityIndex)
+HighEntity* MakeEntityHighFreq(GameState* gameState, LowEntity* lowEntity, u32 index, V2 camerSpaceP)
+{
+	HighEntity* highEntity = 0;
+
+	Assert(!lowEntity->HighEntityIndex);
+
+	if (gameState->HighEntitiesCount < ArrayCount(gameState->HighEntities))
 	{
-		if (gameState->HighEntitiesCount < ArrayCount(gameState->HighEntities))
-		{
-			u32 highEntityIndex = gameState->HighEntitiesCount++;
-			HighEntity* highEntity = &gameState->HighEntities[highEntityIndex];
+		u32 highEntityIndex = gameState->HighEntitiesCount++;
+		highEntity = &gameState->HighEntities[highEntityIndex];
 
-			WorldPositionDifference diff = CalculatePositionDifference(gameState->World, &lowEntity->Position, &gameState->CameraPosition);
+		WorldPositionDifference diff = CalculatePositionDifference(gameState->World, &lowEntity->Position, &gameState->CameraPosition);
 
-			highEntity->Position = diff.DXY;
-			highEntity->Velocity = V2{ 0, 0 };
-			highEntity->PositionZ = lowEntity->Position.Z;
-			highEntity->FacingDirection = 0;
+		highEntity->Position = diff.DXY;
+		highEntity->Velocity = V2{ 0, 0 };
+		highEntity->PositionZ = lowEntity->Position.Z;
+		highEntity->FacingDirection = 0;
 
-			highEntity->LowEntityIndex = index;
-			lowEntity->HighEntityIndex = highEntityIndex;
-		}
-		else
-		{
-			InvalidCodePath;
-		}
+		highEntity->LowEntityIndex = index;
+		lowEntity->HighEntityIndex = highEntityIndex;
 	}
+	else
+	{
+		InvalidCodePath;
+	}
+
+	return highEntity;
+}
+
+HighEntity* MakeEntityHighFreq(GameState* gameState, u32 index)
+{
+	LowEntity* lowEntity = gameState->LowEntities + index;
+
+	HighEntity* highEntity = 0;
+
+	if (lowEntity->HighEntityIndex)
+	{
+		highEntity = gameState->HighEntities + lowEntity->HighEntityIndex;
+	}
+	else
+	{
+		highEntity = MakeEntityHighFreq(gameState, lowEntity, index, GetCameraSpacePosition(gameState, lowEntity));
+	}
+
+	return highEntity;
 }
 
 void MakeEntityLowFreq(GameState* gameState, u32 index)
@@ -927,29 +960,38 @@ void SetCamera(GameState* gameState, WorldPosition newPosition)
 	r32 tileSpanX = 17.0f * 3.0f;
 	r32 tileSpanY = 9.0f * 3.0f;
 
-	R2 cameraBounds = RectCenterDim(V2{ 0, 0 }, world->TileSideInMeters * V2{ tileSpanX, tileSpanY });
+	R2 cameraBounds = RectCenterDim(V2{ 0, 0 }, world->ChunkSideInMeters * V2{ tileSpanX, tileSpanY });
 
 	OffsetAndCheckFrequencyByArea(gameState, entityOffsetForFrame, cameraBounds);
 
-	r32 minTileX = newPosition.X - (tileSpanX / 2);
-	r32 minTileY = newPosition.Y - (tileSpanY / 2);
+	WorldPosition minChunkPos = MapIntoChunkSpace(world, newPosition, GetMinCorner(cameraBounds));
+	WorldPosition maxChunkPos = MapIntoChunkSpace(world, newPosition, GetMaxCorner(cameraBounds));
 
-	r32 maxTileX = newPosition.X + (tileSpanX / 2);
-	r32 maxTileY = newPosition.Y + (tileSpanY / 2);
-
-	for (u32 entityIndex = 1; entityIndex < gameState->LowEntitiesCount; entityIndex++)
+	for (i32 chunkY = minChunkPos.Y; chunkY <= maxChunkPos.Y; chunkY++)
 	{
-		LowEntity* entity = gameState->LowEntities + entityIndex;
-
-		if (!entity->HighEntityIndex)
+		for (i32 chunkX = minChunkPos.X; chunkX <= maxChunkPos.X; chunkX++)
 		{
-			if ((entity->Position.Z == newPosition.Z) &&
-				(entity->Position.X >= minTileX) &&
-				(entity->Position.X <= maxTileX) &&
-				(entity->Position.Y >= minTileY) &&
-				(entity->Position.Y <= maxTileY))
+			WorldChunk* chunk = GetWorldChunk(world, chunkX, chunkY, newPosition.Z);
+
+			if (chunk)
 			{
-				MakeEntityHighFreq(gameState, entityIndex);
+				for (EntityBlock* block = &chunk->FirstBlock; block; block = block->Next)
+				{
+					for (u32 entityIndex = 0; entityIndex < block->EntitiesCount; entityIndex++)
+					{
+						LowEntity* entity = gameState->LowEntities + block->LowEntitiyIndex[entityIndex];
+
+						V2 cameraSpaceP = GetCameraSpacePosition(gameState, entity);
+
+						if (!entity->HighEntityIndex)
+						{
+							if (IsInRect(cameraBounds, cameraSpaceP))
+							{
+								MakeEntityHighFreq(gameState, entity, entityIndex, cameraSpaceP);
+							}
+						}
+					}
+				}
 			}
 		}
 	}

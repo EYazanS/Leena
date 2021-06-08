@@ -99,7 +99,8 @@ struct GameState
 };
 
 void MakeEntityLowFreq(GameState* gameState, u32 index);
-void MakeEntityHighFreq(GameState* gameState, u32 entityIndex);
+HighEntity* MakeEntityHighFreq(GameState* gameState, u32 entityIndex);
+HighEntity* MakeEntityHighFreq(GameState* gameState, LowEntity* lowEntity, u32 index, V2 camerSpaceP);
 
 inline LowEntity* GetLowEntity(GameState* gameState, u32 index)
 {

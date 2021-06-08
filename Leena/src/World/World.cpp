@@ -4,28 +4,18 @@ void initializeWorld(World* world)
 {
 	if (world)
 	{
-		world->ChunkDim = 16;
 		world->TileSideInMeters = 1.4f;
+
+		world->ChunkSideInMeters = TilesPerChunk * world->TileSideInMeters;
+
+		world->FirstFreeBlock = 0;
 
 		for (u32 tileChunkIndex = 0; tileChunkIndex < ArrayCount(world->TileChunkHash); tileChunkIndex++)
 		{
 			world->TileChunkHash[tileChunkIndex].X = 0;
+			world->TileChunkHash[tileChunkIndex].FirstBlock.EntitiesCount = 0;
 		}
 	}
-}
-
-WorldChunk GetChunkPosition(World* world, u32 x, u32 y, u32 z)
-{
-	WorldChunk result = {};
-
-	result.X = x >> world->ChunkShift;
-	result.Y = y >> world->ChunkShift;
-	result.Z = z;
-
-	result.X = x >> world->ChunkShift;
-	result.Y = y >> world->ChunkShift;
-
-	return result;
 }
 
 /// <summary>
@@ -36,31 +26,22 @@ WorldChunk GetChunkPosition(World* world, u32 x, u32 y, u32 z)
 /// <param name="tileRelative">Where relatively are we to the coordinate</param>
 void RecanonicalizeCoordinant(World* world, i32* coordinate, r32* coordRelative)
 {
-	// Map is toroidal, so it can wrap
-
 	// Offset from the current tile center, if its above 1 then it means we moved one tile
-	i32 Offset = RoundReal32ToInt32(*coordRelative / world->TileSideInMeters);
+	i32 Offset = RoundReal32ToInt32(*coordRelative / world->ChunkSideInMeters);
 	*coordinate += Offset;
-	*coordRelative -= Offset * world->TileSideInMeters;
-
-	Assert(*coordRelative >= (-0.5f * world->TileSideInMeters));
-	Assert(*coordRelative <= (0.5f * world->TileSideInMeters));
+	*coordRelative -= Offset * world->ChunkSideInMeters;
+	
+	// Assert(IsCanonical(world, *coordRelative));
 }
 
-WorldPosition MapIntoWorldSpace(World* map, WorldPosition basePosition, V2 offset)
+WorldPosition MapIntoChunkSpace(World* world, WorldPosition basePosition, V2 offset)
 {
 	WorldPosition result = basePosition;
 	result.Offset += offset;
 
-	RecanonicalizeCoordinant(map, &result.X, &result.Offset.X);
-	RecanonicalizeCoordinant(map, &result.Y, &result.Offset.Y);
+	RecanonicalizeCoordinant(world, &result.X, &result.Offset.X);
+	RecanonicalizeCoordinant(world, &result.Y, &result.Offset.Y);
 
-	return result;
-}
-
-b32 AreOnSameTile(WorldPosition position1, WorldPosition position2)
-{
-	b32 result = position1.X == position2.X && position1.Y == position2.Y && position1.Z == position2.Z;
 
 	return result;
 }
