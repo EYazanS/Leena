@@ -374,8 +374,6 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 	DrawBitmap(&gameState->Background, screenBuffer, 0, 0);
 
-	int rendered = 0;
-	int renderedA[10];
 	// Render Entities
 	for (u32 highEntityIndex = 1; highEntityIndex <= gameState->HighEntitiesCount; highEntityIndex++)
 	{
@@ -409,7 +407,6 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		if (lowEntity->Type == EntityType::Player)
 		{
 			PlayerBitMap* playerFacingDirectionMap = &gameState->BitMaps[highEntity->FacingDirection];
-			renderedA[rendered++] = highEntityIndex;
 			DrawBitmap(&playerFacingDirectionMap->Head, screenBuffer, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
 			DrawBitmap(&playerFacingDirectionMap->Cape, screenBuffer, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
 			DrawBitmap(&playerFacingDirectionMap->Torso, screenBuffer, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
@@ -422,11 +419,6 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 			DrawRectangle(screenBuffer, entityLeftTop, entityLeftTop + entityDim, { playerR, playerG, playerB });
 		}
-	}
-
-	if (rendered > 1)
-	{
-		int a = 2;
 	}
 }
 
@@ -888,15 +880,12 @@ HighEntity* MakeEntityHighFreq(GameState* gameState, LowEntity* lowEntity, u32 i
 	if (gameState->HighEntitiesCount < ArrayCount(gameState->HighEntities))
 	{
 		u32 highEntityIndex = gameState->HighEntitiesCount++;
-		highEntity = &gameState->HighEntities[highEntityIndex];
+		highEntity = gameState->HighEntities + highEntityIndex;
 
-		WorldPositionDifference diff = CalculatePositionDifference(gameState->World, &lowEntity->Position, &gameState->CameraPosition);
-
-		highEntity->Position = diff.DXY;
+		highEntity->Position = camerSpaceP;
 		highEntity->Velocity = V2{ 0, 0 };
 		highEntity->PositionZ = lowEntity->Position.Z;
 		highEntity->FacingDirection = 0;
-
 		highEntity->LowEntityIndex = index;
 		lowEntity->HighEntityIndex = highEntityIndex;
 	}
