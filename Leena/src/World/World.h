@@ -105,7 +105,8 @@ inline WorldPosition ChunkPositionFromWorldPosition(World* world, i32 x, i32 y, 
 	result.Y = (y / TilesPerChunk);
 	result.Z = (z / TilesPerChunk);
 
-	result.Offset = V2{ (r32)(x - (result.X * TilesPerChunk) * world->TileSideInMeters), (r32)(y - (result.Y * TilesPerChunk) * world->TileSideInMeters) };
+	result.Offset.X = (r32)(x - (result.X * TilesPerChunk)) * world->TileSideInMeters;
+	result.Offset.Y = (r32)(y - (result.Y * TilesPerChunk)) * world->TileSideInMeters;
 
 	return result;
 }
