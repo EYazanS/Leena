@@ -3,7 +3,7 @@
 // GRAPHICS
 LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFile, const char* fileName);
 void DrawRectangle(ScreenBuffer* gameScreenBuffer, V2 vecMin, V2 vecMax, Colour colour);
-void DrawBitmap(LoadedBitmap* bitmap, ScreenBuffer* screenBuffer, r32 realX, r32 realY, i32 alignX = 0, i32 alignY = 0, r32 cAlpha = 1.0f);
+void DrawBitmap(ScreenBuffer* screenBuffer, LoadedBitmap* bitmap, r32 realX, r32 realY, i32 alignX = 0, i32 alignY = 0, r32 cAlpha = 1.0f);
 
 // AUDIO
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* soundBuffer);
@@ -60,6 +60,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		initializeWorld(world);
 
 		gameState->Background = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_background.bmp");
+		gameState->Tree = DebugLoadBmp(thread, gameMemory->ReadFile, "test2/tree00.bmp");
 
 		PlayerBitMap* playerBitMap;
 		playerBitMap = gameState->BitMaps;
@@ -99,7 +100,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		// 0 is reseved as a null entity
 		gameState->HighEntitiesCount = 1;
 
-		WorldPosition cameraPosition = { 0, 0, 0, { 2, 2 } };
+		WorldPosition cameraPosition = { 0, 0, 0, { 11, 6 } };
 		SetCamera(gameState, cameraPosition);
 
 		InitializePlayer(gameState);
@@ -116,27 +117,27 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		b32 doorRight = false;
 		b32 doorTop = false;
 		b32 doorBottom = false;
-		b32 doorUp = false;
-		b32 doorDown = false;
+		//b32 doorUp = false;
+		//b32 doorDown = false;
 
-		for (u32 screenIndex = 0; screenIndex < 2; ++screenIndex)
+		for (u32 screenIndex = 0; screenIndex < 50; ++screenIndex)
 		{
 			Assert(sandomNumberIndex < ArrayCount(randomNumberTable));
 
 			u32 randomChoice;
 
-			if (doorUp || doorDown)
-			{
-				randomChoice = randomNumberTable[sandomNumberIndex++] % 2;
-			}
-			else
-			{
-				randomChoice = randomNumberTable[sandomNumberIndex++] % 3;
-			}
+			randomChoice = randomNumberTable[sandomNumberIndex++] % 2;
+			//if (doorUp || doorDown)
+			//{
+			//}
+			//else
+			//{
+			//	randomChoice = randomNumberTable[sandomNumberIndex++] % 3;
+			//}
 
 			b32 createdZDoor = false;
 
-			if (randomChoice == 2)
+			/*if (randomChoice == 2)
 			{
 				createdZDoor = true;
 				if (absTileZ == 0)
@@ -148,7 +149,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 					doorDown = true;
 				}
 			}
-			else if (randomChoice == 1)
+			else*/ if (randomChoice == 1)
 			{
 				doorRight = true;
 			}
@@ -186,18 +187,18 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 						tileValue = 2;
 					}
 
-					if (tileX == 10 && tileY == 6)
-					{
-						if (doorUp)
-						{
-							tileValue = 2;
-						}
+					//if (tileX == 10 && tileY == 6)
+					//{
+					//	if (doorUp)
+					//	{
+					//		tileValue = 2;
+					//	}
 
-						if (doorDown)
-						{
-							tileValue = 2;
-						}
-					}
+					//	if (doorDown)
+					//	{
+					//		tileValue = 2;
+					//	}
+					//}
 
 					if (tileValue == 2)
 					{
@@ -210,7 +211,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 			doorBottom = doorTop;
 
-			if (createdZDoor)
+			/*if (createdZDoor)
 			{
 				doorDown = !doorDown;
 				doorUp = !doorUp;
@@ -219,12 +220,12 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			{
 				doorUp = false;
 				doorDown = false;
-			}
+			}*/
 
 			doorRight = false;
 			doorTop = false;
 
-			if (randomChoice == 2)
+			/*if (randomChoice == 2)
 			{
 				if (absTileZ == 0)
 				{
@@ -236,7 +237,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 				}
 
 			}
-			else if (randomChoice == 1)
+			else */if (randomChoice == 1)
 			{
 				screenX++;
 			}
@@ -372,32 +373,17 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 	V2 screenCenter = 0.5f * V2{ (r32)screenBuffer->Width, (r32)screenBuffer->Height };
 
+#if 1
+	DrawRectangle(screenBuffer, {}, { (r32)screenBuffer->Width, (r32)screenBuffer->Height }, { 0.5f,0.5f, 0.5f });
+#else
 	DrawBitmap(&gameState->Background, screenBuffer, 0, 0);
+#endif // 0
 
 	// Render Entities
-	for (u32 highEntityIndex = 1; highEntityIndex <= gameState->HighEntitiesCount; highEntityIndex++)
+	for (u32 highEntityIndex = 1; highEntityIndex < gameState->HighEntitiesCount; highEntityIndex++)
 	{
 		HighEntity* highEntity = gameState->HighEntities + highEntityIndex;
 		LowEntity* lowEntity = gameState->LowEntities + highEntity->LowEntityIndex;
-
-		r32 dt = (r32)input->TimeToAdvance;
-		r32 ddZ = -9.8f;
-		highEntity->Z = 0.5f * ddZ * Square(dt) + highEntity->dZ * dt + highEntity->Z;
-		highEntity->dZ = ddZ * dt + highEntity->dZ;
-
-		if (highEntity->Z < 0)
-		{
-			highEntity->Z = 0;
-		}
-		r32 cAlpha = 1.0f - 0.5f * highEntity->Z;
-		if (cAlpha < 0)
-		{
-			cAlpha = 0.0f;
-		}
-
-		r32 playerR = 1.0f;
-		r32 playerG = 1.0f;
-		r32 playerB = 0.0f;
 
 		r32 playerGroundPointX = screenCenter.X + metersToPixels * highEntity->Position.X;
 		r32 playerGroundPointY = screenCenter.Y - metersToPixels * highEntity->Position.Y;
@@ -406,18 +392,41 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 		if (lowEntity->Type == EntityType::Player)
 		{
+			r32 dt = (r32)input->TimeToAdvance;
+
+			// Gravity
+			r32 ddZ = -9.8f;
+
+			highEntity->Z = 0.5f * ddZ * Square(dt) + highEntity->dZ * dt + highEntity->Z;
+
+			highEntity->dZ = ddZ * dt + highEntity->dZ;
+
+			if (highEntity->Z < 0)
+			{
+				highEntity->Z = 0;
+			}
+
+			r32 cAlpha = 1.0f - 0.5f * highEntity->Z;
+
+			if (cAlpha < 0)
+			{
+				cAlpha = 0.0f;
+			}
+
 			PlayerBitMap* playerFacingDirectionMap = &gameState->BitMaps[highEntity->FacingDirection];
-			DrawBitmap(&playerFacingDirectionMap->Head, screenBuffer, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
-			DrawBitmap(&playerFacingDirectionMap->Cape, screenBuffer, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
-			DrawBitmap(&playerFacingDirectionMap->Torso, screenBuffer, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
-			DrawBitmap(&playerFacingDirectionMap->Shadow, screenBuffer, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY, cAlpha);
+			DrawBitmap(screenBuffer, &playerFacingDirectionMap->Head, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
+			DrawBitmap(screenBuffer, &playerFacingDirectionMap->Cape, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
+			DrawBitmap(screenBuffer, &playerFacingDirectionMap->Torso, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
+			DrawBitmap(screenBuffer, &playerFacingDirectionMap->Shadow, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY, cAlpha);
 		}
 		else
 		{
-			V2 entityLeftTop = { playerGroundPointX - 0.5f * metersToPixels * lowEntity->Width, playerGroundPointY - 0.5f * metersToPixels * lowEntity->Height };
-			V2 entityDim = { metersToPixels * lowEntity->Width, metersToPixels * lowEntity->Height };
-
-			DrawRectangle(screenBuffer, entityLeftTop, entityLeftTop + entityDim, { playerR, playerG, playerB });
+#if 0
+			V2 playerLeftTop = { playerGroundPointX - 0.5f * metersToPixels * lowEntity->Width, playerGroundPointY - 0.5f * metersToPixels * lowEntity->Height };
+			V2 entityWidthHeight = { lowEntity->Width, lowEntity->Height };
+			DrawRectangle(screenBuffer, playerLeftTop, playerLeftTop + metersToPixels * entityWidthHeight, { 1.0f, 1.0f, 0.0f });
+#endif
+			DrawBitmap(screenBuffer, &gameState->Tree, playerGroundPointX, playerGroundPointY + z, 40, 80);
 		}
 	}
 }
@@ -530,7 +539,7 @@ LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFil
 	return result;
 }
 
-void DrawBitmap(LoadedBitmap* bitmap, ScreenBuffer* screenBuffer, r32 realX, r32 realY, i32 alignX, i32 alignY, r32 cAlpha)
+void DrawBitmap(ScreenBuffer* screenBuffer, LoadedBitmap* bitmap, r32 realX, r32 realY, i32 alignX, i32 alignY, r32 cAlpha)
 {
 	realX -= alignX;
 	realY -= alignY;
@@ -605,17 +614,17 @@ void DrawBitmap(LoadedBitmap* bitmap, ScreenBuffer* screenBuffer, r32 realX, r32
 			if (*source >> 24 > 124)
 			{
 				*dest = *source;
-			}
+		}
 #endif // 0
 
 
 			dest++;
 			source++;
-		}
+	}
 
 		destRow += screenBuffer->Pitch;
 		sourceRow -= bitmap->Width;
-	}
+}
 }
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* soundBuffer)
@@ -897,9 +906,9 @@ HighEntity* MakeEntityHighFreq(GameState* gameState, LowEntity* lowEntity, u32 i
 	return highEntity;
 }
 
-HighEntity* MakeEntityHighFreq(GameState* gameState, u32 index)
+HighEntity* MakeEntityHighFreq(GameState* gameState, u32 lowEntityIndex)
 {
-	LowEntity* lowEntity = gameState->LowEntities + index;
+	LowEntity* lowEntity = gameState->LowEntities + lowEntityIndex;
 
 	HighEntity* highEntity = 0;
 
@@ -909,7 +918,8 @@ HighEntity* MakeEntityHighFreq(GameState* gameState, u32 index)
 	}
 	else
 	{
-		highEntity = MakeEntityHighFreq(gameState, lowEntity, index, GetCameraSpacePosition(gameState, lowEntity));
+		V2 caperaSpacePosition = GetCameraSpacePosition(gameState, lowEntity);
+		highEntity = MakeEntityHighFreq(gameState, lowEntity, lowEntityIndex, caperaSpacePosition);
 	}
 
 	return highEntity;
@@ -942,6 +952,8 @@ void SetCamera(GameState* gameState, WorldPosition newPosition)
 {
 	World* world = gameState->World;
 
+	Assert(ValidateEntityPairs(gameState));
+
 	WorldPositionDifference dCamera = CalculatePositionDifference(world, &newPosition, &gameState->CameraPosition);
 	gameState->CameraPosition = newPosition;
 
@@ -952,9 +964,11 @@ void SetCamera(GameState* gameState, WorldPosition newPosition)
 	r32 tileSpanX = 17.0f * 3.0f;
 	r32 tileSpanY = 9.0f * 3.0f;
 
-	R2 cameraBounds = RectCenterDim(V2{ 0, 0 }, world->ChunkSideInMeters * V2{ tileSpanX, tileSpanY });
+	R2 cameraBounds = RectCenterDim(V2{ 0, 0 }, world->TileSideInMeters * V2{ tileSpanX, tileSpanY });
 
 	OffsetAndCheckFrequencyByArea(gameState, entityOffsetForFrame, cameraBounds);
+
+	Assert(ValidateEntityPairs(gameState));
 
 	WorldPosition minChunkPos = MapIntoChunkSpace(world, newPosition, GetMinCorner(cameraBounds));
 	WorldPosition maxChunkPos = MapIntoChunkSpace(world, newPosition, GetMaxCorner(cameraBounds));
@@ -973,15 +987,15 @@ void SetCamera(GameState* gameState, WorldPosition newPosition)
 					{
 						u32 lowEntityIndex = block->LowEntitiyIndex[entityIndex];
 
-						LowEntity* entity = gameState->LowEntities + lowEntityIndex;
+						LowEntity* lowEntity = gameState->LowEntities + lowEntityIndex;
 
-						if (!entity->HighEntityIndex)
+						if (!lowEntity->HighEntityIndex)
 						{
-							V2 cameraSpaceP = GetCameraSpacePosition(gameState, entity);
+							V2 cameraSpaceP = GetCameraSpacePosition(gameState, lowEntity);
 
-							if (IsInRect(cameraBounds, cameraSpaceP))
+							if (IsInRectangle(cameraBounds, cameraSpaceP))
 							{
-								MakeEntityHighFreq(gameState, entity, lowEntityIndex, cameraSpaceP);
+								MakeEntityHighFreq(gameState, lowEntity, lowEntityIndex, cameraSpaceP);
 							}
 						}
 					}
@@ -989,6 +1003,8 @@ void SetCamera(GameState* gameState, WorldPosition newPosition)
 			}
 		}
 	}
+
+	Assert(ValidateEntityPairs(gameState));
 }
 
 b32 TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r32 minY, r32 maxY)

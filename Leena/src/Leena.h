@@ -94,6 +94,8 @@ struct GameState
 
 	LoadedBitmap Background;
 	PlayerBitMap BitMaps[4];
+	
+	LoadedBitmap Tree;
 
 	World* World;
 };
@@ -134,7 +136,7 @@ inline void OffsetAndCheckFrequencyByArea(GameState* gameState, V2 offset, R2 hi
 
 		highEntity->Position += offset;
 
-		if (IsInRect(highFreqBounds, highEntity->Position))
+		if (IsInRectangle(highFreqBounds, highEntity->Position))
 		{
 			highEntityIndex++;
 		}
@@ -143,6 +145,19 @@ inline void OffsetAndCheckFrequencyByArea(GameState* gameState, V2 offset, R2 hi
 			MakeEntityLowFreq(gameState, highEntity->LowEntityIndex);
 		}
 	}
+}
+
+inline b32 ValidateEntityPairs(GameState* state)
+{
+	b32 valid = true;
+
+	for (u32 highEntityIndex = 1; highEntityIndex < state->HighEntitiesCount; highEntityIndex++)
+	{
+		HighEntity* high = state->HighEntities + highEntityIndex;
+		valid = valid && (state->LowEntities[high->LowEntityIndex].HighEntityIndex == highEntityIndex);
+	}
+
+	return valid;
 }
 
 #define LeenaH
