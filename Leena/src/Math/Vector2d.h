@@ -134,7 +134,7 @@ inline R2 RectCenterDim(V2 center, V2 dim)
 	return result;
 }
 
-inline b32 IsInRect(R2 rectangle, V2 test)
+inline b32 IsInRectangle(R2 rectangle, V2 test)
 {
 	b32 result = ((test.X >= rectangle.Min.X) &&
 		(test.Y >= rectangle.Min.Y) &&
