@@ -3,18 +3,26 @@
 // GRAPHICS
 LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFile, const char* fileName);
 void DrawRectangle(ScreenBuffer* gameScreenBuffer, V2 vecMin, V2 vecMax, Colour colour);
-void DrawBitmap(ScreenBuffer* screenBuffer, LoadedBitmap* bitmap, r32 realX, r32 realY, i32 alignX = 0, i32 alignY = 0, r32 cAlpha = 1.0f);
+void DrawBitmap(ScreenBuffer* screenBuffer, LoadedBitmap* bitmap, r32 realX, r32 realY, r32 cAlpha = 1.0f);
 
 // AUDIO
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* soundBuffer);
 AudioBuffer* ReadAudioBufferData(void* memory);
 
-void InitializePlayer(GameState* state);
-void MoveEntity(GameMemory* gameMemory, World* world, GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration);
-u32 AddLowEntity(GameState* gameState, EntityType type, WorldPosition* post);
+AddLowEntityResult AddLowEntity(GameState* gameState, EntityType type, WorldPosition* post);
+AddLowEntityResult AddWall(GameState* gameState, WorldPosition position);
+AddLowEntityResult AddMonster(GameState* state, WorldPosition* position);
+AddLowEntityResult AddFamiliar(GameState* state, WorldPosition* position);
+
 b32 TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r32 minY, r32 maxY);
-u32 AddWall(GameState* gameState, WorldPosition position);
+
+void InitializePlayer(GameState* state);
+void MoveEntity(World* world, GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration);
 void SetCamera(GameState* gameState, WorldPosition newPosition);
+
+void UpdateFamiliar(GameState* state, Entity entity, r32 dt);
+void UpdateMonster(GameState* state, Entity entity, r32 dt);
+inline void PushPiece(EntityVisiblePieceGroup* group, LoadedBitmap* bitmap, V2 offset, r32 offsetZ, V2 align, r32 shadowAlpha = 1);
 
 // To pack the struct tightly and prevent combiler from 
 // aligning the fields 
@@ -61,6 +69,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 		gameState->Background = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_background.bmp");
 		gameState->Tree = DebugLoadBmp(thread, gameMemory->ReadFile, "test2/tree00.bmp");
+		gameState->Rock = DebugLoadBmp(thread, gameMemory->ReadFile, "test2/rock00.bmp");
 
 		PlayerBitMap* playerBitMap;
 		playerBitMap = gameState->BitMaps;
@@ -69,32 +78,28 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_right_cape.bmp");
 		playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_right_torso.bmp");
 		playerBitMap->Shadow = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_shadow.bmp");
-		playerBitMap->AlignX = 72;
-		playerBitMap->AlignY = 182;
+		playerBitMap->Align = { 72, 182 };
 
 		playerBitMap++;
 		playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_back_head.bmp");
 		playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_back_cape.bmp");
 		playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_back_torso.bmp");
 		playerBitMap->Shadow = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_shadow.bmp");
-		playerBitMap->AlignX = 72;
-		playerBitMap->AlignY = 182;
+		playerBitMap->Align = { 72, 182 };
 
 		playerBitMap++;
 		playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_left_head.bmp");
 		playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_left_cape.bmp");
 		playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_left_torso.bmp");
 		playerBitMap->Shadow = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_shadow.bmp");
-		playerBitMap->AlignX = 72;
-		playerBitMap->AlignY = 182;
+		playerBitMap->Align = { 72, 182 };
 
 		playerBitMap++;
 		playerBitMap->Head = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_head.bmp");
 		playerBitMap->Cape = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_cape.bmp");
 		playerBitMap->Torso = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_front_torso.bmp");
 		playerBitMap->Shadow = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_shadow.bmp");
-		playerBitMap->AlignX = 72;
-		playerBitMap->AlignY = 182;
+		playerBitMap->Align = { 72, 182 };
 
 		AddLowEntity(gameState, EntityType::Null, {});
 		// 0 is reseved as a null entity
@@ -247,6 +252,12 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			}
 		}
 
+		WorldPosition monsterPost = { 0, 0, 0, { 5, 2 } };
+		WorldPosition familiarPost = { 0, 0, 0, { 15, 7 } };
+
+		AddMonster(gameState, &monsterPost);
+		AddFamiliar(gameState, &familiarPost);
+
 		gameMemory->IsInitialized = true;
 	}
 
@@ -281,7 +292,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		}
 		if (keyboard->Start.EndedDown)
 		{
-			gameMemory->IsInitialized = false;
+			// gameMemory->IsInitialized = false;
 		}
 	}
 
@@ -356,7 +367,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 		if (entity.Low->Type == EntityType::Player)
 		{
-			MoveEntity(gameMemory, world, gameState, entity, (r32)input->TimeToAdvance, playerAcceleration);
+			MoveEntity(world, gameState, entity, (r32)input->TimeToAdvance, playerAcceleration);
 		}
 	}
 
@@ -379,54 +390,97 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	DrawBitmap(&gameState->Background, screenBuffer, 0, 0);
 #endif // 0
 
+	EntityVisiblePieceGroup pieceGroup = {};
+
 	// Render Entities
 	for (u32 highEntityIndex = 1; highEntityIndex < gameState->HighEntitiesCount; highEntityIndex++)
 	{
+		pieceGroup.PieceCount = 0;
+
 		HighEntity* highEntity = gameState->HighEntities + highEntityIndex;
 		LowEntity* lowEntity = gameState->LowEntities + highEntity->LowEntityIndex;
 
-		r32 playerGroundPointX = screenCenter.X + metersToPixels * highEntity->Position.X;
-		r32 playerGroundPointY = screenCenter.Y - metersToPixels * highEntity->Position.Y;
+		r32 dt = (r32)input->TimeToAdvance;
 
-		r32 z = -metersToPixels * highEntity->Z;
+		// TODO: fix
+		r32 shadowAlpha = 1.0f - 0.5f * highEntity->Z;
 
-		if (lowEntity->Type == EntityType::Player)
+		if (shadowAlpha < 0)
 		{
-			r32 dt = (r32)input->TimeToAdvance;
-
-			// Gravity
-			r32 ddZ = -9.8f;
-
-			highEntity->Z = 0.5f * ddZ * Square(dt) + highEntity->dZ * dt + highEntity->Z;
-
-			highEntity->dZ = ddZ * dt + highEntity->dZ;
-
-			if (highEntity->Z < 0)
-			{
-				highEntity->Z = 0;
-			}
-
-			r32 cAlpha = 1.0f - 0.5f * highEntity->Z;
-
-			if (cAlpha < 0)
-			{
-				cAlpha = 0.0f;
-			}
-
-			PlayerBitMap* playerFacingDirectionMap = &gameState->BitMaps[highEntity->FacingDirection];
-			DrawBitmap(screenBuffer, &playerFacingDirectionMap->Head, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
-			DrawBitmap(screenBuffer, &playerFacingDirectionMap->Cape, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
-			DrawBitmap(screenBuffer, &playerFacingDirectionMap->Torso, playerGroundPointX, playerGroundPointY + z, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY);
-			DrawBitmap(screenBuffer, &playerFacingDirectionMap->Shadow, playerGroundPointX, playerGroundPointY, playerFacingDirectionMap->AlignX, playerFacingDirectionMap->AlignY, cAlpha);
+			shadowAlpha = 0.0f;
 		}
-		else
+
+		Entity entity;
+
+		entity.Low = lowEntity;
+		entity.High = highEntity;
+		entity.LowEntityIndex = highEntity->LowEntityIndex;
+
+		PlayerBitMap* playerFacingDirectionMap = &gameState->BitMaps[highEntity->FacingDirection];
+
+		switch (lowEntity->Type)
 		{
+			case  EntityType::Player:
+			{
+				PushPiece(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+				PushPiece(&pieceGroup, &playerFacingDirectionMap->Cape, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+				PushPiece(&pieceGroup, &playerFacingDirectionMap->Torso, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+				PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+			} break;
+
+			case EntityType::Wall:
+			{
+				PushPiece(&pieceGroup, &gameState->Tree, V2{ 0,0 }, 0, V2{ 40, 80 });
+			} break;
+
+			case EntityType::Familiar:
+			{
+				UpdateFamiliar(gameState, entity, dt);
+				PushPiece(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+				PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha);
+
+			} break;
+
+			case EntityType::Monster:
+			{
+				UpdateMonster(gameState, entity, dt);
+				PushPiece(&pieceGroup, &gameState->Rock, V2{ 0,0 }, 0, V2{ 40, 80 });
+				PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha);
+
+			} break;
+
+			default:
+			{
+				InvalidCodePath;
+			} break;
+		}
+
+		// Gravity
+		r32 ddZ = -9.8f;
+
+		highEntity->Z = 0.5f * ddZ * Square(dt) + highEntity->dZ * dt + highEntity->Z;
+
+		highEntity->dZ = ddZ * dt + highEntity->dZ;
+
+		if (highEntity->Z < 0)
+		{
+			highEntity->Z = 0;
+		}
+
+		r32 groundPointX = screenCenter.X + metersToPixels * highEntity->Position.X;
+		r32 groundPointY = screenCenter.Y - metersToPixels * highEntity->Position.Y;
+		r32 entityZ = -metersToPixels * highEntity->Z;
+
 #if 0
-			V2 playerLeftTop = { playerGroundPointX - 0.5f * metersToPixels * lowEntity->Width, playerGroundPointY - 0.5f * metersToPixels * lowEntity->Height };
-			V2 entityWidthHeight = { lowEntity->Width, lowEntity->Height };
-			DrawRectangle(screenBuffer, playerLeftTop, playerLeftTop + metersToPixels * entityWidthHeight, { 1.0f, 1.0f, 0.0f });
+		V2 playerLeftTop = { playerGroundPointX - 0.5f * metersToPixels * lowEntity->Width, playerGroundPointY - 0.5f * metersToPixels * lowEntity->Height };
+		V2 entityWidthHeight = { lowEntity->Width, lowEntity->Height };
+		DrawRectangle(screenBuffer, playerLeftTop, playerLeftTop + metersToPixels * entityWidthHeight, { 1.0f, 1.0f, 0.0f });
 #endif
-			DrawBitmap(screenBuffer, &gameState->Tree, playerGroundPointX, playerGroundPointY + z, 40, 80);
+
+		for (u32 pieceIndex = 0; pieceIndex < pieceGroup.PieceCount; pieceIndex++)
+		{
+			EntityVisiblePiece* piece = pieceGroup.Pieces + pieceIndex;
+			DrawBitmap(screenBuffer, piece->Bitmap, groundPointX + piece->Offset.X, groundPointY + piece->Offset.Y + piece->Z + entityZ, piece->Alpha);
 		}
 	}
 }
@@ -539,11 +593,8 @@ LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFil
 	return result;
 }
 
-void DrawBitmap(ScreenBuffer* screenBuffer, LoadedBitmap* bitmap, r32 realX, r32 realY, i32 alignX, i32 alignY, r32 cAlpha)
+void DrawBitmap(ScreenBuffer* screenBuffer, LoadedBitmap* bitmap, r32 realX, r32 realY, r32 cAlpha)
 {
-	realX -= alignX;
-	realY -= alignY;
-
 	i64 minX = RoundReal32ToInt32(realX);
 	i64 minY = RoundReal32ToInt32(realY);
 	i64 maxX = minX + bitmap->Width;
@@ -614,17 +665,17 @@ void DrawBitmap(ScreenBuffer* screenBuffer, LoadedBitmap* bitmap, r32 realX, r32
 			if (*source >> 24 > 124)
 			{
 				*dest = *source;
-		}
+			}
 #endif // 0
 
 
 			dest++;
 			source++;
-	}
+		}
 
 		destRow += screenBuffer->Pitch;
 		sourceRow -= bitmap->Width;
-}
+	}
 }
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* soundBuffer)
@@ -675,7 +726,7 @@ AudioBuffer* ReadAudioBufferData(void* memory)
 	return result;
 }
 
-void MoveEntity(GameMemory* gameMemory, World* world, GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration)
+void MoveEntity(World* world, GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration)
 {
 	// In Meters
 	V2 oldPlayerPosition = entity.High->Position;
@@ -820,8 +871,8 @@ void MoveEntity(GameMemory* gameMemory, World* world, GameState* gameState, Enti
 
 void InitializePlayer(GameState* state)
 {
-	u32 playerIndex = AddLowEntity(state, EntityType::Player, &state->CameraPosition);
-	state->PlayerEntity = { playerIndex , GetLowEntity(state, playerIndex) };
+	AddLowEntityResult result = AddLowEntity(state, EntityType::Player, &state->CameraPosition);
+	state->PlayerEntity = { result.LowEntityIndex, result.LowEntity };
 
 	Entity* entity = &state->PlayerEntity;
 
@@ -831,22 +882,49 @@ void InitializePlayer(GameState* state)
 	entity->Low->Width = 0.75f;
 	entity->Low->Speed = 30.0f; // M/S2
 
-	MakeEntityHighFreq(state, playerIndex);
+	MakeEntityHighFreq(state, result.LowEntityIndex);
 
 	entity->High = state->HighEntities + entity->Low->HighEntityIndex;
 }
 
-u32 AddLowEntity(GameState* gameState, EntityType type, WorldPosition* position)
+AddLowEntityResult AddMonster(GameState* state, WorldPosition* position)
+{
+	AddLowEntityResult result = AddLowEntity(state, EntityType::Monster, position);
+
+	// Order: X Y Z Offset
+	result.LowEntity->Collides = true;
+	result.LowEntity->Height = 0.5f;
+	result.LowEntity->Width = 1.0f;
+	result.LowEntity->Speed = 20.0f; // M/S2
+
+	return result;
+}
+AddLowEntityResult AddFamiliar(GameState* state, WorldPosition* position)
+{
+	AddLowEntityResult result = AddLowEntity(state, EntityType::Familiar, position);
+
+	// Order: X Y Z Offset
+	result.LowEntity->Collides = false;
+	result.LowEntity->Height = 0.5f;
+	result.LowEntity->Width = 1.0f;
+	result.LowEntity->Speed = 10.0f;
+
+	return result;
+}
+
+AddLowEntityResult AddLowEntity(GameState* gameState, EntityType type, WorldPosition* position)
 {
 	u32 entityIndex = 0;
+	LowEntity* lowEnttiy = 0;
+
 	if (gameState->LowEntitiesCount < ArrayCount(gameState->LowEntities))
 	{
 		entityIndex = gameState->LowEntitiesCount++;
 
-		LowEntity* lowEnttiy = gameState->LowEntities + entityIndex;
+		lowEnttiy = gameState->LowEntities + entityIndex;
 
 		*lowEnttiy = {};
-		(*lowEnttiy).Type = type;
+		lowEnttiy->Type = type;
 
 		if (position)
 		{
@@ -854,23 +932,22 @@ u32 AddLowEntity(GameState* gameState, EntityType type, WorldPosition* position)
 			ChangeEntityLocation(&gameState->WorldMemoryPool, gameState->World, entityIndex, 0, position);
 		}
 	}
-	return entityIndex;
+
+	return { entityIndex, lowEnttiy };
 }
 
-u32 AddWall(GameState* gameState, WorldPosition position)
+AddLowEntityResult AddWall(GameState* gameState, WorldPosition position)
 {
 	WorldPosition pos = ChunkPositionFromWorldPosition(gameState->World, position.X, position.Y, position.Z);
 
-	u32 entityIndex = AddLowEntity(gameState, EntityType::Wall, &pos);
-
-	LowEntity* entity = GetLowEntity(gameState, entityIndex);
+	AddLowEntityResult result = AddLowEntity(gameState, EntityType::Wall, &pos);
 
 	// Order: X Y Z Offset
-	entity->Collides = true;
-	entity->Height = gameState->World->TileSideInMeters;
-	entity->Width = entity->Height;
+	result.LowEntity->Collides = true;
+	result.LowEntity->Height = gameState->World->TileSideInMeters;
+	result.LowEntity->Width = result.LowEntity->Height;
 
-	return entityIndex;
+	return result;
 }
 
 inline V2 GetCameraSpacePosition(GameState* gameState, LowEntity* lowEntity)
@@ -1029,4 +1106,42 @@ b32 TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 play
 	}
 
 	return hitWall;
+}
+
+inline void PushPiece(EntityVisiblePieceGroup* group, LoadedBitmap* bitmap, V2 offset, r32 offsetZ, V2 align, r32 shadowAlpha)
+{
+	Assert(group->PieceCount < ArrayCount(group->Pieces));
+
+	EntityVisiblePiece* piece = group->Pieces + group->PieceCount++;
+
+	piece->Bitmap = bitmap;
+	piece->Offset = offset - align;
+	piece->Z = offsetZ;
+	piece->Alpha = shadowAlpha;
+
+}
+
+void UpdateFamiliar(GameState* state, Entity entity, r32 dt)
+{
+	r32 maximumSearchRadius = Square(5.0f);
+
+	Entity player = state->PlayerEntity;
+
+	r32 testSq = LengthSq(player.High->Position - entity.High->Position);
+
+	if (testSq < maximumSearchRadius)
+	{
+		r32 acceleration = 1.0f;
+
+		r32 oneOverLength = acceleration / SqaureRoot(testSq);
+
+		V2 ddp = oneOverLength * (player.High->Position - entity.High->Position);
+
+		MoveEntity(state->World, state, entity, dt, ddp);
+	}
+}
+
+void UpdateMonster(GameState* state, Entity entity, r32 dt)
+{
+
 }
