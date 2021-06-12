@@ -245,6 +245,7 @@ inline void ChangeEntityLocation(MemoryPool* pool, World* world, u32 lowEntityIn
 
 		Assert(block->EntitiesCount < ArrayCount(block->LowEntitiyIndex));
 
-		block->LowEntitiyIndex[block->EntitiesCount++] = lowEntityIndex;
+		if (block->EntitiesCount < ArrayCount(block->LowEntitiyIndex))
+			block->LowEntitiyIndex[block->EntitiesCount++] = lowEntityIndex;
 	}
 }

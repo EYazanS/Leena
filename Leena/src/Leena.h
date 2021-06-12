@@ -32,15 +32,16 @@ struct PlayerBitMap
 	LoadedBitmap Cape;
 	LoadedBitmap Shadow;
 
-	i32 AlignX;
-	i32 AlignY;
+	V2 Align;
 };
 
 enum class EntityType
 {
 	Null,
 	Player,
-	Wall
+	Wall,
+	Familiar,
+	Monster
 };
 
 struct HighEntity
@@ -71,12 +72,33 @@ struct LowEntity
 	u32 HighEntityIndex;
 };
 
+struct AddLowEntityResult
+{
+	u32 LowEntityIndex;
+	LowEntity* LowEntity;
+};
+
 struct Entity
 {
 	u32 LowEntityIndex;
 	LowEntity* Low;
 	HighEntity* High;
 };
+
+struct EntityVisiblePiece
+{
+	LoadedBitmap* Bitmap;
+	V2 Offset;
+	r32 Z;
+	r32 Alpha;
+};
+
+struct EntityVisiblePieceGroup
+{
+	u32 PieceCount;
+	EntityVisiblePiece Pieces[8];
+};
+
 
 struct GameState
 {
@@ -94,8 +116,9 @@ struct GameState
 
 	LoadedBitmap Background;
 	PlayerBitMap BitMaps[4];
-	
+
 	LoadedBitmap Tree;
+	LoadedBitmap Rock;
 
 	World* World;
 };
