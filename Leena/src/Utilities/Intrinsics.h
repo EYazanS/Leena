@@ -75,6 +75,12 @@ inline u32 AbsoluteInt32ToUInt32(i32 number)
 	return (u32)number;
 }
 
+inline r32 SquareRoot(r32 real32)
+{
+	r32 result = sqrtf(real32);
+	return result;
+}
+
 inline u32 RotateLeft(u32 value, i32 amount)
 {
 #if COMPILER_MSVC
