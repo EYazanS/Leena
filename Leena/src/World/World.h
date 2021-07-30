@@ -119,8 +119,10 @@ inline WorldPosition ChunkPositionFromWorldPosition(World* world, i32 x, i32 y, 
 	}
 
 	// TODO: DECIDE ON TILE ALIGNMENT IN CHUNKS!
-	result.Offset.X = (r32)((x) - (result.X * TilesPerChunk)) * world->TileSideInMeters;
-	result.Offset.Y = (r32)((y) - (result.Y * TilesPerChunk)) * world->TileSideInMeters;
+	result.Offset.X = (r32)((x - TilesPerChunk / 2) - (result.X * TilesPerChunk)) * world->TileSideInMeters;
+	result.Offset.Y = (r32)((y - TilesPerChunk/ 2) - (result.Y * TilesPerChunk)) * world->TileSideInMeters;
+
+	Assert(IsCanonical(world, result.Offset));
 
 	return result;
 }
