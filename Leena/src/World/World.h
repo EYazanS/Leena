@@ -100,13 +100,27 @@ inline WorldPosition ChunkPositionFromWorldPosition(World* world, i32 x, i32 y, 
 {
 	WorldPosition result = {};
 
-	// TOOD: handle Z
-	result.X = (x / TilesPerChunk);
-	result.Y = (y / TilesPerChunk);
-	result.Z = (z / TilesPerChunk);
+	result.X = x / TilesPerChunk;
+	result.Y = y / TilesPerChunk;
+	result.Z = z / TilesPerChunk;
 
-	result.Offset.X = (r32)(x - (result.X * TilesPerChunk)) * world->TileSideInMeters;
-	result.Offset.Y = (r32)(y - (result.Y * TilesPerChunk)) * world->TileSideInMeters;
+	// TODO: Think this through on the real stream and actually work out the math.
+	if (x < 0)
+	{
+		--result.X;
+	}
+	if (y < 0)
+	{
+		--result.Y;
+	}
+	if (z < 0)
+	{
+		--result.Z;
+	}
+
+	// TODO: DECIDE ON TILE ALIGNMENT IN CHUNKS!
+	result.Offset.X = (r32)((x) - (result.X * TilesPerChunk)) * world->TileSideInMeters;
+	result.Offset.Y = (r32)((y) - (result.Y * TilesPerChunk)) * world->TileSideInMeters;
 
 	return result;
 }
@@ -121,7 +135,7 @@ inline b32 AreOnSameLocation(World* world, WorldPosition* oldPosition, WorldPosi
 	return result;
 }
 
-inline WorldChunk* GetWorldChunk(World* world, u32 ChunkX, u32 ChunkY, u32 ChunkZ, MemoryPool* pool = 0)
+inline WorldChunk* GetWorldChunk(World* world, u32 X, u32 Y, u32 ChunkZ, MemoryPool* pool = 0)
 {
 	//Assert(x > ChunkSafeMargin);
 	//Assert(z > ChunkSafeMargin);
@@ -132,15 +146,15 @@ inline WorldChunk* GetWorldChunk(World* world, u32 ChunkX, u32 ChunkY, u32 Chunk
 	//Assert(y < (u32_MAX - ChunkSafeMargin));
 
 	// TODO: Better hash function!
-	u32 HashValue = 19 * ChunkX + 7 * ChunkY + 3 * ChunkZ;
+	u32 HashValue = 19 * X + 7 * Y + 3 * ChunkZ;
 	u32 HashSlot = HashValue & (ArrayCount(world->TileChunkHash) - 1);
 	Assert(HashSlot < ArrayCount(world->TileChunkHash));
 
 	WorldChunk* Chunk = world->TileChunkHash + HashSlot;
 	do
 	{
-		if ((ChunkX == Chunk->X) &&
-			(ChunkY == Chunk->Y) &&
+		if ((X == Chunk->X) &&
+			(Y == Chunk->Y) &&
 			(ChunkZ == Chunk->Z))
 		{
 			break;
@@ -155,8 +169,8 @@ inline WorldChunk* GetWorldChunk(World* world, u32 ChunkX, u32 ChunkY, u32 Chunk
 
 		if (pool && (Chunk->X == TILE_CHUNK_UNINITIALIZED))
 		{
-			Chunk->X = ChunkX;
-			Chunk->Y = ChunkY;
+			Chunk->X = X;
+			Chunk->Y = Y;
 			Chunk->Z = ChunkZ;
 
 			Chunk->NextInHash = 0;
