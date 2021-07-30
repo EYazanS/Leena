@@ -14,10 +14,10 @@ AddLowEntityResult AddWall(GameState* gameState, WorldPosition position);
 AddLowEntityResult AddMonster(GameState* state, WorldPosition* position);
 AddLowEntityResult AddFamiliar(GameState* state, WorldPosition* position);
 
-b32 TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r32 minY, r32 maxY);
+b32 TestWall(r32 WallX, r32 RelX, r32 RelY, r32 PlayerDeltaX, r32 PlayerDeltaY, r32* tMin, r32 MinY, r32 MaxY);
 
 void InitializePlayer(GameState* state);
-void MoveEntity(World* world, GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration);
+void MoveEntity(GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration);
 void SetCamera(GameState* gameState, WorldPosition newPosition);
 
 void UpdateFamiliar(GameState* state, Entity entity, r32 dt);
@@ -253,7 +253,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		}
 
 		WorldPosition monsterPost = { 0, 0, 0, { 5, 2 } };
-		WorldPosition familiarPost = { 0, 0, 0, { 15, 7 } };
+		WorldPosition familiarPost = { 0, 0, 0, { 11, 7 } };
 
 		AddMonster(gameState, &monsterPost);
 		AddFamiliar(gameState, &familiarPost);
@@ -367,7 +367,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 		if (entity.Low->Type == EntityType::Player)
 		{
-			MoveEntity(world, gameState, entity, (r32)input->TimeToAdvance, playerAcceleration);
+			MoveEntity(gameState, entity, (r32)input->TimeToAdvance, playerAcceleration);
 		}
 	}
 
@@ -420,39 +420,39 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 		switch (lowEntity->Type)
 		{
-			case  EntityType::Player:
-			{
-				PushPiece(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
-				PushPiece(&pieceGroup, &playerFacingDirectionMap->Cape, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
-				PushPiece(&pieceGroup, &playerFacingDirectionMap->Torso, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
-				PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
-			} break;
+		case  EntityType::Player:
+		{
+			PushPiece(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+			PushPiece(&pieceGroup, &playerFacingDirectionMap->Cape, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+			PushPiece(&pieceGroup, &playerFacingDirectionMap->Torso, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+			PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+		} break;
 
-			case EntityType::Wall:
-			{
-				PushPiece(&pieceGroup, &gameState->Tree, V2{ 0,0 }, 0, V2{ 40, 80 });
-			} break;
+		case EntityType::Wall:
+		{
+			PushPiece(&pieceGroup, &gameState->Tree, V2{ 0,0 }, 0, V2{ 40, 80 });
+		} break;
 
-			case EntityType::Familiar:
-			{
-				UpdateFamiliar(gameState, entity, dt);
-				PushPiece(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
-				PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha);
+		case EntityType::Familiar:
+		{
+			UpdateFamiliar(gameState, entity, dt);
+			PushPiece(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+			PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha);
 
-			} break;
+		} break;
 
-			case EntityType::Monster:
-			{
-				UpdateMonster(gameState, entity, dt);
-				PushPiece(&pieceGroup, &gameState->Rock, V2{ 0,0 }, 0, V2{ 40, 80 });
-				PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha);
+		case EntityType::Monster:
+		{
+			UpdateMonster(gameState, entity, dt);
+			PushPiece(&pieceGroup, &gameState->Rock, V2{ 0,0 }, 0, V2{ 40, 80 });
+			PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha);
 
-			} break;
+		} break;
 
-			default:
-			{
-				InvalidCodePath;
-			} break;
+		default:
+		{
+			InvalidCodePath;
+		} break;
 		}
 
 		// Gravity
@@ -726,41 +726,32 @@ AudioBuffer* ReadAudioBufferData(void* memory)
 	return result;
 }
 
-void MoveEntity(World* world, GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration)
+void MoveEntity(GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration)
 {
-	// In Meters
-	V2 oldPlayerPosition = entity.High->Position;
+	World* world = gameState->World;
 
 	r32 playerAccelerationLength = LengthSq(playerAcceleration);
 
-	// Normlazie vetor to make it length of 1
 	if (playerAccelerationLength > 1.0f)
 	{
-		playerAcceleration *= 1 / SqaureRoot(playerAccelerationLength);
+		playerAcceleration *= (1.0f / SquareRoot(playerAccelerationLength));
 	}
 
-	//
-	// Handle Movement after gathering input
-	//
-	playerAcceleration *= entity.Low->Speed;
+	r32 PlayerSpeed = 50.0f; // m/s^2
+	playerAcceleration *= PlayerSpeed;
 
-	// TODO:Use ODE
-	// Simulate friction
-	r32 friction = -8.0f;
+	// TODO: ODE here!
+	playerAcceleration += -8.0f * entity.High->Velocity;
 
-	playerAcceleration += friction * entity.High->Velocity;
+	V2 oldPlayerPosition = entity.High->Position;
+	V2 playerDelta = (0.5f * playerAcceleration * Square(timeToAdvance) + entity.High->Velocity * timeToAdvance);
 
-	V2 playerDelta = (0.5f * playerAcceleration * Sqaure(timeToAdvance) + (entity.High->Velocity * timeToAdvance));
-
-	// Equation of motion
 	entity.High->Velocity = playerAcceleration * timeToAdvance + entity.High->Velocity;
 
 	V2 newPlayerPosition = oldPlayerPosition + playerDelta;
 
 	for (u32 iteration = 0; iteration < 4; iteration++)
 	{
-		// The relative distance to the closest thing we hit, between 0 and 1
-		// 0 didnt move, 1 moved the full amount
 		r32 tMin = 1.0f;
 		V2 wallNormal = {};
 		u32 hitHighEntityIndex = 0;
@@ -775,62 +766,54 @@ void MoveEntity(World* world, GameState* gameState, Entity entity, r32 timeToAdv
 				testEntity.High = gameState->HighEntities + testHighEntityIndex;
 				testEntity.LowEntityIndex = testEntity.High->LowEntityIndex;
 				testEntity.Low = gameState->LowEntities + testEntity.LowEntityIndex;
-
 				if (testEntity.Low->Collides)
 				{
 					r32 diameterWidth = testEntity.Low->Width + entity.Low->Width;
-					r32 diameterHegiht = testEntity.Low->Height + entity.Low->Height;
+					r32 diameterHeight = testEntity.Low->Height + entity.Low->Height;
 
-					V2 minCorner = -0.5f * V2{ diameterWidth, diameterHegiht };
-					V2 maxCorner = 0.5f * V2{ diameterWidth, diameterHegiht };
+					V2 minCorner = -0.5f * V2{ diameterWidth, diameterHeight };
+					V2 maxCorner = 0.5f * V2{ diameterWidth, diameterHeight };
 
 					V2 relDifference = entity.High->Position - testEntity.High->Position;
 
-					// Side walls
-
-					// Left Wall
-					if (TestWall(tMin, minCorner.X, relDifference.X, relDifference.Y, playerDelta.X, playerDelta.Y, minCorner.Y, maxCorner.Y))
+					if (TestWall(minCorner.X, relDifference.X, relDifference.Y, playerDelta.X, playerDelta.Y, &tMin, minCorner.Y, maxCorner.Y))
 					{
-						hitHighEntityIndex = testHighEntityIndex;
 						wallNormal = V2{ -1, 0 };
+						hitHighEntityIndex = testHighEntityIndex;
 					}
 
-					// Right wall
-					if (TestWall(tMin, maxCorner.X, relDifference.X, relDifference.Y, playerDelta.X, playerDelta.Y, minCorner.Y, maxCorner.Y))
+					if (TestWall(maxCorner.X, relDifference.X, relDifference.Y, playerDelta.X, playerDelta.Y, &tMin, minCorner.Y, maxCorner.Y))
 					{
-						hitHighEntityIndex = testHighEntityIndex;
 						wallNormal = V2{ 1, 0 };
+						hitHighEntityIndex = testHighEntityIndex;
 					}
 
-					// Upper walls
-					if (TestWall(tMin, minCorner.Y, relDifference.Y, relDifference.X, playerDelta.Y, playerDelta.X, minCorner.X, maxCorner.X))
+					if (TestWall(minCorner.Y, relDifference.Y, relDifference.X, playerDelta.Y, playerDelta.X, &tMin, minCorner.X, maxCorner.X))
 					{
-						hitHighEntityIndex = testHighEntityIndex;
 						wallNormal = V2{ 0, -1 };
+						hitHighEntityIndex = testHighEntityIndex;
 					}
 
-					if (TestWall(tMin, maxCorner.Y, relDifference.Y, relDifference.X, playerDelta.Y, playerDelta.X, minCorner.X, maxCorner.X))
+					if (TestWall(maxCorner.Y, relDifference.Y, relDifference.X, playerDelta.Y, playerDelta.X, &tMin, minCorner.X, maxCorner.X))
 					{
-						hitHighEntityIndex = testHighEntityIndex;
 						wallNormal = V2{ 0, 1 };
+						hitHighEntityIndex = testHighEntityIndex;
 					}
 				}
 			}
 		}
 
 		entity.High->Position += tMin * playerDelta;
-
 		if (hitHighEntityIndex)
 		{
 			entity.High->Velocity = entity.High->Velocity - 1 * InnerProduct(entity.High->Velocity, wallNormal) * wallNormal;
 			playerDelta = desiredPosition - entity.High->Position;
 			playerDelta = playerDelta - 1 * InnerProduct(playerDelta, wallNormal) * wallNormal;
 
-			HighEntity* hitEntity = gameState->HighEntities + hitHighEntityIndex;
-			LowEntity* lowHitEntity = gameState->LowEntities + hitEntity->LowEntityIndex;
-
+			HighEntity* HitHigh = gameState->HighEntities + hitHighEntityIndex;
+			LowEntity* HitLow = gameState->LowEntities + HitHigh->LowEntityIndex;
 			// TODO: stairs
-			// entity.High->PositionZ += lowHitEntity->TileZ;
+			// entity.High->AbsTileZ += HitLow->dAbsTileZ;
 		}
 		else
 		{
@@ -838,29 +821,31 @@ void MoveEntity(World* world, GameState* gameState, Entity entity, r32 timeToAdv
 		}
 	}
 
-	if (entity.High->Velocity.X != 0.0f || entity.High->Velocity.Y != 0.0f)
+	// TODO: Change to using the acceleration vector
+	if ((entity.High->Velocity.X == 0.0f) && (entity.High->Velocity.Y == 0.0f))
 	{
-		if (AbsoluteValue(entity.High->Velocity.X) > AbsoluteValue(entity.High->Velocity.Y))
+		// NOTE: Leave FacingDirection whatever it was
+	}
+	else if (AbsoluteValue(entity.High->Velocity.X) > AbsoluteValue(entity.High->Velocity.Y))
+	{
+		if (entity.High->Velocity.X > 0)
 		{
-			if (entity.High->Velocity.X > 0)
-			{
-				entity.High->FacingDirection = 0;
-			}
-			else
-			{
-				entity.High->FacingDirection = 2;
-			}
+			entity.High->FacingDirection = 0;
 		}
-		else if (AbsoluteValue(entity.High->Velocity.X) < AbsoluteValue(entity.High->Velocity.Y))
+		else
 		{
-			if (entity.High->Velocity.Y > 0)
-			{
-				entity.High->FacingDirection = 1;
-			}
-			else
-			{
-				entity.High->FacingDirection = 3;
-			}
+			entity.High->FacingDirection = 2;
+		}
+	}
+	else
+	{
+		if (entity.High->Velocity.Y > 0)
+		{
+			entity.High->FacingDirection = 1;
+		}
+		else
+		{
+			entity.High->FacingDirection = 3;
 		}
 	}
 
@@ -1084,7 +1069,7 @@ void SetCamera(GameState* gameState, WorldPosition newPosition)
 	Assert(ValidateEntityPairs(gameState));
 }
 
-b32 TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r32 minY, r32 maxY)
+b32 TestWall(r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r32* tMin, r32 minY, r32 maxY)
 {
 	b32 hitWall = false;
 	r32 tEpslion = 0.0001f;
@@ -1095,11 +1080,11 @@ b32 TestWall(r32& tMin, r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 play
 
 		r32 y = relY + tResult * playerDeltaY;
 
-		if ((tResult >= 0.0f) && (tMin > tResult))
+		if ((tResult >= 0.0f) && (*tMin > tResult))
 		{
 			if ((y >= minY) && (y <= maxY))
 			{
-				tMin = Maximum(0.0f, tResult - tEpslion);
+				*tMin = Maximum(0.0f, tResult - tEpslion);
 				hitWall = true;
 			}
 		}
@@ -1121,7 +1106,7 @@ inline void PushPiece(EntityVisiblePieceGroup* group, LoadedBitmap* bitmap, V2 o
 
 }
 
-void UpdateFamiliar(GameState* state, Entity entity, r32 dt)
+void UpdateFamiliar(GameState* state, Entity entity, r32 timeDelta)
 {
 	r32 maximumSearchRadius = Square(5.0f);
 
@@ -1129,16 +1114,19 @@ void UpdateFamiliar(GameState* state, Entity entity, r32 dt)
 
 	r32 testSq = LengthSq(player.High->Position - entity.High->Position);
 
-	if (testSq < maximumSearchRadius)
+	V2 ddP = {};
+
+	if (testSq < maximumSearchRadius && testSq > 0.01f)
 	{
-		r32 acceleration = 1.0f;
+		// TODO: PULL SPEED OUT OF MOVE ENTITY
+		r32 acceleration = 0.5f;
 
-		r32 oneOverLength = acceleration / SqaureRoot(testSq);
+		r32 oneOverLength = acceleration / SquareRoot(testSq);
 
-		V2 ddp = oneOverLength * (player.High->Position - entity.High->Position);
-
-		MoveEntity(state->World, state, entity, dt, ddp);
+		ddP = oneOverLength * (player.High->Position - entity.High->Position);
 	}
+
+	MoveEntity(state, entity, timeDelta, ddP);
 }
 
 void UpdateMonster(GameState* state, Entity entity, r32 dt)

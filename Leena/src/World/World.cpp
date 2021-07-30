@@ -29,8 +29,8 @@ void RecanonicalizeCoordinant(World* world, i32* coordinate, r32* coordRelative)
 	// Offset from the current tile center, if its above 1 then it means we moved one tile
 	i32 Offset = RoundReal32ToInt32(*coordRelative / world->ChunkSideInMeters);
 	*coordinate += Offset;
-	*coordRelative -= Offset * world->ChunkSideInMeters;
-	
+	*coordRelative -= (Offset * world->ChunkSideInMeters);
+
 	// Assert(IsCanonical(world, *coordRelative));
 }
 
