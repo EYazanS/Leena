@@ -1010,8 +1010,8 @@ AddLowEntityResult AddWall(GameState* gameState, i32 x, i32 y, i32 z)
 
 inline V2 GetCameraSpacePosition(GameState* gameState, LowEntity* lowEntity)
 {
-	WorldPositionDifference diff = CalculatePositionDifference(gameState->World, &lowEntity->Position, &gameState->CameraPosition);
-	V2 resutlt = diff.DXY;
+	V3 diff = CalculatePositionDifference(gameState->World, &lowEntity->Position, &gameState->CameraPosition);
+	V2 resutlt = V2{ diff.X, diff.Y };
 	return resutlt;
 }
 
@@ -1089,11 +1089,11 @@ void SetCamera(GameState* gameState, WorldPosition newPosition)
 
 	Assert(ValidateEntityPairs(gameState));
 
-	WorldPositionDifference dCamera = CalculatePositionDifference(world, &newPosition, &gameState->CameraPosition);
+	V3 dCamera = CalculatePositionDifference(world, &newPosition, &gameState->CameraPosition);
 	gameState->CameraPosition = newPosition;
 
 	// Its negative so everything is move against the camera, now with the camera.
-	V2 entityOffsetForFrame = -dCamera.DXY;
+	V2 entityOffsetForFrame = -V2{ dCamera.X, dCamera.Y };
 
 	// 3 screens in each direction
 	r32 tileSpanX = 17.0f * 3.0f;
