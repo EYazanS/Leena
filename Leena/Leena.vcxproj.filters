@@ -53,6 +53,9 @@
     <ClInclude Include="src\Math\Vector3d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Math\Vector4d.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Leena.cpp">

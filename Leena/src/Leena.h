@@ -101,9 +101,8 @@ struct EntityVisiblePiece
 	LoadedBitmap* Bitmap;
 	V2 Offset;
 	r32 Z;
-	r32 Alpha;
 	r32 ZCoefficient;
-	Colour Colour;
+	V4 Colour;
 	V2 Dimensions;
 };
 

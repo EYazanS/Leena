@@ -237,13 +237,6 @@ extern "C" {
 		r32 TimeElapsed;
 	};
 
-	struct Colour
-	{
-		r32 Red;
-		r32 Green;
-		r32 Blue;
-	};
-
 #ifdef __cplusplus
 }
 #endif

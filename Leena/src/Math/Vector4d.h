@@ -1,6 +1,6 @@
 #pragma once
 
-struct V3
+struct V4
 {
 	union
 	{
@@ -9,6 +9,7 @@ struct V3
 			r32 X;
 			r32 Y;
 			r32 Z;
+			r32 W;
 		};
 
 		struct
@@ -16,68 +17,73 @@ struct V3
 			r32 R;
 			r32 G;
 			r32 B;
+			r32 A;
 		};
 
-		r32 Elements[3];
+		r32 Elements[4];
 	};
 };
 
-inline V3 operator-(V3 a)
+inline V4 operator-(V4 a)
 {
-	V3 result = {};
+	V4 result = {};
 
 	result.X = -a.X;
 	result.Y = -a.Y;
 	result.Z = -a.Z;
+	result.W = -a.W;
 
 	return result;
 }
 
-inline V3 operator+(V3 a, V3 b)
+inline V4 operator+(V4 a, V4 b)
 {
-	V3 result = {};
+	V4 result = {};
 
 	result.X = a.X + b.X;
 	result.Y = a.Y + b.Y;
 	result.Z = a.Z + b.Z;
+	result.W = a.W + b.W;
 
 	return result;
 }
 
-inline V3 operator-(V3 a, V3 b)
+inline V4 operator-(V4 a, V4 b)
 {
-	V3 result = {};
+	V4 result = {};
 
 	result.X = a.X - b.X;
 	result.Y = a.Y - b.Y;
 	result.Z = a.Z - b.Z;
+	result.W = a.W - b.W;
 
 	return result;
 }
 
-inline V3 operator*(V3 a, r32 b)
+inline V4 operator*(V4 a, r32 b)
 {
-	V3 result = {};
+	V4 result = {};
 
 	result.X = b * a.X;
 	result.Y = b * a.Y;
 	result.Z = b * a.Z;
+	result.W = b * a.W;
 
 	return result;
 }
 
-inline V3 operator*(r32 a, V3 b)
+inline V4 operator*(r32 a, V4 b)
 {
 	return b * a;
 }
 
-inline V3& operator+=(V3 &a, V3 b)
+inline V4& operator+=(V4& a, V4 b)
 {
 	a = a + b;
 	return a;
 }
 
-inline V3& operator*=(V3& a, r32 b)
+inline V4& operator*=(V4& a, r32 b)
 {
 	a = a * b;
 	return a;
