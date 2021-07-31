@@ -10,7 +10,7 @@ void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer*
 AudioBuffer* ReadAudioBufferData(void* memory);
 
 AddLowEntityResult AddLowEntity(GameState* gameState, EntityType type, WorldPosition* post);
-AddLowEntityResult AddWall(GameState* gameState, WorldPosition position);
+AddLowEntityResult AddWall(GameState* gameState, i32 x, i32 y, i32 z);
 AddLowEntityResult AddMonster(GameState* state, WorldPosition* position);
 AddLowEntityResult AddFamiliar(GameState* state, WorldPosition* position);
 
@@ -105,12 +105,26 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		// 0 is reseved as a null entity
 		gameState->HighEntitiesCount = 1;
 
-		WorldPosition cameraPosition = { 0, 0, 0, { 11, 6 } };
+		u32 ScreenX = 0;
+		u32 ScreenY = 0;
+		u32 ScreenZ = 0;
+		u32 TilesPerWidth = 17;
+		u32 TilesPerHeight = 9;
+		WorldPosition cameraPosition = {};
+		u32 CameraTileX = ScreenX * TilesPerWidth + 17 / 2;
+		u32 CameraTileY = ScreenY * TilesPerHeight + 9 / 2;
+		u32 CameraTileZ = ScreenZ;
+
+		cameraPosition = GetChunkPositionFromWorldPosition(world,
+			CameraTileX,
+			CameraTileY,
+			CameraTileZ);
+
 		SetCamera(gameState, cameraPosition);
 
 		InitializePlayer(gameState);
 
-		u32 sandomNumberIndex = 0;
+		u32 randomNumberIndex = 0;
 
 		u32 tilesPerWidth = 17;
 		u32 tilesPerHeight = 9;
@@ -127,11 +141,11 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 		for (u32 screenIndex = 0; screenIndex < 50; ++screenIndex)
 		{
-			Assert(sandomNumberIndex < ArrayCount(randomNumberTable));
+			Assert(randomNumberIndex < ArrayCount(randomNumberTable));
 
 			u32 randomChoice;
 
-			randomChoice = randomNumberTable[sandomNumberIndex++] % 2;
+			randomChoice = randomNumberTable[randomNumberIndex++] % 2;
 			//if (doorUp || doorDown)
 			//{
 			//}
@@ -207,7 +221,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 					if (tileValue == 2)
 					{
-						AddWall(gameState, GenerateChunkTiledPosition(absTileX, absTileY, absTileZ));
+						AddWall(gameState, absTileX, absTileY, absTileZ);
 					}
 				}
 			}
@@ -252,11 +266,22 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			}
 		}
 
-		WorldPosition monsterPost = { 0, 0, 0, { 5, 2 } };
-		WorldPosition familiarPost = { 0, 0, 0, { 11, 7 } };
+		WorldPosition monsterPost = GetChunkPositionFromWorldPosition(world, CameraTileX + 2, CameraTileY + 2, CameraTileZ);
 
 		AddMonster(gameState, &monsterPost);
-		AddFamiliar(gameState, &familiarPost);
+
+		for (int FamiliarIndex = 0; FamiliarIndex < 5; ++FamiliarIndex)
+		{
+			i32 FamiliarOffsetX = (randomNumberTable[randomNumberIndex++] % 10) - 7;
+			i32 FamiliarOffsetY = (randomNumberTable[randomNumberIndex++] % 10) - 3;
+
+			if ((FamiliarOffsetX != 0) || (FamiliarOffsetY != 0))
+			{
+				WorldPosition familiarPosition = GetChunkPositionFromWorldPosition(world, CameraTileX + FamiliarOffsetX, CameraTileY + FamiliarOffsetY, CameraTileZ);
+
+				AddFamiliar(gameState, &familiarPosition);
+			}
+		}
 
 		gameMemory->IsInitialized = true;
 	}
@@ -921,9 +946,9 @@ AddLowEntityResult AddLowEntity(GameState* gameState, EntityType type, WorldPosi
 	return { entityIndex, lowEnttiy };
 }
 
-AddLowEntityResult AddWall(GameState* gameState, WorldPosition position)
+AddLowEntityResult AddWall(GameState* gameState, i32 x, i32 y, i32 z)
 {
-	WorldPosition pos = ChunkPositionFromWorldPosition(gameState->World, position.X, position.Y, position.Z);
+	WorldPosition pos = GetChunkPositionFromWorldPosition(gameState->World, x, y, z);
 
 	AddLowEntityResult result = AddLowEntity(gameState, EntityType::Wall, &pos);
 
