@@ -471,16 +471,16 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 				{
 					Hitpoint* hitPoint = lowEntity->Hitpoints + healthIndex;
 
-					r32 r = 1.0f, g = 0.0f, b = 0.0f;
+					V4 colour = { 1.0f, 0.0f,  0.0f, 1.0f };
 
 					if (hitPoint->Current == 0)
 					{
-						r = 0.2f;
-						g = 0.2f;
-						b = 0.2f;
+						colour.R = 0.2f;
+						colour.G = 0.2f;
+						colour.B = 0.2f;
 					}
 
-					PushRect(&pieceGroup, hpPosition, 0, healthDim, { r, g, b, 1.0f }, 0.0f);
+					PushRect(&pieceGroup, hpPosition, 0, healthDim, colour, 0.0f);
 
 					hpPosition += dHitP;
 				}
