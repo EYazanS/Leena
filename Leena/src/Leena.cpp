@@ -22,7 +22,7 @@ void SetCamera(GameState* gameState, WorldPosition newPosition);
 
 void UpdateFamiliar(GameState* state, Entity entity, r32 dt);
 void UpdateMonster(GameState* state, Entity entity, r32 dt);
-inline void PushPiece(EntityVisiblePieceGroup* group, LoadedBitmap* bitmap, V2 offset, r32 offsetZ, V2 align, r32 shadowAlpha = 1);
+inline void PushPiece(EntityVisiblePieceGroup* group, LoadedBitmap* bitmap, V2 offset, r32 offsetZ, V2 align, r32 shadowAlpha = 1, r32 entityZC = 1);
 
 // To pack the struct tightly and prevent combiler from 
 // aligning the fields 
@@ -450,7 +450,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			PushPiece(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
 			PushPiece(&pieceGroup, &playerFacingDirectionMap->Cape, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
 			PushPiece(&pieceGroup, &playerFacingDirectionMap->Torso, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
-			PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+			PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
 		} break;
 
 		case EntityType::Wall:
@@ -462,7 +462,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		{
 			UpdateFamiliar(gameState, entity, dt);
 			PushPiece(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
-			PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha);
+			PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
 
 		} break;
 
@@ -505,7 +505,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		for (u32 pieceIndex = 0; pieceIndex < pieceGroup.PieceCount; pieceIndex++)
 		{
 			EntityVisiblePiece* piece = pieceGroup.Pieces + pieceIndex;
-			DrawBitmap(screenBuffer, piece->Bitmap, groundPointX + piece->Offset.X, groundPointY + piece->Offset.Y + piece->Z + entityZ, piece->Alpha);
+			DrawBitmap(screenBuffer, piece->Bitmap, groundPointX + piece->Offset.X, groundPointY + piece->Offset.Y + piece->Z + piece->ZCoefficient * entityZ, piece->Alpha);
 		}
 	}
 }
@@ -1118,7 +1118,7 @@ b32 TestWall(r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r
 	return hitWall;
 }
 
-inline void PushPiece(EntityVisiblePieceGroup* group, LoadedBitmap* bitmap, V2 offset, r32 offsetZ, V2 align, r32 shadowAlpha)
+inline void PushPiece(EntityVisiblePieceGroup* group, LoadedBitmap* bitmap, V2 offset, r32 offsetZ, V2 align, r32 shadowAlpha, r32 zCoefficient)
 {
 	Assert(group->PieceCount < ArrayCount(group->Pieces));
 
@@ -1128,6 +1128,7 @@ inline void PushPiece(EntityVisiblePieceGroup* group, LoadedBitmap* bitmap, V2 o
 	piece->Offset = offset - align;
 	piece->Z = offsetZ;
 	piece->Alpha = shadowAlpha;
+	piece->ZCoefficient = zCoefficient;
 
 }
 
