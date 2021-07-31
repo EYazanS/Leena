@@ -91,6 +91,7 @@ struct EntityVisiblePiece
 	V2 Offset;
 	r32 Z;
 	r32 Alpha;
+	r32 ZCoefficient;
 };
 
 struct EntityVisiblePieceGroup
