@@ -87,16 +87,7 @@ inline WorldPositionDifference CalculatePositionDifference(World* world, WorldPo
 	return result;
 }
 
-inline WorldPosition GenerateChunkTiledPosition(i32 x, i32 y, i32 z)
-{
-	WorldPosition result = {};
-
-	result = WorldPosition{ x, y, z };
-
-	return result;
-}
-
-inline WorldPosition ChunkPositionFromWorldPosition(World* world, i32 x, i32 y, i32 z)
+inline WorldPosition GetChunkPositionFromWorldPosition(World* world, i32 x, i32 y, i32 z)
 {
 	WorldPosition result = {};
 
