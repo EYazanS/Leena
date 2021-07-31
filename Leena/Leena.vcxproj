@@ -33,6 +33,7 @@
     <ClInclude Include="src\Memory\Memory.h" />
     <ClInclude Include="src\RandomNumbers.h" />
     <ClInclude Include="src\Utilities\Intrinsics.h" />
+    <ClInclude Include="src\Math\Vector4d.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Leena.cpp" />

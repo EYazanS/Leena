@@ -2,7 +2,7 @@
 
 // GRAPHICS
 LoadedBitmap DebugLoadBmp(ThreadContext* thread, PlatformReadEntireFile* readFile, const char* fileName);
-void DrawRectangle(ScreenBuffer* gameScreenBuffer, V2 vecMin, V2 vecMax, Colour colour);
+void DrawRectangle(ScreenBuffer* gameScreenBuffer, V2 vecMin, V2 vecMax, V4 colour);
 void DrawBitmap(ScreenBuffer* screenBuffer, LoadedBitmap* bitmap, r32 realX, r32 realY, r32 cAlpha = 1.0f);
 
 // AUDIO
@@ -22,8 +22,8 @@ void SetCamera(GameState* gameState, WorldPosition newPosition);
 
 void UpdateFamiliar(GameState* state, Entity entity, r32 dt);
 void UpdateMonster(GameState* state, Entity entity, r32 dt);
-inline void PushPiece(EntityVisiblePieceGroup* group, LoadedBitmap* bitmap, V2 offset, r32 offsetZ, V2 align, r32 alpha = 1, r32 entityZC = 1);
-inline void PushRect(EntityVisiblePieceGroup* group, V2 offset, r32 offsetZ, V2 dim, Colour colour, r32 alpha = 1, r32 zCoefficient = 1);
+inline void PushBitmap(EntityVisiblePieceGroup* group, LoadedBitmap* bitmap, V2 offset, r32 offsetZ, V2 align, r32 alpha = 1, r32 entityZC = 1);
+inline void PushRect(EntityVisiblePieceGroup* group, V2 offset, r32 offsetZ, V2 dim, V4 colour, r32 zCoefficient = 1);
 
 // To pack the struct tightly and prevent combiler from 
 // aligning the fields 
@@ -454,17 +454,17 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		{
 		case  EntityType::Player:
 		{
-			PushPiece(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
-			PushPiece(&pieceGroup, &playerFacingDirectionMap->Cape, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
-			PushPiece(&pieceGroup, &playerFacingDirectionMap->Torso, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
-			PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Cape, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Torso, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
 
 			if (lowEntity->MaxHp > 0)
 			{
 				V2 healthDim = { 0.2f, 0.2f };
-				r32 spacing = healthDim.X  * 1.5f;
+				r32 spacing = healthDim.X * 1.5f;
 
-				V2 hpPosition = { -0.5f * (lowEntity->MaxHp - 1) * spacing, 0.1f };
+				V2 hpPosition = { -0.5f * (lowEntity->MaxHp - 1) * spacing, -0.40f };
 				V2 dHitP = { spacing, 0.0f };
 
 				for (u8 healthIndex = 0; healthIndex < lowEntity->MaxHp; healthIndex++)
@@ -480,8 +480,8 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 						b = 0.2f;
 					}
 
-					PushRect(&pieceGroup, hpPosition, 0, healthDim, { r, g, b });
-					
+					PushRect(&pieceGroup, hpPosition, 0, healthDim, { r, g, b, 1.0f }, 0.0f);
+
 					hpPosition += dHitP;
 				}
 			}
@@ -489,22 +489,22 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 		case EntityType::Wall:
 		{
-			PushPiece(&pieceGroup, &gameState->Tree, V2{ 0,0 }, 0, V2{ 40, 80 });
+			PushBitmap(&pieceGroup, &gameState->Tree, V2{ 0,0 }, 0, V2{ 40, 80 });
 		} break;
 
 		case EntityType::Familiar:
 		{
 			UpdateFamiliar(gameState, entity, dt);
-			PushPiece(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
-			PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
 
 		} break;
 
 		case EntityType::Monster:
 		{
 			UpdateMonster(gameState, entity, dt);
-			PushPiece(&pieceGroup, &gameState->Rock, V2{ 0,0 }, 0, V2{ 40, 80 });
-			PushPiece(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha);
+			PushBitmap(&pieceGroup, &gameState->Rock, V2{ 0,0 }, 0, V2{ 40, 80 });
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha);
 
 		} break;
 
@@ -544,7 +544,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 			if (piece->Bitmap)
 			{
-				DrawBitmap(screenBuffer, piece->Bitmap, center.X, center.Y, piece->Alpha);
+				DrawBitmap(screenBuffer, piece->Bitmap, center.X, center.Y, piece->Colour.A);
 			}
 			else
 			{
@@ -565,7 +565,7 @@ DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, Au
 void DrawRectangle(
 	ScreenBuffer* gameScreenBuffer,
 	V2 vecMin, V2 vecMax,
-	Colour colour)
+	V4 colour)
 {
 	i32 minX = RoundReal32ToInt32(vecMin.X);
 	i32 maxX = RoundReal32ToInt32(vecMax.X);
@@ -588,9 +588,9 @@ void DrawRectangle(
 
 	// Bit Pattern = x0 AA RR GG BB
 	u32 finalColour =
-		(RoundReal32ToInt32(colour.Red * 255.f) << 16) |
-		(RoundReal32ToInt32(colour.Green * 255.f) << 8) |
-		(RoundReal32ToInt32(colour.Blue * 255.f) << 0);
+		(RoundReal32ToInt32(colour.R * 255.f) << 16) |
+		(RoundReal32ToInt32(colour.G * 255.f) << 8) |
+		(RoundReal32ToInt32(colour.B * 255.f) << 0);
 
 	u8* endOfBuffer = ((u8*)gameScreenBuffer->Memory) + ((u64)gameScreenBuffer->Pitch * (u64)gameScreenBuffer->Height);
 
@@ -735,17 +735,17 @@ void DrawBitmap(ScreenBuffer* screenBuffer, LoadedBitmap* bitmap, r32 realX, r32
 			if (*source >> 24 > 124)
 			{
 				*dest = *source;
-		}
+			}
 #endif // 0
 
 
 			dest++;
 			source++;
-	}
+		}
 
 		destRow += screenBuffer->Pitch;
 		sourceRow -= bitmap->Width;
-}
+	}
 }
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* soundBuffer)
@@ -1166,32 +1166,28 @@ b32 TestWall(r32 wall, r32 relX, r32 relY, r32 playerDeltaX, r32 playerDeltaY, r
 	return hitWall;
 }
 
-inline void PushPiece(EntityVisiblePieceGroup* group, LoadedBitmap* bitmap, V2 offset, r32 offsetZ, V2 align, r32 alpha, r32 zCoefficient)
+inline void PushPiece(EntityVisiblePieceGroup* group, LoadedBitmap* bitmap, V2 offset, r32 offsetZ, V2 dim, V4 colour, V2 align, r32 zCoefficient)
 {
 	Assert(group->PieceCount < ArrayCount(group->Pieces));
 
 	EntityVisiblePiece* piece = group->Pieces + group->PieceCount++;
 
 	piece->Bitmap = bitmap;
-	piece->Offset = group->GameState->MetersToPixels * offset - align;
+	piece->Offset = group->GameState->MetersToPixels * V2{ offset.X, -offset.Y } - align;
 	piece->Z = group->GameState->MetersToPixels * offsetZ;
-	piece->Alpha = alpha;
-	piece->ZCoefficient = zCoefficient;
-
-}
-
-inline void PushRect(EntityVisiblePieceGroup* group, V2 offset, r32 offsetZ, V2 dim, Colour colour, r32 alpha, r32 zCoefficient)
-{
-	Assert(group->PieceCount < ArrayCount(group->Pieces));
-
-	EntityVisiblePiece* piece = group->Pieces + group->PieceCount++;
-
-	piece->Offset = group->GameState->MetersToPixels * offset;
-	piece->Z = group->GameState->MetersToPixels * offsetZ;
-	piece->Alpha = alpha;
 	piece->ZCoefficient = zCoefficient;
 	piece->Dimensions = dim;
 	piece->Colour = colour;
+}
+
+inline void PushBitmap(EntityVisiblePieceGroup* group, LoadedBitmap* bitmap, V2 offset, r32 offsetZ, V2 align, r32 alpha, r32 zCoefficient)
+{
+	PushPiece(group, bitmap, offset, offsetZ, {}, { 0.0f, 0.0f, 0.0f, alpha }, align, zCoefficient);
+}
+
+inline void PushRect(EntityVisiblePieceGroup* group, V2 offset, r32 offsetZ, V2 dim, V4 colour, r32 zCoefficient)
+{
+	PushPiece(group, 0, offset, offsetZ, dim, colour, {}, zCoefficient);
 }
 
 void UpdateFamiliar(GameState* state, Entity entity, r32 timeDelta)
