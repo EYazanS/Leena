@@ -10,12 +10,6 @@
 #define TilesPerChunk 16
 #define TILE_CHUNK_UNINITIALIZED INT32_MAX
 
-struct WorldPositionDifference
-{
-	V2 DXY;
-	r32 DZ;
-};
-
 struct WorldPosition
 {
 	i32 X;
@@ -73,16 +67,16 @@ inline b32 IsCanonical(World* world, V2 offset)
 	return result;
 }
 
-inline WorldPositionDifference CalculatePositionDifference(World* world, WorldPosition* position1, WorldPosition* position2)
+inline V3 CalculatePositionDifference(World* world, WorldPosition* position1, WorldPosition* position2)
 {
-	WorldPositionDifference result = {};
+	V3 result = {};
 
 	V2 dTile = { (r32)position1->X - (r32)position2->X, (r32)position1->Y - (r32)position2->Y };
 	r32 dTileZ = (r32)position1->Z - (r32)position2->Z;
 
-	result.DXY = world->ChunkSideInMeters * dTile + (position1->Offset - position2->Offset);
+	V2 v2 = world->ChunkSideInMeters * dTile + (position1->Offset - position2->Offset);
 
-	result.DZ = world->ChunkSideInMeters * dTileZ;
+	result = { v2.X, v2.Y, world->ChunkSideInMeters * dTileZ };
 
 	return result;
 }
@@ -111,7 +105,7 @@ inline WorldPosition GetChunkPositionFromWorldPosition(World* world, i32 x, i32 
 
 	// TODO: DECIDE ON TILE ALIGNMENT IN CHUNKS!
 	result.Offset.X = (r32)((x - TilesPerChunk / 2) - (result.X * TilesPerChunk)) * world->TileSideInMeters;
-	result.Offset.Y = (r32)((y - TilesPerChunk/ 2) - (result.Y * TilesPerChunk)) * world->TileSideInMeters;
+	result.Offset.Y = (r32)((y - TilesPerChunk / 2) - (result.Y * TilesPerChunk)) * world->TileSideInMeters;
 
 	Assert(IsCanonical(world, result.Offset));
 
