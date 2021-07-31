@@ -18,6 +18,8 @@ DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, Au
 #define Minimum(a, b) ((a < b) ? a : b)
 #define Maximum(a, b) ((a > b) ? a : b)
 
+#define HitPointMaxAmount 4
+
 struct LoadedBitmap
 {
 	i64 Width;
@@ -42,6 +44,12 @@ enum class EntityType
 	Wall,
 	Familiar,
 	Monster
+};
+
+struct Hitpoint
+{
+	u8 Flags;
+	u32 Current;
 };
 
 struct HighEntity
@@ -70,6 +78,9 @@ struct LowEntity
 	i32 TileZ;
 
 	u32 HighEntityIndex;
+
+	u32 MaxHp;
+	Hitpoint Hitpoints[16];
 };
 
 struct AddLowEntityResult
@@ -92,14 +103,9 @@ struct EntityVisiblePiece
 	r32 Z;
 	r32 Alpha;
 	r32 ZCoefficient;
+	Colour Colour;
+	V2 Dimensions;
 };
-
-struct EntityVisiblePieceGroup
-{
-	u32 PieceCount;
-	EntityVisiblePiece Pieces[8];
-};
-
 
 struct GameState
 {
@@ -109,6 +115,8 @@ struct GameState
 
 	u32 LowEntitiesCount;
 	u32 HighEntitiesCount;
+
+	r32 MetersToPixels;
 
 	HighEntity HighEntities[256];
 	LowEntity LowEntities[100000];
@@ -122,6 +130,13 @@ struct GameState
 	LoadedBitmap Rock;
 
 	World* World;
+};
+
+struct EntityVisiblePieceGroup
+{
+	u32 PieceCount;
+	GameState* GameState;
+	EntityVisiblePiece Pieces[32];
 };
 
 void MakeEntityLowFreq(GameState* gameState, u32 index);
