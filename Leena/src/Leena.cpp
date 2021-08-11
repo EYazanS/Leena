@@ -13,6 +13,7 @@ AddLowEntityResult AddLowEntity(GameState* gameState, EntityType type, WorldPosi
 AddLowEntityResult AddWall(GameState* gameState, i32 x, i32 y, i32 z);
 AddLowEntityResult AddMonster(GameState* state, WorldPosition* position);
 AddLowEntityResult AddFamiliar(GameState* state, WorldPosition* position);
+AddLowEntityResult AddSword(GameState* state);
 
 void DrawHitPoints(LowEntity* lowEntity, EntityVisiblePieceGroup* pieceGroup);
 
@@ -74,6 +75,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		gameState->Background = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_background.bmp");
 		gameState->Tree = DebugLoadBmp(thread, gameMemory->ReadFile, "test2/tree00.bmp");
 		gameState->Rock = DebugLoadBmp(thread, gameMemory->ReadFile, "test2/rock00.bmp");
+		gameState->Sword = DebugLoadBmp(thread, gameMemory->ReadFile, "test2/rock03.bmp");
 
 		PlayerBitMap* playerBitMap;
 		playerBitMap = gameState->BitMaps;
@@ -468,6 +470,12 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			case EntityType::Wall:
 			{
 				PushBitmap(&pieceGroup, &gameState->Tree, V2{ 0,0 }, 0, V2{ 40, 80 });
+			} break;
+			
+			case EntityType::Sword:
+			{
+				PushBitmap(&pieceGroup, &gameState->Sword, V2{ 0,0 }, 0, V2{ 29, 10 });
+				PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
 			} break;
 
 			case EntityType::Familiar:
@@ -948,6 +956,10 @@ void InitializePlayer(GameState* state)
 	entity->Low->Width = 0.75f;
 	entity->Low->Speed = 30.0f; // M/S2
 
+	AddLowEntityResult sword = AddSword(state);
+
+	entity->Low->SwordLowIndex = sword.LowEntityIndex;
+
 	MakeEntityHighFreq(state, result.LowEntityIndex);
 
 	entity->High = state->HighEntities + entity->Low->HighEntityIndex;
@@ -978,6 +990,20 @@ AddLowEntityResult AddMonster(GameState* state, WorldPosition* position)
 
 	return result;
 }
+
+AddLowEntityResult AddSword(GameState* state)
+{
+	AddLowEntityResult result = AddLowEntity(state, EntityType::Sword, 0);
+
+	// Order: X Y Z Offset
+	result.LowEntity->Collides = false;
+	result.LowEntity->Height = 0.5f;
+	result.LowEntity->Width = 1.0f;
+	result.LowEntity->Speed = 20.0f; // M/S2
+
+	return result;
+}
+
 AddLowEntityResult AddFamiliar(GameState* state, WorldPosition* position)
 {
 	AddLowEntityResult result = AddLowEntity(state, EntityType::Familiar, position);

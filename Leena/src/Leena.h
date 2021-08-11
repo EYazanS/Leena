@@ -43,7 +43,8 @@ enum class EntityType
 	Player,
 	Wall,
 	Familiar,
-	Monster
+	Monster,
+	Sword
 };
 
 struct Hitpoint
@@ -81,6 +82,12 @@ struct LowEntity
 
 	u32 MaxHp;
 	Hitpoint Hitpoints[16];
+
+	u32 SwordLowIndex;
+
+	r32 Timer;
+
+	r32 DistanceTraveled;
 };
 
 struct AddLowEntityResult
@@ -127,6 +134,8 @@ struct GameState
 
 	LoadedBitmap Tree;
 	LoadedBitmap Rock;
+	
+	LoadedBitmap Sword;
 
 	World* World;
 };
