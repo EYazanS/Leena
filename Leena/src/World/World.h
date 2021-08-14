@@ -8,7 +8,7 @@
 
 #define ChunkSafeMargin 16
 #define TilesPerChunk 16
-#define TILE_CHUNK_UNINITIALIZED INT32_MAX
+#define TileChunkUninitialized INT32_MAX
 
 struct WorldPosition
 {
@@ -52,6 +52,16 @@ void initializeWorld(World* world);
 WorldPosition MapIntoChunkSpace(World* world, WorldPosition basePosition, V2 offset);
 void RecanonicalizeCoordinant(World* world, i32* tile, r32* tileRelative);
 
+inline WorldPosition NullPosition()
+{
+	WorldPosition result = {};
+
+	result.X = TileChunkUninitialized;
+	result.Y = TileChunkUninitialized;
+	result.Z = TileChunkUninitialized;
+
+	return result;
+}
 
 inline b32 IsCanonical(World* world, r32 tileRel)
 {
@@ -121,6 +131,13 @@ inline b32 AreOnSameLocation(World* world, WorldPosition* oldPosition, WorldPosi
 
 	return result;
 }
+inline b32 IsValidLocation(WorldPosition* position)
+{
+
+	b32 result = position->X != TileChunkUninitialized && position->Y != TileChunkUninitialized && position->Z != TileChunkUninitialized;
+
+	return result;
+}
 
 inline WorldChunk* GetWorldChunk(World* world, u32 X, u32 Y, u32 ChunkZ, MemoryPool* pool = 0)
 {
@@ -147,14 +164,14 @@ inline WorldChunk* GetWorldChunk(World* world, u32 X, u32 Y, u32 ChunkZ, MemoryP
 			break;
 		}
 
-		if (pool && (Chunk->X != TILE_CHUNK_UNINITIALIZED) && (!Chunk->NextInHash))
+		if (pool && (Chunk->X != TileChunkUninitialized) && (!Chunk->NextInHash))
 		{
 			Chunk->NextInHash = PushStruct(pool, WorldChunk);
 			Chunk = Chunk->NextInHash;
-			Chunk->X = TILE_CHUNK_UNINITIALIZED;
+			Chunk->X = TileChunkUninitialized;
 		}
 
-		if (pool && (Chunk->X == TILE_CHUNK_UNINITIALIZED))
+		if (pool && (Chunk->X == TileChunkUninitialized))
 		{
 			Chunk->X = X;
 			Chunk->Y = Y;
@@ -170,8 +187,11 @@ inline WorldChunk* GetWorldChunk(World* world, u32 X, u32 Y, u32 ChunkZ, MemoryP
 	return(Chunk);
 }
 
-inline void ChangeEntityLocation(MemoryPool* pool, World* world, u32 lowEntityIndex, WorldPosition* oldPosition, WorldPosition* newPosition)
+inline void ChangeEntityLocationRaw(MemoryPool* pool, World* world, u32 lowEntityIndex, WorldPosition* oldPosition, WorldPosition* newPosition)
 {
+	Assert(!oldPosition || IsValidLocation(oldPosition));
+	Assert(!newPosition || IsValidLocation(newPosition));
+
 	if (oldPosition && AreOnSameLocation(world, oldPosition, newPosition))
 	{
 		// WE dont do anythink
@@ -221,32 +241,37 @@ inline void ChangeEntityLocation(MemoryPool* pool, World* world, u32 lowEntityIn
 			}
 		}
 
-		// Insert entity into its new entity block
-		WorldChunk* chunk = GetWorldChunk(world, newPosition->X, newPosition->Y, newPosition->Z, pool);
-
-		EntityBlock* block = &chunk->FirstBlock;
-
-		if (block->EntitiesCount == ArrayCount(block->LowEntitiyIndex))
+		if (newPosition)
 		{
-			EntityBlock* oldBlock = world->FirstFreeBlock;
+			// Insert entity into its new entity block
+			WorldChunk* chunk = GetWorldChunk(world, newPosition->X, newPosition->Y, newPosition->Z, pool);
 
-			if (oldBlock)
+			EntityBlock* block = &chunk->FirstBlock;
+
+			if (block->EntitiesCount == ArrayCount(block->LowEntitiyIndex))
 			{
-				world->FirstFreeBlock = oldBlock->Next;
-			}
-			else
-			{
-				oldBlock = PushStruct(pool, EntityBlock);
+				EntityBlock* oldBlock = world->FirstFreeBlock;
+
+				if (oldBlock)
+				{
+					world->FirstFreeBlock = oldBlock->Next;
+				}
+				else
+				{
+					oldBlock = PushStruct(pool, EntityBlock);
+				}
+
+				*oldBlock = *block;
+				block->Next = oldBlock;
+				block->EntitiesCount = 0;
 			}
 
-			*oldBlock = *block;
-			block->Next = oldBlock;
-			block->EntitiesCount = 0;
+			Assert(block->EntitiesCount < ArrayCount(block->LowEntitiyIndex));
+
+			if (block->EntitiesCount < ArrayCount(block->LowEntitiyIndex))
+			{
+				block->LowEntitiyIndex[block->EntitiesCount++] = lowEntityIndex;
+			}
 		}
-
-		Assert(block->EntitiesCount < ArrayCount(block->LowEntitiyIndex));
-
-		if (block->EntitiesCount < ArrayCount(block->LowEntitiyIndex))
-			block->LowEntitiyIndex[block->EntitiesCount++] = lowEntityIndex;
 	}
 }
