@@ -150,6 +150,7 @@ struct EntityVisiblePieceGroup
 void MakeEntityLowFreq(GameState* gameState, u32 index);
 HighEntity* MakeEntityHighFreq(GameState* gameState, u32 entityIndex);
 HighEntity* MakeEntityHighFreq(GameState* gameState, LowEntity* lowEntity, u32 index, V2 camerSpaceP);
+void ChangeEntityLocation(MemoryPool* pool, World* world, u32 lowEntityIndex, LowEntity* lowEntity, WorldPosition* oldPosition, WorldPosition* newPosition);
 
 inline LowEntity* GetLowEntity(GameState* gameState, u32 index)
 {
@@ -206,6 +207,5 @@ inline b32 ValidateEntityPairs(GameState* state)
 
 	return valid;
 }
-
 #define LeenaH
 #endif

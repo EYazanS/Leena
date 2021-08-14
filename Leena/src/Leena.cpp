@@ -15,6 +15,8 @@ AddLowEntityResult AddMonster(GameState* state, WorldPosition* position);
 AddLowEntityResult AddFamiliar(GameState* state, WorldPosition* position);
 AddLowEntityResult AddSword(GameState* state);
 
+Entity ForceEntityIntoHigh(GameState* state, u32 lowIndex, WorldPosition* position);
+
 void DrawHitPoints(LowEntity* lowEntity, EntityVisiblePieceGroup* pieceGroup);
 
 b32 TestWall(r32 WallX, r32 RelX, r32 RelY, r32 PlayerDeltaX, r32 PlayerDeltaY, r32* tMin, r32 MinY, r32 MaxY);
@@ -333,6 +335,8 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 	ControllerInput* controller = &input->Controller;
 
+	V2 swordDirection = {};
+
 	if (controller->IsConnected)
 	{
 		if (controller->IsAnalog)
@@ -363,6 +367,11 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 				playerAcceleration.X = -1.0f;
 			}
 		}
+
+		if (controller->X.EndedDown)
+		{
+			swordDirection = playerAcceleration;
+		}
 	}
 
 	if (keyboard->X.EndedDown || controller->X.EndedDown)
@@ -390,6 +399,18 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	else
 	{
 		player->Low->Speed = 30.0f;
+	}
+
+	if (swordDirection.X != 0 || swordDirection.Y != 0)
+	{
+		LowEntity* swordLow = gameState->LowEntities + player->Low->SwordLowIndex;
+
+		if (swordLow && !IsValidLocation(&swordLow->Position))
+		{
+			WorldPosition newPosition = player->Low->Position;
+
+			ChangeEntityLocation(&gameState->WorldMemoryPool, gameState->World, player->Low->SwordLowIndex, swordLow, 0, &newPosition);
+		}
 	}
 
 	for (u32 highEntityIndex = 1; highEntityIndex < gameState->HighEntitiesCount; highEntityIndex++)
@@ -471,7 +492,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			{
 				PushBitmap(&pieceGroup, &gameState->Tree, V2{ 0,0 }, 0, V2{ 40, 80 });
 			} break;
-			
+
 			case EntityType::Sword:
 			{
 				PushBitmap(&pieceGroup, &gameState->Sword, V2{ 0,0 }, 0, V2{ 29, 10 });
@@ -938,7 +959,7 @@ void MoveEntity(GameState* gameState, Entity entity, r32 timeToAdvance, V2 playe
 	}
 
 	WorldPosition newPosition = MapIntoChunkSpace(world, gameState->CameraPosition, entity.High->Position);
-	ChangeEntityLocation(&gameState->WorldMemoryPool, gameState->World, entity.LowEntityIndex, &entity.Low->Position, &newPosition);
+	ChangeEntityLocation(&gameState->WorldMemoryPool, gameState->World, entity.LowEntityIndex, entity.Low, &entity.Low->Position, &newPosition);
 	entity.Low->Position = newPosition;
 }
 
@@ -1031,11 +1052,7 @@ AddLowEntityResult AddLowEntity(GameState* gameState, EntityType type, WorldPosi
 		*lowEnttiy = {};
 		lowEnttiy->Type = type;
 
-		if (position)
-		{
-			(*lowEnttiy).Position = *position;
-			ChangeEntityLocation(&gameState->WorldMemoryPool, gameState->World, entityIndex, 0, position);
-		}
+		ChangeEntityLocation(&gameState->WorldMemoryPool, gameState->World, entityIndex, lowEnttiy, 0, position);
 	}
 
 	return { entityIndex, lowEnttiy };
@@ -1263,4 +1280,33 @@ void UpdateFamiliar(GameState* state, Entity entity, r32 timeDelta)
 void UpdateMonster(GameState* state, Entity entity, r32 dt)
 {
 
+}
+
+Entity ForceEntityIntoHigh(GameState* state, u32 lowIndex, WorldPosition* position)
+{
+	Entity result = {};
+
+	if (lowIndex > 0 && lowIndex < state->LowEntitiesCount)
+	{
+		result.LowEntityIndex = lowIndex;
+		result.Low = state->LowEntities + lowIndex;
+		result.Low->Position = *position;
+		result.High = MakeEntityHighFreq(state, lowIndex);
+	}
+
+	return result;
+}
+
+void ChangeEntityLocation(MemoryPool* pool, World* world, u32 lowEntityIndex, LowEntity* lowEntity, WorldPosition* oldPosition, WorldPosition* newPosition)
+{
+	ChangeEntityLocationRaw(pool, world, lowEntityIndex, oldPosition, newPosition);
+
+	if (newPosition)
+	{
+		lowEntity->Position = *newPosition;
+	}
+	else
+	{
+		lowEntity->Position = NullPosition();
+	}
 }
