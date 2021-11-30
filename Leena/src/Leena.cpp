@@ -23,11 +23,13 @@ b32 TestWall(r32 WallX, r32 RelX, r32 RelY, r32 PlayerDeltaX, r32 PlayerDeltaY, 
 
 void InitializePlayer(GameState* state);
 void InitializeHitpoints(LowEntity* entity, u32 hitpointsCount);
-void MoveEntity(GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration);
+void MoveEntity(GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration, MoveSpec* moveSpec);
 void SetCamera(GameState* gameState, WorldPosition newPosition);
 
 void UpdateFamiliar(GameState* state, Entity entity, r32 dt);
 void UpdateMonster(GameState* state, Entity entity, r32 dt);
+void UpdateSword(GameState* state, Entity entity, r32 dt);
+
 inline void PushBitmap(EntityVisiblePieceGroup* group, LoadedBitmap* bitmap, V2 offset, r32 offsetZ, V2 align, r32 alpha = 1, r32 entityZC = 1);
 inline void PushRect(EntityVisiblePieceGroup* group, V2 offset, r32 offsetZ, V2 dim, V4 colour, r32 zCoefficient = 1);
 
@@ -301,6 +303,8 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	World* world = gameState->World;
 	Entity* player = &gameState->PlayerEntity;
 
+	V2 swordDirection = {};
+
 	//
 	// Handle input
 	// 
@@ -331,11 +335,14 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		{
 			// gameMemory->IsInitialized = false;
 		}
+
+		if (keyboard->X.EndedDown)
+		{
+			swordDirection = playerAcceleration;
+		}
 	}
 
 	ControllerInput* controller = &input->Controller;
-
-	V2 swordDirection = {};
 
 	if (controller->IsConnected)
 	{
@@ -410,6 +417,11 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			WorldPosition newPosition = player->Low->Position;
 
 			ChangeEntityLocation(&gameState->WorldMemoryPool, gameState->World, player->Low->SwordLowIndex, swordLow, 0, &newPosition);
+
+			Entity sword = ForceEntityIntoHigh(gameState, player->Low->SwordLowIndex, &newPosition);
+
+			sword.Low->DistanceRemaining = 5.0f;
+			sword.High->Velocity = 12.0f * swordDirection;
 		}
 	}
 
@@ -423,7 +435,13 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 		if (entity.Low->Type == EntityType::Player)
 		{
-			MoveEntity(gameState, entity, (r32)input->TimeToAdvance, playerAcceleration);
+			MoveSpec moveSpec = GetDefaultMoveSpec();
+
+			moveSpec.Drag = 8.0f;
+			moveSpec.Speed = 50.0f;
+			moveSpec.UnitMaxAccVector = true;
+
+			MoveEntity(gameState, entity, (r32)input->TimeToAdvance, playerAcceleration, &moveSpec);
 		}
 	}
 
@@ -468,7 +486,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			shadowAlpha = 0.0f;
 		}
 
-		Entity entity;
+		Entity entity = {};
 
 		entity.Low = lowEntity;
 		entity.High = highEntity;
@@ -478,49 +496,50 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 		switch (lowEntity->Type)
 		{
-			case  EntityType::Player:
-			{
-				PushBitmap(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
-				PushBitmap(&pieceGroup, &playerFacingDirectionMap->Cape, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
-				PushBitmap(&pieceGroup, &playerFacingDirectionMap->Torso, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
-				PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
+		case  EntityType::Player:
+		{
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Cape, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Torso, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
 
-				DrawHitPoints(lowEntity, &pieceGroup);
-			} break;
+			DrawHitPoints(lowEntity, &pieceGroup);
+		} break;
 
-			case EntityType::Wall:
-			{
-				PushBitmap(&pieceGroup, &gameState->Tree, V2{ 0,0 }, 0, V2{ 40, 80 });
-			} break;
+		case EntityType::Wall:
+		{
+			PushBitmap(&pieceGroup, &gameState->Tree, V2{ 0,0 }, 0, V2{ 40, 80 });
+		} break;
 
-			case EntityType::Sword:
-			{
-				PushBitmap(&pieceGroup, &gameState->Sword, V2{ 0,0 }, 0, V2{ 29, 10 });
-				PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
-			} break;
+		case EntityType::Sword:
+		{
+			PushBitmap(&pieceGroup, &gameState->Sword, V2{ 0,0 }, 0, V2{ 29, 10 });
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
+			UpdateSword(gameState, entity, dt);
+		} break;
 
-			case EntityType::Familiar:
-			{
-				UpdateFamiliar(gameState, entity, dt);
-				PushBitmap(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
-				PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
+		case EntityType::Familiar:
+		{
+			UpdateFamiliar(gameState, entity, dt);
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
 
-			} break;
+		} break;
 
-			case EntityType::Monster:
-			{
-				UpdateMonster(gameState, entity, dt);
-				PushBitmap(&pieceGroup, &gameState->Rock, V2{ 0,0 }, 0, V2{ 40, 80 });
-				PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha);
+		case EntityType::Monster:
+		{
+			UpdateMonster(gameState, entity, dt);
+			PushBitmap(&pieceGroup, &gameState->Rock, V2{ 0,0 }, 0, V2{ 40, 80 });
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha);
 
-				DrawHitPoints(lowEntity, &pieceGroup);
+			DrawHitPoints(lowEntity, &pieceGroup);
 
-			} break;
+		} break;
 
-			default:
-			{
-				InvalidCodePath;
-			} break;
+		default:
+		{
+			InvalidCodePath;
+		} break;
 		}
 
 		// Gravity
@@ -774,17 +793,17 @@ void DrawBitmap(ScreenBuffer* screenBuffer, LoadedBitmap* bitmap, r32 realX, r32
 			if (*source >> 24 > 124)
 			{
 				*dest = *source;
-			}
+		}
 #endif // 0
 
 
 			dest++;
 			source++;
-		}
+	}
 
 		destRow += screenBuffer->Pitch;
 		sourceRow -= bitmap->Width;
-	}
+}
 }
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* soundBuffer)
@@ -835,22 +854,24 @@ AudioBuffer* ReadAudioBufferData(void* memory)
 	return result;
 }
 
-void MoveEntity(GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration)
+void MoveEntity(GameState* gameState, Entity entity, r32 timeToAdvance, V2 playerAcceleration, MoveSpec* moveSpec)
 {
 	World* world = gameState->World;
 
-	r32 playerAccelerationLength = LengthSq(playerAcceleration);
-
-	if (playerAccelerationLength > 1.0f)
+	if (moveSpec->UnitMaxAccVector)
 	{
-		playerAcceleration *= (1.0f / SquareRoot(playerAccelerationLength));
+		r32 playerAccelerationLength = LengthSq(playerAcceleration);
+
+		if (playerAccelerationLength > 1.0f)
+		{
+			playerAcceleration *= (1.0f / SquareRoot(playerAccelerationLength));
+		}
 	}
 
-	r32 PlayerSpeed = 50.0f; // m/s^2
-	playerAcceleration *= PlayerSpeed;
+	playerAcceleration *= moveSpec->Speed;
 
 	// TODO: ODE here!
-	playerAcceleration += -8.0f * entity.High->Velocity;
+	playerAcceleration += -moveSpec->Drag * entity.High->Velocity;
 
 	V2 oldPlayerPosition = entity.High->Position;
 	V2 playerDelta = (0.5f * playerAcceleration * Square(timeToAdvance) + entity.High->Velocity * timeToAdvance);
@@ -866,47 +887,49 @@ void MoveEntity(GameState* gameState, Entity entity, r32 timeToAdvance, V2 playe
 		u32 hitHighEntityIndex = 0;
 
 		V2 desiredPosition = entity.High->Position + playerDelta;
-
-		for (u32 testHighEntityIndex = 1; testHighEntityIndex < gameState->HighEntitiesCount; testHighEntityIndex++)
+		if (entity.Low->Collides)
 		{
-			if (testHighEntityIndex != entity.Low->HighEntityIndex)
+			for (u32 testHighEntityIndex = 1; testHighEntityIndex < gameState->HighEntitiesCount; testHighEntityIndex++)
 			{
-				Entity testEntity = {};
-				testEntity.High = gameState->HighEntities + testHighEntityIndex;
-				testEntity.LowEntityIndex = testEntity.High->LowEntityIndex;
-				testEntity.Low = gameState->LowEntities + testEntity.LowEntityIndex;
-				if (testEntity.Low->Collides)
+				if (testHighEntityIndex != entity.Low->HighEntityIndex)
 				{
-					r32 diameterWidth = testEntity.Low->Width + entity.Low->Width;
-					r32 diameterHeight = testEntity.Low->Height + entity.Low->Height;
-
-					V2 minCorner = -0.5f * V2{ diameterWidth, diameterHeight };
-					V2 maxCorner = 0.5f * V2{ diameterWidth, diameterHeight };
-
-					V2 relDifference = entity.High->Position - testEntity.High->Position;
-
-					if (TestWall(minCorner.X, relDifference.X, relDifference.Y, playerDelta.X, playerDelta.Y, &tMin, minCorner.Y, maxCorner.Y))
+					Entity testEntity = {};
+					testEntity.High = gameState->HighEntities + testHighEntityIndex;
+					testEntity.LowEntityIndex = testEntity.High->LowEntityIndex;
+					testEntity.Low = gameState->LowEntities + testEntity.LowEntityIndex;
+					if (testEntity.Low->Collides)
 					{
-						wallNormal = V2{ -1, 0 };
-						hitHighEntityIndex = testHighEntityIndex;
-					}
+						r32 diameterWidth = testEntity.Low->Width + entity.Low->Width;
+						r32 diameterHeight = testEntity.Low->Height + entity.Low->Height;
 
-					if (TestWall(maxCorner.X, relDifference.X, relDifference.Y, playerDelta.X, playerDelta.Y, &tMin, minCorner.Y, maxCorner.Y))
-					{
-						wallNormal = V2{ 1, 0 };
-						hitHighEntityIndex = testHighEntityIndex;
-					}
+						V2 minCorner = -0.5f * V2{ diameterWidth, diameterHeight };
+						V2 maxCorner = 0.5f * V2{ diameterWidth, diameterHeight };
 
-					if (TestWall(minCorner.Y, relDifference.Y, relDifference.X, playerDelta.Y, playerDelta.X, &tMin, minCorner.X, maxCorner.X))
-					{
-						wallNormal = V2{ 0, -1 };
-						hitHighEntityIndex = testHighEntityIndex;
-					}
+						V2 relDifference = entity.High->Position - testEntity.High->Position;
 
-					if (TestWall(maxCorner.Y, relDifference.Y, relDifference.X, playerDelta.Y, playerDelta.X, &tMin, minCorner.X, maxCorner.X))
-					{
-						wallNormal = V2{ 0, 1 };
-						hitHighEntityIndex = testHighEntityIndex;
+						if (TestWall(minCorner.X, relDifference.X, relDifference.Y, playerDelta.X, playerDelta.Y, &tMin, minCorner.Y, maxCorner.Y))
+						{
+							wallNormal = V2{ -1, 0 };
+							hitHighEntityIndex = testHighEntityIndex;
+						}
+
+						if (TestWall(maxCorner.X, relDifference.X, relDifference.Y, playerDelta.X, playerDelta.Y, &tMin, minCorner.Y, maxCorner.Y))
+						{
+							wallNormal = V2{ 1, 0 };
+							hitHighEntityIndex = testHighEntityIndex;
+						}
+
+						if (TestWall(minCorner.Y, relDifference.Y, relDifference.X, playerDelta.Y, playerDelta.X, &tMin, minCorner.X, maxCorner.X))
+						{
+							wallNormal = V2{ 0, -1 };
+							hitHighEntityIndex = testHighEntityIndex;
+						}
+
+						if (TestWall(maxCorner.Y, relDifference.Y, relDifference.X, playerDelta.Y, playerDelta.X, &tMin, minCorner.X, maxCorner.X))
+						{
+							wallNormal = V2{ 0, 1 };
+							hitHighEntityIndex = testHighEntityIndex;
+						}
 					}
 				}
 			}
@@ -1274,12 +1297,27 @@ void UpdateFamiliar(GameState* state, Entity entity, r32 timeDelta)
 		ddP = oneOverLength * (player.High->Position - entity.High->Position);
 	}
 
-	MoveEntity(state, entity, timeDelta, ddP);
+	MoveSpec moveSpec = GetDefaultMoveSpec();
+
+	moveSpec.Drag = 8.0f;
+	moveSpec.Speed = 50.0f;
+	moveSpec.UnitMaxAccVector = true;
+
+	MoveEntity(state, entity, timeDelta, ddP, &moveSpec);
 }
 
 void UpdateMonster(GameState* state, Entity entity, r32 dt)
 {
 
+}
+
+void UpdateSword(GameState* state, Entity entity, r32 dt)
+{
+	MoveSpec moveSpec = GetDefaultMoveSpec();
+
+	moveSpec.Speed = 0.0f;
+
+	MoveEntity(state, entity, dt, { 0, 0 }, &moveSpec);
 }
 
 Entity ForceEntityIntoHigh(GameState* state, u32 lowIndex, WorldPosition* position)
