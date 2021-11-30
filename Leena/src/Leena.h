@@ -87,7 +87,7 @@ struct LowEntity
 
 	r32 Timer;
 
-	r32 DistanceTraveled;
+	r32 DistanceRemaining;
 };
 
 struct AddLowEntityResult
@@ -101,6 +101,13 @@ struct Entity
 	u32 LowEntityIndex;
 	LowEntity* Low;
 	HighEntity* High;
+};
+
+struct MoveSpec
+{
+	b32 UnitMaxAccVector;
+	r32 Drag;
+	r32 Speed;
 };
 
 struct EntityVisiblePiece
@@ -134,7 +141,7 @@ struct GameState
 
 	LoadedBitmap Tree;
 	LoadedBitmap Rock;
-	
+
 	LoadedBitmap Sword;
 
 	World* World;
@@ -207,5 +214,17 @@ inline b32 ValidateEntityPairs(GameState* state)
 
 	return valid;
 }
+
+inline MoveSpec GetDefaultMoveSpec()
+{
+	MoveSpec result = {};
+
+	result.Drag = 0.0f;
+	result.Speed = 1.0f;
+	result.UnitMaxAccVector = false;
+
+	return result;
+}
+
 #define LeenaH
 #endif
