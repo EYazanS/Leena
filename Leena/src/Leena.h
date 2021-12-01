@@ -4,11 +4,11 @@
 #if !defined(LeenaH)
 
 #include "GameTypes.h"
-#include "Math/Math.h"
 #include "GameStructs.h"
+#include "Utilities/Intrinsics.h"
+#include "Math/Math.h"
 #include "RandomNumbers.h"
 #include "Memory/Memory.h"
-#include "Utilities/Intrinsics.h"
 #include "World/World.h"
 
 // Functions provided for the platform layer
@@ -188,10 +188,12 @@ inline void OffsetAndCheckFrequencyByArea(GameState* gameState, V2 offset, R2 hi
 	for (u32 highEntityIndex = 1; highEntityIndex < gameState->HighEntitiesCount; )
 	{
 		HighEntity* highEntity = gameState->HighEntities + highEntityIndex;
+		LowEntity* lowEntity = gameState->LowEntities + highEntity->LowEntityIndex;
 
 		highEntity->Position += offset;
 
-		if (IsInRectangle(highFreqBounds, highEntity->Position))
+
+		if (IsValidLocation(&lowEntity->Position) && IsInRectangle(highFreqBounds, highEntity->Position))
 		{
 			highEntityIndex++;
 		}

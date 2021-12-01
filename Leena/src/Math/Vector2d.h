@@ -100,6 +100,13 @@ inline r32 LengthSq(V2 v)
 	return result;
 }
 
+inline r32 Length(V2 v)
+{
+	r32 result = SquareRoot(LengthSq(v));
+
+	return result;
+}
+
 inline R2 RectMinMax(V2 min, V2 max)
 {
 	R2 rect = { min, max };

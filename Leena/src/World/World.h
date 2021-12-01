@@ -192,7 +192,7 @@ inline void ChangeEntityLocationRaw(MemoryPool* pool, World* world, u32 lowEntit
 	Assert(!oldPosition || IsValidLocation(oldPosition));
 	Assert(!newPosition || IsValidLocation(newPosition));
 
-	if (oldPosition && AreOnSameLocation(world, oldPosition, newPosition))
+	if (oldPosition && newPosition && AreOnSameLocation(world, oldPosition, newPosition))
 	{
 		// WE dont do anythink
 	}

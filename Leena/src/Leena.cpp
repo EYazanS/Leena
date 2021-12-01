@@ -421,7 +421,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			Entity sword = ForceEntityIntoHigh(gameState, player->Low->SwordLowIndex, &newPosition);
 
 			sword.Low->DistanceRemaining = 5.0f;
-			sword.High->Velocity = 12.0f * swordDirection;
+			sword.High->Velocity = 10.0f * swordDirection;
 		}
 	}
 
@@ -793,17 +793,17 @@ void DrawBitmap(ScreenBuffer* screenBuffer, LoadedBitmap* bitmap, r32 realX, r32
 			if (*source >> 24 > 124)
 			{
 				*dest = *source;
-		}
+			}
 #endif // 0
 
 
 			dest++;
 			source++;
-	}
+		}
 
 		destRow += screenBuffer->Pitch;
 		sourceRow -= bitmap->Width;
-}
+	}
 }
 
 void FillAudioBuffer(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* soundBuffer)
@@ -1317,7 +1317,18 @@ void UpdateSword(GameState* state, Entity entity, r32 dt)
 
 	moveSpec.Speed = 0.0f;
 
+	V2 oldPosition = entity.High->Position;
+
 	MoveEntity(state, entity, dt, { 0, 0 }, &moveSpec);
+
+	r32 distanceTraveled = Length(entity.High->Position - oldPosition);
+
+	entity.Low->DistanceRemaining -= distanceTraveled;
+
+	if (entity.Low->DistanceRemaining < 0.0f)
+	{
+		ChangeEntityLocation(&state->WorldMemoryPool, state->World, entity.LowEntityIndex, entity.Low, &entity.Low->Position, 0);
+	}
 }
 
 Entity ForceEntityIntoHigh(GameState* state, u32 lowIndex, WorldPosition* position)
