@@ -344,6 +344,8 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 	ControllerInput* controller = &input->Controller;
 
+	V2 swordDirection = {};
+
 	if (controller->IsConnected)
 	{
 		if (controller->IsAnalog)
@@ -524,7 +526,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
 			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
 
-		} break;
+			} break;
 
 		case EntityType::Monster:
 		{
@@ -536,10 +538,10 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 		} break;
 
-		default:
-		{
-			InvalidCodePath;
-		} break;
+			default:
+			{
+				InvalidCodePath;
+			} break;
 		}
 
 		// Gravity
