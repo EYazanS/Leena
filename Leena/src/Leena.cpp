@@ -344,8 +344,6 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 	ControllerInput* controller = &input->Controller;
 
-	V2 swordDirection = {};
-
 	if (controller->IsConnected)
 	{
 		if (controller->IsAnalog)
