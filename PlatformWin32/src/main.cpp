@@ -106,16 +106,15 @@ int WINAPI wWinMain(
 			MSG message = Win32ProcessMessage();
 
 			// Process the keyboard input.
-			KeyboardInput* oldKeyboardInput = &previousInput->Keyboard;
-			KeyboardInput* newKeyboardInput = &currentInput->Keyboard;
+			GameInput* oldInput = previousInput;
+			GameInput* newInput = currentInput;
 
-			*newKeyboardInput = {};
+			*newInput = {};
 
-			newKeyboardInput->IsConnected = true;
+			newInput->TimeToAdvance = targetSecondsToAdvanceBy;
 
-			// Keep the state of the down button from the past frame.
-			for (int buttonIndex = 0; buttonIndex < ArrayCount(newKeyboardInput->Buttons); buttonIndex++)
-				newKeyboardInput->Buttons[buttonIndex].EndedDown = oldKeyboardInput->Buttons[buttonIndex].EndedDown;
+			for (int stateIndex = 0; stateIndex < ArrayCount(newInput->States); stateIndex++)
+				newInput->States[stateIndex].EndedDown = oldInput->States[stateIndex].EndedDown;
 
 			switch (message.message)
 			{
@@ -129,7 +128,7 @@ int WINAPI wWinMain(
 			case WM_KEYDOWN:
 			case WM_KEYUP:
 			{
-				ProccessKeyboardKeys(&programState, message, newKeyboardInput);
+				ProccessKeyboardKeys(&programState, message, newInput);
 			} break;
 
 			default:
@@ -138,7 +137,7 @@ int WINAPI wWinMain(
 
 			// Process the mouse input
 			Win32GetMousePosition(windowHandle, &currentInput->Mouse);
-			Win32GetMouseButtonsState(&currentInput->Mouse);
+			Win32GetMouseButtonsState(currentInput);
 
 			// Process the controller input
 			ProccessControllerInput(currentInput, previousInput);
@@ -436,11 +435,6 @@ internal HRESULT Win32FillaudioBuffer(IXAudio2SourceVoice* sourceVoice, AudioBuf
 }
 
 // Input
-internal void Win32ProcessDigitalButton(DWORD button, DWORD buttonBit, ButtonState* oldState, ButtonState* newState)
-{
-	newState->HalfTransitionCount = newState->HalfTransitionCount != oldState->HalfTransitionCount ? 1 : 0;
-	newState->EndedDown = (button & buttonBit) == buttonBit;
-}
 internal r32 Win32ProcessXInputStickValues(r32 value, i16 deadZoneThreshold)
 {
 	r32 result = 0.f;
@@ -473,21 +467,21 @@ internal void ProccessControllerInput(GameInput* newInput, GameInput* oldInput)
 		newController->LeftTrigger = Win32CalculateTriggerValue(pad->bLeftTrigger);
 		newController->RightTrigger = Win32CalculateTriggerValue(pad->bRightTrigger);
 
-		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_UP, &oldController->DpadUp, &newController->DpadUp);
-		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_DOWN, &oldController->DpadDown, &newController->DpadDown);
-		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_RIGHT, &oldController->DpadRight, &newController->DpadRight);
-		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_DPAD_LEFT, &oldController->DpadLeft, &newController->DpadLeft);
+		Win32ProccessInput(newInput, KeyAction::ActionUp, (pad->wButtons & XINPUT_GAMEPAD_DPAD_UP) == XINPUT_GAMEPAD_DPAD_UP);
+		Win32ProccessInput(newInput, KeyAction::ActionDown, (pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN) == XINPUT_GAMEPAD_DPAD_DOWN);
+		Win32ProccessInput(newInput, KeyAction::ActionRight, (pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) == XINPUT_GAMEPAD_DPAD_RIGHT);
+		Win32ProccessInput(newInput, KeyAction::ActionLeft, (pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT) == XINPUT_GAMEPAD_DPAD_LEFT);
 
-		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_START, &oldController->Start, &newController->Start);
-		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_BACK, &oldController->Back, &newController->Back);
+		Win32ProccessInput(newInput, KeyAction::Start, (pad->wButtons & XINPUT_GAMEPAD_START) == XINPUT_GAMEPAD_START);
+		Win32ProccessInput(newInput, KeyAction::Back, (pad->wButtons & XINPUT_GAMEPAD_BACK) == XINPUT_GAMEPAD_BACK);
 
-		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_RIGHT_SHOULDER, &oldController->RightShoulder, &newController->RightShoulder);
-		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_LEFT_SHOULDER, &oldController->LeftShoulder, &newController->LeftShoulder);
+		Win32ProccessInput(newInput, KeyAction::Run, (pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) == XINPUT_GAMEPAD_RIGHT_SHOULDER);
+		Win32ProccessInput(newInput, KeyAction::LS, (pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) == XINPUT_GAMEPAD_LEFT_SHOULDER);
 
-		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_A, &oldController->A, &newController->A);
-		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_B, &oldController->B, &newController->B);
-		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_X, &oldController->X, &newController->X);
-		Win32ProcessDigitalButton(pad->wButtons, XINPUT_GAMEPAD_Y, &oldController->Y, &newController->Y);
+		Win32ProccessInput(newInput, KeyAction::Jump, (pad->wButtons & XINPUT_GAMEPAD_A) == XINPUT_GAMEPAD_A);
+		Win32ProccessInput(newInput, KeyAction::B, (pad->wButtons & XINPUT_GAMEPAD_B) == XINPUT_GAMEPAD_B);
+		Win32ProccessInput(newInput, KeyAction::X, (pad->wButtons & XINPUT_GAMEPAD_X) == XINPUT_GAMEPAD_X);
+		Win32ProccessInput(newInput, KeyAction::Y, (pad->wButtons & XINPUT_GAMEPAD_Y) == XINPUT_GAMEPAD_Y);
 
 		// Normalize the numbers for sticks
 		r32 threshHold = 0.5f;
@@ -497,12 +491,6 @@ internal void ProccessControllerInput(GameInput* newInput, GameInput* oldInput)
 
 		newController->RightStickAverageX = Win32ProcessXInputStickValues(pad->sThumbRX, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
 		newController->RightStickAverageY = Win32ProcessXInputStickValues(pad->sThumbRY, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
-
-		Win32ProcessDigitalButton(newController->LeftStickAverageX < -threshHold ? 1 : 0, 1, & oldController->MoveLeft, & newController->MoveLeft);
-		Win32ProcessDigitalButton(newController->LeftStickAverageX > threshHold ? 1 : 0, 1, &oldController->MoveRight, &newController->MoveRight);
-
-		Win32ProcessDigitalButton(newController->LeftStickAverageY < -threshHold ? 1 : 0, 1, & oldController->MoveDown, & newController->MoveDown);
-		Win32ProcessDigitalButton(newController->LeftStickAverageY > threshHold ? 1 : 0, 1, &oldController->MoveUp, &newController->MoveUp);
 
 #if 0
 		XINPUT_VIBRATION vibrations = {};
@@ -525,7 +513,7 @@ internal r32 Win32CalculateTriggerValue(r32 triggerValue)
 {
 	return triggerValue > XINPUT_GAMEPAD_TRIGGER_THRESHOLD ? triggerValue / 255 : 0;
 }
-internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, KeyboardInput* controller)
+internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, GameInput* input)
 {
 	u32 vkCode = (u32)message.wParam;
 
@@ -538,32 +526,32 @@ internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, Keybo
 		{
 		case 'W':
 		{
-			Win32ProccessKeyboardMessage(controller->MoveUp, isDown);
+			Win32ProccessInput(input, KeyAction::MoveUp, isDown);
 		} break;
 
 		case 'A':
 		{
-			Win32ProccessKeyboardMessage(controller->MoveLeft, isDown);
+			Win32ProccessInput(input, KeyAction::MoveLeft, isDown);
 		} break;
 
 		case 'D':
 		{
-			Win32ProccessKeyboardMessage(controller->MoveRight, isDown);
+			Win32ProccessInput(input, KeyAction::MoveRight, isDown);
 		} break;
 
 		case 'S':
 		{
-			Win32ProccessKeyboardMessage(controller->MoveDown, isDown);
+			Win32ProccessInput(input, KeyAction::MoveDown, isDown);
 		} break;
 
 		case VK_SPACE:
 		{
-			Win32ProccessKeyboardMessage(controller->A, isDown);
+			Win32ProccessInput(input, KeyAction::Jump, isDown);
 		} break;
 
 		case VK_SHIFT:
 		{
-			Win32ProccessKeyboardMessage(controller->X, isDown);
+			Win32ProccessInput(input, KeyAction::Run, isDown);
 		} break;
 
 		case 'L':
@@ -592,7 +580,7 @@ internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, Keybo
 
 		case VK_RETURN:
 		{
-			Win32ProccessKeyboardMessage(controller->Start, isDown);
+			Win32ProccessInput(input, KeyAction::Start, isDown);
 			if (altDown && isDown)
 			{
 				ToggleFullScreen(state, message.hwnd, &state->PrevWP);
@@ -609,16 +597,16 @@ internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, Keybo
 
 		default:
 		{
-
 		} break;
 		}
 }
-internal void Win32ProccessKeyboardMessage(ButtonState& state, b32 isPressed)
+internal void Win32ProccessInput(GameInput* input, KeyAction action, b32 isPressed)
 {
-	if (state.EndedDown != isPressed)
+	u32 actionCode = (int)action;
+	if (input->States[actionCode].EndedDown != isPressed)
 	{
-		state.EndedDown = isPressed;
-		++state.HalfTransitionCount;
+		input->States[actionCode].EndedDown = isPressed;
+		++input->States[actionCode].HalfTransitionCount;
 	}
 }
 internal void Win32GetMousePosition(HWND windowHandle, MouseInput* mouse)
@@ -636,10 +624,10 @@ internal void Win32GetMousePosition(HWND windowHandle, MouseInput* mouse)
 		}
 	}
 }
-internal void Win32GetMouseButtonsState(MouseInput* mouse)
+internal void Win32GetMouseButtonsState(GameInput* input)
 {
-	Win32ProccessKeyboardMessage(mouse->LeftButton, GetKeyState(VK_LBUTTON) & (1 << 15));
-	Win32ProccessKeyboardMessage(mouse->RightButton, GetKeyState(VK_RBUTTON) & (1 << 15));
+	Win32ProccessInput(input, KeyAction::X, GetKeyState(VK_LBUTTON) & (1 << 15));
+	Win32ProccessInput(input, KeyAction::B, GetKeyState(VK_RBUTTON) & (1 << 15));
 }
 
 // Graphics

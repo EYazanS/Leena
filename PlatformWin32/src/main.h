@@ -70,14 +70,13 @@ internal void Win32PlayAudio(IXAudio2SourceVoice* sourceVoice);
 internal HRESULT Win32FillaudioBuffer(IXAudio2SourceVoice* sourceVoice, AudioBuffer* gameAudioBuffer, XAUDIO2_BUFFER& audioBuffer);
 
 // Input
-internal void Win32ProcessDigitalButton(DWORD button, DWORD buttonBit, ButtonState* oldState, ButtonState* newState);
 internal r32 Win32ProcessXInputStickValues(r32 value, i16 deadZoneThreshold);
 internal void ProccessControllerInput(GameInput* newInput, GameInput* oldInput);
 internal r32 Win32CalculateTriggerValue(r32 triggerValue);
-internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, KeyboardInput* input);
-internal void Win32ProccessKeyboardMessage(ButtonState& state, b32 isPressed);
+internal void ProccessKeyboardKeys(Win32ProgramState* state, MSG& message, GameInput* input);
 internal void Win32GetMousePosition(HWND windowHandle, MouseInput* mouse);
-internal void Win32GetMouseButtonsState(MouseInput* mouse);
+internal void Win32GetMouseButtonsState(GameInput* mouse);
+internal void Win32ProccessInput(GameInput* keyboard, KeyAction action, b32 isPressed);
 
 // Graphics
 internal WindowDimensions GetWindowDimensions(HWND windowHandle);

@@ -52,24 +52,63 @@ extern "C" {
 	typedef Debug_Platform_Write_Entire_File(PlatformWriteEntireFile);
 #endif
 
-	enum class Key
+	enum class KeyCode
 	{
-		A,
-		S,
-		W,
-		D,
-		E,
-		Q,
-		R,
-		Space,
-		Esc,
-		Ctrl,
-		Alt,
-		Enter,
+		Spacebar = 0x20,
+		Enter = 0x0D,
+		Shift = 0x10,
+		LeftArrow = 0x25,
+		UpArrow = 0x26,
+		RightArrow = 0x27,
+		DownArrow = 0x28,
+		A = 0x41,
+		B = 0x42,
+		C = 0x43,
+		D = 0x44,
+		E = 0x45,
+		F = 0x46,
+		G = 0x47,
+		H = 0x48,
+		I = 0x49,
+		J = 0x4A,
+		K = 0x4B,
+		L = 0x4C,
+		M = 0x4D,
+		N = 0x4E,
+		O = 0x4F,
+		P = 0x50,
+		Q = 0x51,
+		R = 0x52,
+		S = 0x53,
+		T = 0x54,
+		U = 0x55,
+		V = 0x56,
+		W = 0x57,
+		X = 0x58,
+		Y = 0x59,
+		Z = 0x5A,
+	};
+
+	enum class KeyAction
+	{
+		ActionUp,
+		ActionDown,
+		ActionRight,
+		ActionLeft,
 		MoveUp,
-		MoveRight,
 		MoveDown,
-		MoveLeft
+		MoveRight,
+		MoveLeft,
+		Jump,
+		Run,
+		Start,
+		Back,
+		RS,
+		LS,
+		A,
+		B,
+		X,
+		Y
 	};
 
 	struct AudioBuffer
@@ -97,6 +136,7 @@ extern "C" {
 	{
 		b32 EndedDown;
 		int HalfTransitionCount;
+		KeyAction Action;
 	};
 
 	struct WindowDimensions
@@ -111,20 +151,6 @@ extern "C" {
 
 		u64 X;
 		u64 Y;
-
-		union
-		{
-			ButtonState Buttons[2];
-
-			struct
-			{
-				ButtonState RightButton;
-				ButtonState LeftButton;
-
-				// Add button before this line so the assertion about the buttons array == the struct can hit properly 
-				ButtonState Terminator;
-			};
-		};
 	};
 
 	struct ControllerInput
@@ -140,80 +166,18 @@ extern "C" {
 
 		r32 RightTrigger;
 		r32 LeftTrigger;
-
-		union
-		{
-			ButtonState Buttons[16];
-
-			struct
-			{
-				ButtonState A;
-				ButtonState X;
-				ButtonState Y;
-				ButtonState B;
-
-				ButtonState MoveUp;
-				ButtonState MoveDown;
-				ButtonState MoveRight;
-				ButtonState MoveLeft;
-
-				ButtonState DpadUp;
-				ButtonState DpadDown;
-				ButtonState DpadRight;
-				ButtonState DpadLeft;
-
-				ButtonState LeftShoulder;
-				ButtonState RightShoulder;
-
-				ButtonState Start;
-				ButtonState Back;
-
-				// Add button before this line so the assertion about the buttons array == the struct can hit properly 
-				ButtonState Terminator;
-			};
-		};
 	};
 
 	struct KeyboardInput
 	{
 		b32 IsConnected;
-
-		union
-		{
-			ButtonState Buttons[16];
-
-			struct
-			{
-				ButtonState A;
-				ButtonState X;
-				ButtonState Y;
-				ButtonState B;
-
-				ButtonState MoveUp;
-				ButtonState MoveDown;
-				ButtonState MoveRight;
-				ButtonState MoveLeft;
-
-				ButtonState DpadUp;
-				ButtonState DpadDown;
-				ButtonState DpadRight;
-				ButtonState DpadLeft;
-
-				ButtonState LeftShoulder;
-				ButtonState RightShoulder;
-
-				ButtonState Start;
-				ButtonState Back;
-
-				// Add button before this line so the assertion about the buttons array == the struct can hit properly 
-				ButtonState Terminator;
-			};
-		};
 	};
 
 	struct GameInput
 	{
 		r64 TimeToAdvance;
+		ButtonState States[256];
+
 		MouseInput Mouse;
 		KeyboardInput Keyboard;
 		ControllerInput Controller;
