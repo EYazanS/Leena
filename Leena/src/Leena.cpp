@@ -312,37 +312,24 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 	V2 playerAcceleration = {};
 
-	if (keyboard->IsConnected)
-	{
-		//NOTE: Use digital movement tuning
-		if (keyboard->MoveRight.EndedDown)
-		{
-			playerAcceleration.X = 1.0f;
-		}
-		if (keyboard->MoveUp.EndedDown)
-		{
-			playerAcceleration.Y = 1.0f;
-		}
-		if (keyboard->MoveDown.EndedDown)
-		{
-			playerAcceleration.Y = -1.0f;
-		}
-		if (keyboard->MoveLeft.EndedDown)
-		{
-			playerAcceleration.X = -1.0f;
-		}
-		if (keyboard->Start.EndedDown)
-		{
-			// gameMemory->IsInitialized = false;
-		}
-
-		if (keyboard->X.EndedDown)
-		{
-			swordDirection = playerAcceleration;
-		}
-	}
-
 	ControllerInput* controller = &input->Controller;
+
+	if (input->States[(int)KeyAction::MoveRight].EndedDown)
+	{
+		playerAcceleration.X = 1.0f;
+	}
+	if (input->States[(int)KeyAction::MoveUp].EndedDown)
+	{
+		playerAcceleration.Y = 1.0f;
+	}
+	if (input->States[(int)KeyAction::MoveDown].EndedDown)
+	{
+		playerAcceleration.Y = -1.0f;
+	}
+	if (input->States[(int)KeyAction::MoveLeft].EndedDown)
+	{
+		playerAcceleration.X = -1.0f;
+	}
 
 	if (controller->IsConnected)
 	{
@@ -354,52 +341,24 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 				playerAcceleration = { controller->LeftStickAverageX , controller->LeftStickAverageY };
 			}
 		}
-		else
-		{
-			//NOTE: Use digital movement tuning
-			if (controller->MoveRight.EndedDown)
-			{
-				playerAcceleration.X = 1.0f;
-			}
-			if (controller->MoveUp.EndedDown)
-			{
-				playerAcceleration.Y = 1.0f;
-			}
-			if (controller->MoveDown.EndedDown)
-			{
-				playerAcceleration.Y = -1.0f;
-			}
-			if (controller->MoveLeft.EndedDown)
-			{
-				playerAcceleration.X = -1.0f;
-			}
-		}
-
-		if (controller->X.EndedDown)
-		{
-			swordDirection = playerAcceleration;
-		}
 	}
 
-	if (keyboard->X.EndedDown || controller->X.EndedDown)
-	{
-		player->Low->Speed = 60.0f;
-	}
-	else
-	{
-		player->Low->Speed = 30.0f;
-	}
-
-	if ((keyboard->A.EndedDown || controller->A.EndedDown) && player->High->Z == 0.0f)
+	if ((input->States[(int)KeyAction::Jump].EndedDown) && player->High->Z == 0.0f)
 	{
 		player->High->dZ = 3.0f;
 	}
 
-	if (controller->Start.EndedDown)
+	if (input->States[(int)KeyAction::X].EndedDown)
+	{
+		swordDirection = playerAcceleration;
+	}
+
+	if (input->States[(int)KeyAction::Start].EndedDown)
 	{
 		gameMemory->IsInitialized = false;
 	}
-	if (keyboard->X.EndedDown || controller->X.EndedDown)
+
+	if (input->States[(int)KeyAction::Run].EndedDown)
 	{
 		player->Low->Speed = 60.0f;
 	}
@@ -438,7 +397,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			MoveSpec moveSpec = GetDefaultMoveSpec();
 
 			moveSpec.Drag = 8.0f;
-			moveSpec.Speed = 50.0f;
+			moveSpec.Speed = entity.Low->Speed;
 			moveSpec.UnitMaxAccVector = true;
 
 			MoveEntity(gameState, entity, (r32)input->TimeToAdvance, playerAcceleration, &moveSpec);
@@ -524,7 +483,7 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Head, V2{ 0, 0 }, 0, playerFacingDirectionMap->Align);
 			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{ 0,0 }, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
 
-			} break;
+		} break;
 
 		case EntityType::Monster:
 		{
@@ -536,10 +495,10 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 
 		} break;
 
-			default:
-			{
-				InvalidCodePath;
-			} break;
+		default:
+		{
+			InvalidCodePath;
+		} break;
 		}
 
 		// Gravity
@@ -583,6 +542,13 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 	}
 }
 
+DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* audioBuffer)
+{
+#if 0
+	FillAudioBuffer(thread, gameMemory, audioBuffer);
+#endif // 0
+}
+
 void DrawHitPoints(LowEntity* lowEntity, EntityVisiblePieceGroup* pieceGroup)
 {
 	if (lowEntity->MaxHp > 0)
@@ -611,13 +577,6 @@ void DrawHitPoints(LowEntity* lowEntity, EntityVisiblePieceGroup* pieceGroup)
 			hpPosition += dHitP;
 		}
 	}
-}
-
-DllExport void GameUpdateAudio(ThreadContext* thread, GameMemory* gameMemory, AudioBuffer* audioBuffer)
-{
-#if 0
-	FillAudioBuffer(thread, gameMemory, audioBuffer);
-#endif // 0
 }
 
 void DrawRectangle(

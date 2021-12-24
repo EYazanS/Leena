@@ -19,8 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <Media Include="src\resources\WaterPipe_Smoke_Fienup_003.wav" />
-    <Media Include="src\resources\Water_Splash_SeaLion_Fienup_001.wav" />
+    <Media Include="src\Resources\WaterPipe_Smoke_Fienup_003.wav" />
+    <Media Include="src\Resources\Water_Splash_SeaLion_Fienup_001.wav" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\GameStructs.h" />
