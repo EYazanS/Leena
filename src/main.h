@@ -1,8 +1,10 @@
 #pragma once
 
-#include <Leena.h>
+#include "Leena.h"
 
-#include <Windows.h>
+#include <windows.h>
+#include <stdio.h>
+#include <malloc.h>
 #include <Xinput.h>
 #include <xaudio2.h>
 
