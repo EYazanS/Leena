@@ -1,8 +1,14 @@
 #if !defined(Leena_Intinsics_h)
-#include <math.h>
-#include <stdlib.h>
 
-// Math
+#include <math.h>
+
+
+inline i32 SignOf(i32 Value)
+{
+	i32 Result = (Value >= 0) ? 1 : -1;
+	return(Result);
+}
+
 inline i32 SingOf(i32 value)
 {
 	i32 result = value >= 0 ? 1 : -1;

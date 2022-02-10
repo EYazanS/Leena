@@ -1,56 +1,6 @@
-#pragma once
-
-#include "GameTypes.h"
-#include "Utilities/Intrinsics.h"
-#include "GameStructs.h"
-#include "Memory/Memory.h"
-#include "Math/Math.h"
-
-#define ChunkSafeMargin 16
 #define TilesPerChunk 16
+#define ChunkSafeMargin (INT32_MAX/64)
 #define TileChunkUninitialized INT32_MAX
-
-struct WorldPosition
-{
-	i32 X;
-	i32 Y;
-	i32 Z;
-
-	// Offset from the chunk center
-	V2 Offset;
-};
-
-struct EntityBlock
-{
-	u32 EntitiesCount;
-	u32 LowEntitiyIndex[16];
-	EntityBlock* Next;
-};
-
-struct WorldChunk
-{
-	u32 X, Y, Z;
-
-	EntityBlock FirstBlock;
-
-	WorldChunk* NextInHash;
-};
-
-struct World
-{
-	r32 TileSideInMeters;
-	r32 ChunkSideInMeters;
-
-	// We should see how many we can fit into world as one
-	WorldChunk TileChunkHash[4096];
-
-	EntityBlock* FirstFreeBlock;
-};
-
-// TODO: Add function to load map from file and set its value
-void initializeWorld(World* world);
-WorldPosition MapIntoChunkSpace(World* world, WorldPosition basePosition, V2 offset);
-void RecanonicalizeCoordinant(World* world, i32* tile, r32* tileRelative);
 
 inline WorldPosition NullPosition()
 {
@@ -59,6 +9,14 @@ inline WorldPosition NullPosition()
 	result.X = TileChunkUninitialized;
 	result.Y = TileChunkUninitialized;
 	result.Z = TileChunkUninitialized;
+
+	return result;
+}
+
+inline b32 IsValidLocation(WorldPosition* position)
+{
+
+	b32 result = position->X != TileChunkUninitialized && position->Y != TileChunkUninitialized && position->Z != TileChunkUninitialized;
 
 	return result;
 }
@@ -77,64 +35,12 @@ inline b32 IsCanonical(World* world, V2 offset)
 	return result;
 }
 
-inline V3 CalculatePositionDifference(World* world, WorldPosition* position1, WorldPosition* position2)
-{
-	V3 result = {};
-
-	V2 dTile = { (r32)position1->X - (r32)position2->X, (r32)position1->Y - (r32)position2->Y };
-	r32 dTileZ = (r32)position1->Z - (r32)position2->Z;
-
-	V2 v2 = world->ChunkSideInMeters * dTile + (position1->Offset - position2->Offset);
-
-	result = { v2.X, v2.Y, world->ChunkSideInMeters * dTileZ };
-
-	return result;
-}
-
-inline WorldPosition GetChunkPositionFromWorldPosition(World* world, i32 x, i32 y, i32 z)
-{
-	WorldPosition result = {};
-
-	result.X = x / TilesPerChunk;
-	result.Y = y / TilesPerChunk;
-	result.Z = z / TilesPerChunk;
-
-	// TODO: Think this through on the real stream and actually work out the math.
-	if (x < 0)
-	{
-		--result.X;
-	}
-	if (y < 0)
-	{
-		--result.Y;
-	}
-	if (z < 0)
-	{
-		--result.Z;
-	}
-
-	// TODO: DECIDE ON TILE ALIGNMENT IN CHUNKS!
-	result.Offset.X = (r32)((x - TilesPerChunk / 2) - (result.X * TilesPerChunk)) * world->TileSideInMeters;
-	result.Offset.Y = (r32)((y - TilesPerChunk / 2) - (result.Y * TilesPerChunk)) * world->TileSideInMeters;
-
-	Assert(IsCanonical(world, result.Offset));
-
-	return result;
-}
-
 inline b32 AreOnSameLocation(World* world, WorldPosition* oldPosition, WorldPosition* newPosition)
 {
 	Assert(IsCanonical(world, oldPosition->Offset));
 	Assert(IsCanonical(world, newPosition->Offset));
 
 	b32 result = oldPosition->X == newPosition->X && oldPosition->Y == newPosition->Y && oldPosition->Z == newPosition->Z;
-
-	return result;
-}
-inline b32 IsValidLocation(WorldPosition* position)
-{
-
-	b32 result = position->X != TileChunkUninitialized && position->Y != TileChunkUninitialized && position->Z != TileChunkUninitialized;
 
 	return result;
 }
@@ -185,6 +91,102 @@ inline WorldChunk* GetWorldChunk(World* world, u32 X, u32 Y, u32 ChunkZ, MemoryP
 	} while (Chunk);
 
 	return(Chunk);
+}
+
+inline WorldPosition GetChunkPositionFromWorldPosition(World* world, i32 x, i32 y, i32 z)
+{
+	WorldPosition result = {};
+
+	result.X = x / TilesPerChunk;
+	result.Y = y / TilesPerChunk;
+	result.Z = z / TilesPerChunk;
+
+	// TODO: Think this through on the real stream and actually work out the math.
+	if (x < 0)
+	{
+		--result.X;
+	}
+	if (y < 0)
+	{
+		--result.Y;
+	}
+	if (z < 0)
+	{
+		--result.Z;
+	}
+
+	// TODO: DECIDE ON TILE ALIGNMENT IN CHUNKS!
+	result.Offset.X = (r32)((x - TilesPerChunk / 2) - (result.X * TilesPerChunk)) * world->TileSideInMeters;
+	result.Offset.Y = (r32)((y - TilesPerChunk / 2) - (result.Y * TilesPerChunk)) * world->TileSideInMeters;
+
+	Assert(IsCanonical(world, result.Offset));
+
+	return result;
+}
+
+inline V3 CalculatePositionDifference(World* world, WorldPosition* position1, WorldPosition* position2)
+{
+	V3 result = {};
+
+	V2 dTile = { (r32)position1->X - (r32)position2->X, (r32)position1->Y - (r32)position2->Y };
+	r32 dTileZ = (r32)position1->Z - (r32)position2->Z;
+
+	V2 v2 = world->ChunkSideInMeters * dTile + (position1->Offset - position2->Offset);
+
+	result = { v2.X, v2.Y, world->ChunkSideInMeters * dTileZ };
+
+	return result;
+}
+
+void initializeWorld(World* world)
+{
+	if (world)
+	{
+		world->TileSideInMeters = 1.4f;
+
+		world->ChunkSideInMeters = TilesPerChunk * world->TileSideInMeters;
+
+		world->FirstFreeBlock = 0;
+
+		for (u32 tileChunkIndex = 0; tileChunkIndex < ArrayCount(world->TileChunkHash); tileChunkIndex++)
+		{
+			world->TileChunkHash[tileChunkIndex].X = 0;
+			world->TileChunkHash[tileChunkIndex].FirstBlock.EntitiesCount = 0;
+		}
+	}
+}
+
+void RecanonicalizeCoordinant(World* world, i32* coordinate, r32* coordRelative)
+{
+	// Offset from the current tile center, if its above 1 then it means we moved one tile
+	i32 Offset = RoundReal32ToInt32(*coordRelative / world->ChunkSideInMeters);
+	*coordinate += Offset;
+	*coordRelative -= (Offset * world->ChunkSideInMeters);
+
+	Assert(IsCanonical(world, *coordRelative));
+}
+
+WorldPosition MapIntoChunkSpace(World* world, WorldPosition basePosition, V2 offset)
+{
+	WorldPosition result = basePosition;
+	result.Offset += offset;
+
+	RecanonicalizeCoordinant(world, &result.X, &result.Offset.X);
+	RecanonicalizeCoordinant(world, &result.Y, &result.Offset.Y);
+
+
+	return result;
+}
+
+inline WorldPosition CenteredChunkPoint(u32 x, u32 y, u32 z)
+{
+	WorldPosition Result = {};
+
+	Result.X = x;
+	Result.Y = y;
+	Result.Z = z;
+
+	return(Result);
 }
 
 inline void ChangeEntityLocationRaw(MemoryPool* pool, World* world, u32 lowEntityIndex, WorldPosition* oldPosition, WorldPosition* newPosition)
@@ -273,5 +275,23 @@ inline void ChangeEntityLocationRaw(MemoryPool* pool, World* world, u32 lowEntit
 				block->LowEntitiyIndex[block->EntitiesCount++] = lowEntityIndex;
 			}
 		}
+	}
+}
+
+void ChangeEntityLocation(
+	MemoryPool* pool, World* world,
+	u32 lowEntityIndex, LowEntity* lowEntity,
+	WorldPosition* oldP, WorldPosition* newP
+)
+{
+	ChangeEntityLocationRaw(pool, world, lowEntityIndex, oldP, newP);
+
+	if (newP)
+	{
+		lowEntity->Position = *newP;
+	}
+	else
+	{
+		lowEntity->Position = NullPosition();
 	}
 }
