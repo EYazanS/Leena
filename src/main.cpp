@@ -1,5 +1,7 @@
 #include "main.h"
 
+GlobalVariable Win32ProgramState programState = {};
+
 #include "Win32Services.cpp"
 #include "GameFunctions.h"
 
@@ -9,8 +11,6 @@ int WINAPI wWinMain(
 	_In_ LPWSTR cmdLine,
 	_In_ int showCmd)
 {
-	Win32ProgramState programState = {};
-
 	HWND windowHandle = Win32InitWindow(instance, &programState);
 
 	if (windowHandle)
@@ -24,6 +24,9 @@ int WINAPI wWinMain(
 		char tempGameCodeDLLFullPath[MAX_PATH];
 
 		Win32BuildEXEPathFileName(&programState, "LeenaTmp.dll", sizeof(tempGameCodeDLLFullPath), tempGameCodeDLLFullPath);
+
+		char gameCodeLockFullPath[MAX_PATH];
+		Win32BuildEXEPathFileName(&programState, "lock.tmp", sizeof(gameCodeLockFullPath), gameCodeLockFullPath);
 
 		ThreadContext thread;
 		// Get Window just so we dont have to remove the function for the current time
@@ -54,8 +57,7 @@ int WINAPI wWinMain(
 		programState.RecordingState.InputRecordingIndex = 0;
 		programState.RecordingState.InputPlayingIndex = 0;
 
-		GameCode game = Win32LoadGameCode(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath);
-		game.LastWriteTime = GetFileLastWriteDate(sourceGameCodeDLLFullPath);
+		GameCode game = Win32LoadGameCode(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath, gameCodeLockFullPath);
 
 		GameMemory gameMemory = InitGameMemory();
 
@@ -98,7 +100,7 @@ int WINAPI wWinMain(
 			if (CompareFileTime(&newLastWriteTIme, &game.LastWriteTime) != 0)
 			{
 				Win32UnloadGameCode(&game);
-				game = Win32LoadGameCode(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath);
+				game = Win32LoadGameCode(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath, gameCodeLockFullPath);
 				game.LastWriteTime = newLastWriteTIme;
 			}
 
@@ -234,27 +236,37 @@ int WINAPI wWinMain(
 }
 
 // Game
-internal GameCode Win32LoadGameCode(char *sourceDLLName, char *tempDLLName)
+internal GameCode Win32LoadGameCode(char *sourceDLLName, char *tempDLLName, char *lockFileName)
 {
-	CopyFileA(sourceDLLName, tempDLLName, FALSE);
+	GameCode result = {};
 
-	HMODULE gameCodeHandle = LoadLibraryA(tempDLLName);
+	WIN32_FILE_ATTRIBUTE_DATA Ignored;
 
-	GameCode result = {gameCodeHandle, GameUpdatAndRendereStub, GameUpdateAudioStub};
-
-	if (gameCodeHandle)
+	if (!GetFileAttributesEx(lockFileName, GetFileExInfoStandard, &Ignored))
 	{
-		result.UpdateAndRender = (GAMEUPDATEANDRENDER *)GetProcAddress(gameCodeHandle, "GameUpdateAndRender");
-		result.UpdateAudio = (GAMEUPDATEAUDIO *)GetProcAddress(gameCodeHandle, "GameUpdateAudio");
+		result.LastWriteTime = GetFileLastWriteDate(sourceDLLName);
 
-		if (result.UpdateAndRender && result.UpdateAudio)
-			result.IsValid = true;
-		else
-			result.IsValid = false;
+		CopyFileA(sourceDLLName, tempDLLName, FALSE);
+
+		result.LibraryHandle = LoadLibraryA(tempDLLName);
+
+		if (result.LibraryHandle)
+		{
+			result.UpdateAndRender = (GAMEUPDATEANDRENDER *)GetProcAddress(result.LibraryHandle, "GameUpdateAndRender");
+			result.UpdateAudio = (GAMEUPDATEAUDIO *)GetProcAddress(result.LibraryHandle, "GameUpdateAudio");
+			result.IsValid = result.UpdateAndRender && result.UpdateAudio;
+		}
+	}
+
+	if (!result.IsValid)
+	{
+		result.UpdateAndRender = 0;
+		result.UpdateAudio = 0;
 	}
 
 	return result;
 }
+
 internal void Win32UnloadGameCode(GameCode *gameCode)
 {
 	if (gameCode->LibraryHandle)
@@ -773,27 +785,27 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 {
 	LRESULT result = 0;
 
-	Win32ProgramState *programState = GetAppState(windowHandle);
+	Win32ProgramState *state = GetAppState(windowHandle);
 
 	switch (message)
 	{
 	case WM_CREATE:
 	{
 		CREATESTRUCT *pCreate = (CREATESTRUCT *)lParam;
-		programState = (Win32ProgramState *)pCreate->lpCreateParams;
-		SetWindowLongPtr(windowHandle, GWLP_USERDATA, (LONG_PTR)programState);
+		state = (Win32ProgramState *)pCreate->lpCreateParams;
+		SetWindowLongPtr(windowHandle, GWLP_USERDATA, (LONG_PTR)state);
 	}
 	break;
 
 	case WM_CLOSE:
 	{
-		programState->IsRunning = false;
+		state->IsRunning = false;
 	}
 	break;
 
 	case WM_DESTROY:
 	{
-		programState->IsRunning = false;
+		state->IsRunning = false;
 	}
 	break;
 
@@ -809,7 +821,7 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 
 	case WM_SETCURSOR:
 	{
-		if (programState->ShowCursor)
+		if (state->ShowCursor)
 		{
 			result = DefWindowProc(windowHandle, message, wParam, lParam);
 		}
@@ -837,7 +849,7 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 		{
 			// Is alt button held down
 			if (altDown)
-				programState->IsRunning = false;
+				state->IsRunning = false;
 		}
 		break;
 
@@ -853,7 +865,7 @@ LRESULT CALLBACK Win32WindowCallback(HWND windowHandle, UINT message, WPARAM wPa
 	{
 		PAINTSTRUCT paint;
 		HDC deviceContext = BeginPaint(windowHandle, &paint);
-		Win32DisplayBufferInWindow(&programState->BitmapBuffer, deviceContext, programState);
+		Win32DisplayBufferInWindow(&state->BitmapBuffer, deviceContext, state);
 		EndPaint(windowHandle, &paint);
 	}
 	break;
@@ -881,13 +893,6 @@ internal void Win32GetExeFileName(Win32ProgramState *State)
 			State->OnePastLastEXEFileNameSlash = Scan + 1;
 		}
 	}
-}
-
-internal void Win32BuildEXEPathFileName(Win32ProgramState *State, const char *FileName, int DestCount, char *Dest)
-{
-	ConCatStrings(State->OnePastLastEXEFileNameSlash - State->ExeFileName, State->ExeFileName,
-				  StringLength(FileName), FileName,
-				  DestCount, Dest);
 }
 
 internal void ConCatStrings(
@@ -956,4 +961,11 @@ internal void ToggleFullScreen(Win32ProgramState *state, HWND handle, WINDOWPLAC
 
 		SetWindowPos(handle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 	}
+}
+
+internal void Win32BuildEXEPathFileName(Win32ProgramState *state, const char *fileName, int destCount, char *dest)
+{
+	ConCatStrings(state->OnePastLastEXEFileNameSlash - state->ExeFileName, state->ExeFileName,
+				  StringLength(fileName), fileName,
+				  destCount, dest);
 }

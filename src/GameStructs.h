@@ -1,7 +1,8 @@
 #pragma once
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 	// TO Set the compilers if not set
@@ -32,21 +33,21 @@ extern "C" {
 #include <stdint.h>
 #include <stddef.h>
 
-	typedef uint8_t  u8;
+	typedef uint8_t u8;
 	typedef uint16_t u16;
 	typedef uint32_t u32;
 	typedef uint64_t u64;
 
 	typedef size_t MemorySizeIndex;
 
-	typedef int8_t  i8;
+	typedef int8_t i8;
 	typedef int16_t i16;
 	typedef int32_t i32;
 	typedef int64_t i64;
 
 	typedef i32 b32;
 
-	typedef float  r32;
+	typedef float r32;
 	typedef double r64;
 
 #define Pi32 3.14159265359f
@@ -55,12 +56,15 @@ extern "C" {
 #define Assert(Expression)
 #define InvalidCodePath
 #else
-#define Assert(Expression) if (!(Expression)) { *(int*)0 = 0; }
+#define Assert(Expression) \
+	if (!(Expression))     \
+	{                      \
+		*(int *)0 = 0;     \
+	}
 #define InvalidCodePath Assert(!"InvalidCodePath")
 #endif // Leena_Speed
 
-
-#define Killobytes(Value) ((Value) * 1024LL)
+#define Killobytes(Value) ((Value)*1024LL)
 #define Megabytes(Value) (Killobytes(Value) * 1024LL)
 #define Gigabytes(value) (Megabytes(value) * 1024LL)
 #define Terabytes(value) (Gigabytes(value) * 1024LL)
@@ -72,7 +76,7 @@ extern "C" {
 		// TODO(casey): Defines for maximum values
 		Assert(value <= 0xFFFFFFFF);
 		u32 result = (u32)value;
-		return(result);
+		return (result);
 	}
 
 	typedef struct ThreadContext
@@ -80,25 +84,24 @@ extern "C" {
 		int PlaceHolder;
 	} ThreadContext;
 
-
 	struct DebugFileResult
 	{
-		void* Memory;
+		void *Memory;
 		u32 FileSize;
 	};
 
-#define Debug_Platform_Free_File_Memory(name) void name(ThreadContext* thread, void* memory)
+#define Debug_Platform_Free_File_Memory(name) void name(ThreadContext *thread, void *memory)
 	typedef Debug_Platform_Free_File_Memory(PlatformFreeFileMemory);
 
-#define Debug_Platform_Read_Entire_File(name) DebugFileResult name(ThreadContext* thread, const char* fileName)
+#define Debug_Platform_Read_Entire_File(name) DebugFileResult name(ThreadContext *thread, const char *fileName)
 	typedef Debug_Platform_Read_Entire_File(PlatformReadEntireFile);
 
-#define Debug_Platform_Write_Entire_File(name) b32 name(ThreadContext* thread, const char* fileName, u32 memorySize, void* memory)
+#define Debug_Platform_Write_Entire_File(name) b32 name(ThreadContext *thread, const char *fileName, u32 memorySize, void *memory)
 	typedef Debug_Platform_Write_Entire_File(PlatformWriteEntireFile);
 
 	struct ScreenBuffer
 	{
-		void* Memory;
+		void *Memory;
 		int Width;
 		int Height;
 		int Pitch;
@@ -114,7 +117,7 @@ extern "C" {
 		u16 BlockAlign;
 		u16 BitsPerSample;
 		u32 BufferSize;
-		void* BufferData;
+		void *BufferData;
 	};
 
 	enum class KeyAction
@@ -169,7 +172,6 @@ extern "C" {
 		u64 Y;
 	};
 
-
 	struct KeyboardInput
 	{
 		b32 IsConnected;
@@ -189,13 +191,13 @@ extern "C" {
 	{
 		MemorySizeIndex PermanentStorageSize;
 		MemorySizeIndex TransiateStorageSize;
-		void* PermanentStorage;
-		void* TransiateStorage;
+		void *PermanentStorage;
+		void *TransiateStorage;
 		b32 IsInitialized;
 
-		PlatformFreeFileMemory* FreeFile;
-		PlatformReadEntireFile* ReadFile;
-		PlatformWriteEntireFile* WriteFile;
+		PlatformFreeFileMemory *FreeFile;
+		PlatformReadEntireFile *ReadFile;
+		PlatformWriteEntireFile *WriteFile;
 	};
 
 	enum class KeyCode

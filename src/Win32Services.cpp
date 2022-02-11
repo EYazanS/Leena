@@ -1,11 +1,14 @@
 #include "main.h"
 
 #if Leena_Internal
-DebugFileResult DebugPlatformReadEntireFile(ThreadContext* thread, const char* fileName)
+DebugFileResult DebugPlatformReadEntireFile(ThreadContext *thread, const char *fileName)
 {
 	DebugFileResult result = {};
 
-	HANDLE fileHandle = CreateFileA(fileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, NULL, NULL);
+	char fullFileName[MAX_PATH];
+	Win32BuildEXEPathFileName(&programState, fileName, sizeof(fullFileName), fullFileName);
+
+	HANDLE fileHandle = CreateFileA(fullFileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, NULL, NULL);
 
 	if (fileHandle != INVALID_HANDLE_VALUE)
 	{
@@ -17,7 +20,7 @@ DebugFileResult DebugPlatformReadEntireFile(ThreadContext* thread, const char* f
 
 			u32 fileSize32 = (u32)fileSize.QuadPart;
 
-			void* memResult = VirtualAlloc(NULL, fileSize32, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+			void *memResult = VirtualAlloc(NULL, fileSize32, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
 			if (memResult)
 			{
@@ -43,16 +46,21 @@ DebugFileResult DebugPlatformReadEntireFile(ThreadContext* thread, const char* f
 	return result;
 }
 
-void DebugPlatformFreeFileMemory(ThreadContext* thread, void* memory)
+void DebugPlatformFreeFileMemory(ThreadContext *thread, void *memory)
 {
 	if (memory)
 		VirtualFree(memory, NULL, MEM_RELEASE);
 }
 
-b32 DebugPlatformWriteEntireFile(ThreadContext* thread, const char* fileName, u32 memorySize, void* memory)
+b32 DebugPlatformWriteEntireFile(ThreadContext *thread, const char *fileName, u32 memorySize, void *memory)
 {
 	b32 result = 0;
-	HANDLE fileHandle = CreateFileA(fileName, GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, NULL, NULL);
+	
+	char fullFileName[MAX_PATH];
+	
+	Win32BuildEXEPathFileName(&programState, fileName, sizeof(fullFileName), fullFileName);
+	
+	HANDLE fileHandle = CreateFileA(fullFileName, GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, NULL, NULL);
 
 	if (fileHandle != INVALID_HANDLE_VALUE)
 	{
