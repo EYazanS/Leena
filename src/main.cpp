@@ -242,7 +242,7 @@ internal GameCode Win32LoadGameCode(char *sourceDLLName, char *tempDLLName, char
 
 	WIN32_FILE_ATTRIBUTE_DATA Ignored;
 
-	if (!GetFileAttributesEx(lockFileName, GetFileExInfoStandard, &Ignored))
+	if (!GetFileAttributesExA(lockFileName, GetFileExInfoStandard, &Ignored))
 	{
 		result.LastWriteTime = GetFileLastWriteDate(sourceDLLName);
 
