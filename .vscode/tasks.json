@@ -2,6 +2,13 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"type": "shell",
+			"label": "Build Win32",
+			"command": "${workspaceFolder}/build.bat",
+			"group": "build",
+			"detail": "compiler: /usr/bin/cpp"
+		},
+		{
 			"type": "cppbuild",
 			"label": "Build Linux main",
 			"command": "g++",
