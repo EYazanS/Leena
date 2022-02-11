@@ -83,7 +83,8 @@ extern "C"
 	{
 		int PlaceHolder;
 	} ThreadContext;
-
+	
+#if Leena_Internal
 	struct DebugFileResult
 	{
 		void *Memory;
@@ -98,6 +99,7 @@ extern "C"
 
 #define Debug_Platform_Write_Entire_File(name) b32 name(ThreadContext *thread, const char *fileName, u32 memorySize, void *memory)
 	typedef Debug_Platform_Write_Entire_File(PlatformWriteEntireFile);
+#endif
 
 	struct ScreenBuffer
 	{
