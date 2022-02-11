@@ -1148,10 +1148,10 @@ DllExport void GameUpdateAndRender(ThreadContext* thread, GameMemory* gameMemory
 		swordDirection = playerAcceleration;
 	}
 
-	if (input->States[(int)KeyAction::Start].EndedDown)
-	{
-		gameMemory->IsInitialized = false;
-	}
+	// if (input->States[(int)KeyAction::Start].EndedDown)
+	// {
+	// 	gameMemory->IsInitialized = false;
+	// }
 
 	if (input->States[(int)KeyAction::Run].EndedDown)
 	{
