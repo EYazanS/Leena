@@ -23,7 +23,9 @@ inline b32 IsValidLocation(WorldPosition* position)
 
 inline b32 IsCanonical(World* world, r32 tileRel)
 {
-	b32 result = (tileRel >= (-0.5 * world->ChunkSideInMeters)) && (tileRel <= (0.5 * world->ChunkSideInMeters));
+	r32 epsilon = 0.0001f;
+
+	b32 result = ((tileRel >= -(0.5 * world->ChunkSideInMeters + epsilon)) && (tileRel <= (0.5 * world->ChunkSideInMeters + epsilon)));
 
 	return result;
 }
@@ -173,7 +175,6 @@ WorldPosition MapIntoChunkSpace(World* world, WorldPosition basePosition, V2 off
 
 	RecanonicalizeCoordinant(world, &result.X, &result.Offset.X);
 	RecanonicalizeCoordinant(world, &result.Y, &result.Offset.Y);
-
 
 	return result;
 }
