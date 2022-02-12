@@ -11,6 +11,7 @@
 			"program": "${workspaceFolder}/Build/main.exe",
 			"args": [],
 			"stopAtEntry": false,
+			"preLaunchTask": "Build Win32",
 			"cwd": "${fileDirname}",
 			"environment": []
 		}
