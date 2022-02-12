@@ -5,8 +5,7 @@
 			"type": "shell",
 			"label": "Build Win32",
 			"command": "${workspaceFolder}/build.bat",
-			"group": "build",
-			"detail": "compiler: /usr/bin/cpp"
+			"group": "build"
 		},
 		{
 			"type": "cppbuild",

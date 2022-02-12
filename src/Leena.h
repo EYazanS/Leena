@@ -8,42 +8,53 @@ struct MemoryPool
 {
 	MemorySizeIndex Size;
 	MemorySizeIndex UsedAmount;
-	u8* BaseMemory;
+	u8 *BaseMemory;
 };
 
 // Functions provided for the platform layer
-void initializePool(MemoryPool* pool, MemorySizeIndex size, u8* storage)
+inline void initializePool(MemoryPool *pool, MemorySizeIndex size, void *storage)
 {
 	pool->Size = size;
-	pool->BaseMemory = storage;
+	pool->BaseMemory = (u8 *)storage;
 	pool->UsedAmount = 0;
 }
 
-#define PushArray(pool, size, type) (type*) PushSize_(pool, size +  sizeof(type))
-#define PushStruct(pool, type) (type*) PushSize_(pool, sizeof(type))
+#define PushArray(pool, size, type) (type *)PushSize_(pool, size + sizeof(type))
+#define PushStruct(pool, type) (type *)PushSize_(pool, sizeof(type))
 
-void* PushSize_(MemoryPool* pool, MemorySizeIndex size)
+inline void *PushSize_(MemoryPool *pool, MemorySizeIndex size)
 {
 	Assert(pool->UsedAmount + pool->UsedAmount <= pool->Size);
-	void* result = pool->BaseMemory + pool->UsedAmount;
+	void *result = pool->BaseMemory + pool->UsedAmount;
 	pool->UsedAmount += size;
 	return result;
+}
+
+#define ZeroStruct(instance) ZeroSize(sizeof(instance), &(instance))
+
+inline void ZeroSize(MemorySizeIndex size, void *ptr)
+{
+	u8 *byte = (u8 *)ptr;
+
+	while (size--)
+	{
+		*byte++ = 0;
+	}
 }
 
 #define Minimum(a, b) ((a < b) ? a : b)
 #define Maximum(a, b) ((a > b) ? a : b)
 
-#define HitPointMaxAmount 4
-
 #include "Intrinsics.h"
 #include "LeenaMath.h"
 #include "World/World.h"
+#include "SimRegion/SimRegion.h"
 
 struct LoadedBitmap
 {
 	i64 Width;
 	i64 Height;
-	u32* Data;
+	u32 *Data;
 };
 
 struct PlayerBitMap
@@ -56,74 +67,27 @@ struct PlayerBitMap
 	V2 Align;
 };
 
-enum class EntityType
-{
-	Null,
-	Player,
-	Wall,
-	Familiar,
-	Monster,
-	Sword
-};
-
-struct Hitpoint
-{
-	u8 Flags;
-	u32 Current;
-};
-
-struct HighEntity
-{
-	V2 Position;
-	V2 Velocity;
-	i32 PositionZ;
-
-	u32 FacingDirection;
-
-	r32 Z;
-	r32 dZ;
-
-	u32 LowEntityIndex;
-};
-
 struct LowEntity
 {
-	EntityType Type;
+	SimEntity Entity;
 	WorldPosition Position;
-	r32 Width, Height;
-	r32 Speed;
-	b32 Collides;
-
-	// This is for vertical change, aka stairs
-	i32 TileZ;
-
-	u32 HighEntityIndex;
-
-	u32 MaxHp;
-	Hitpoint Hitpoints[16];
-
-	u32 SwordLowIndex;
-
-	r32 Timer;
-
-	r32 DistanceRemaining;
-};
-
-struct Entity
-{
-	u32 LowEntityIndex;
-	LowEntity* Low;
-	HighEntity* High;
 };
 
 struct EntityVisiblePiece
 {
-	LoadedBitmap* Bitmap;
+	LoadedBitmap *Bitmap;
 	V2 Offset;
 	r32 Z;
 	r32 ZCoefficient;
 	V4 Colour;
 	V2 Dimensions;
+};
+
+struct ControlRequest
+{
+	V2 Acceleration;
+	V2 SwordAcceleration;
+	r32 Dz;
 };
 
 struct GameState
@@ -133,14 +97,12 @@ struct GameState
 	WorldPosition CameraPosition;
 
 	u32 LowEntitiesCount;
-	u32 HighEntitiesCount;
 
 	r32 MetersToPixels;
 
-	HighEntity HighEntities[256];
 	LowEntity LowEntities[100000];
 
-	Entity PlayerEntity;
+	SimEntity *PlayerEntity;
 
 	LoadedBitmap Background;
 	PlayerBitMap BitMaps[4];
@@ -150,14 +112,37 @@ struct GameState
 
 	LoadedBitmap Sword;
 
-	World* World;
+	World *World;
 };
 
 struct EntityVisiblePieceGroup
 {
 	u32 PieceCount;
-	GameState* GameState;
+	GameState *GameState;
 	EntityVisiblePiece Pieces[32];
 };
+
+inline LowEntity *GetLowEntity(GameState *gameState, u32 index)
+{
+	LowEntity *result = 0;
+
+	if (index > 0 && (index < gameState->LowEntitiesCount))
+	{
+		result = gameState->LowEntities + index;
+	}
+
+	return result;
+}
+
+inline MoveSpec GetDefaultMoveSpec()
+{
+	MoveSpec result = {};
+
+	result.Drag = 0.0f;
+	result.Speed = 1.0f;
+	result.UnitMaxAccVector = false;
+
+	return result;
+}
 #define LeenaH
 #endif
