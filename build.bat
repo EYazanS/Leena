@@ -1,7 +1,7 @@
 @echo off
 
 if not defined DevEnvDir (
-	call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+	call "compiler.bat"
 )
 
 set CommonCompilerFlags=/std:c++17 -MTd -nologo -fp:fast -Gm- -GR- -EHa- -Od -Oi -WX -W4 -wd4201 -wd4100 -wd4189 -wd4505 -DLeena_Internal=1 -DLeena_Slow=1 -DLeena_Win32=1 -FC -Z7
