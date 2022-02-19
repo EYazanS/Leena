@@ -44,3 +44,5 @@ x64/
 debug/
 
 build/
+
+compiler.bat
