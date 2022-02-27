@@ -902,12 +902,12 @@ internal void ConCatStrings(
 {
 	Assert(sourceACount + sourceBCount < destCount);
 
-	for (int index = 0; index < sourceACount; ++index)
+	for (size_t index = 0; index < sourceACount; ++index)
 	{
 		*dest++ = *sourceA++;
 	}
 
-	for (int index = 0; index < sourceBCount; ++index)
+	for (size_t index = 0; index < sourceBCount; ++index)
 	{
 		*dest++ = *sourceB++;
 	}
