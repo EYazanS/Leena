@@ -49,6 +49,7 @@ inline void ZeroSize(MemorySizeIndex size, void *ptr)
 #include "LeenaMath.h"
 #include "World/World.h"
 #include "SimRegion/SimRegion.h"
+#include "Entities/Entities.h"
 
 struct LoadedBitmap
 {

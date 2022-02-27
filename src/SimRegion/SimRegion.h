@@ -10,13 +10,6 @@ enum class EntityType
 	Sword
 };
 
-struct MoveSpec
-{
-	b32 UnitMaxAccVector;
-	r32 Drag;
-	r32 Speed;
-};
-
 #define HitPointMaxAmount 4
 
 struct Hitpoint
@@ -33,34 +26,40 @@ union EntityReference
 	u32 Index;
 };
 
+enum EntityFlag
+{
+	Collides = (1 << 1),
+	Nonspatial = (1 << 2),
+};
+
 struct SimEntity
 {
+	u32 StorageIndex;
+
+	EntityType Type;
+	u32 Flags;
+
 	V2 Position;
 	V2 Velocity;
-	i32 PositionZ;
 
-	u32 FacingDirection;
+	// This is for vertical change, aka stairs
+	i32 TileZ;
 
 	r32 Z;
 	r32 dZ;
 
-	u32 StorageIndex;
+	i32 PositionZ;
 
-	EntityType Type;
 	r32 Width, Height;
-	r32 Speed;
-	b32 Collides;
 
-	// This is for vertical change, aka stairs
-	i32 TileZ;
+	u32 FacingDirection;
+
+	r32 Speed;
 
 	u32 MaxHp;
 	Hitpoint Hitpoints[16];
 
 	EntityReference SwordLowIndex;
-
-	r32 Timer;
-
 	r32 DistanceRemaining;
 };
 

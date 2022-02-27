@@ -1,5 +1,5 @@
 #define TilesPerChunk 16
-#define ChunkSafeMargin (INT32_MAX/64)
+#define ChunkSafeMargin (INT32_MAX / 64)
 #define TileChunkUninitialized INT32_MAX
 
 inline WorldPosition NullPosition()
@@ -13,15 +13,15 @@ inline WorldPosition NullPosition()
 	return result;
 }
 
-inline b32 IsValidLocation(WorldPosition* position)
+inline b32 IsValidPosition(WorldPosition position)
 {
 
-	b32 result = position->X != TileChunkUninitialized && position->Y != TileChunkUninitialized && position->Z != TileChunkUninitialized;
+	b32 result = position.X != TileChunkUninitialized;
 
 	return result;
 }
 
-inline b32 IsCanonical(World* world, r32 tileRel)
+inline b32 IsCanonical(World *world, r32 tileRel)
 {
 	r32 epsilon = 0.0001f;
 
@@ -30,14 +30,14 @@ inline b32 IsCanonical(World* world, r32 tileRel)
 	return result;
 }
 
-inline b32 IsCanonical(World* world, V2 offset)
+inline b32 IsCanonical(World *world, V2 offset)
 {
 	b32 result = IsCanonical(world, offset.X) && IsCanonical(world, offset.Y);
 
 	return result;
 }
 
-inline b32 AreOnSameLocation(World* world, WorldPosition* oldPosition, WorldPosition* newPosition)
+inline b32 AreOnSameLocation(World *world, WorldPosition *oldPosition, WorldPosition *newPosition)
 {
 	Assert(IsCanonical(world, oldPosition->Offset));
 	Assert(IsCanonical(world, newPosition->Offset));
@@ -47,22 +47,22 @@ inline b32 AreOnSameLocation(World* world, WorldPosition* oldPosition, WorldPosi
 	return result;
 }
 
-inline WorldChunk* GetWorldChunk(World* world, u32 X, u32 Y, u32 ChunkZ, MemoryPool* pool = 0)
+inline WorldChunk *GetWorldChunk(World *world, u32 X, u32 Y, u32 ChunkZ, MemoryPool *pool = 0)
 {
-	//Assert(x > ChunkSafeMargin);
-	//Assert(z > ChunkSafeMargin);
-	//Assert(y > ChunkSafeMargin);
+	// Assert(x > ChunkSafeMargin);
+	// Assert(z > ChunkSafeMargin);
+	// Assert(y > ChunkSafeMargin);
 
-	//Assert(x < (u32_MAX - ChunkSafeMargin));
-	//Assert(z < (u32_MAX - ChunkSafeMargin));
-	//Assert(y < (u32_MAX - ChunkSafeMargin));
+	// Assert(x < (u32_MAX - ChunkSafeMargin));
+	// Assert(z < (u32_MAX - ChunkSafeMargin));
+	// Assert(y < (u32_MAX - ChunkSafeMargin));
 
 	// TODO: Better hash function!
 	u32 HashValue = 19 * X + 7 * Y + 3 * ChunkZ;
 	u32 HashSlot = HashValue & (ArrayCount(world->TileChunkHash) - 1);
 	Assert(HashSlot < ArrayCount(world->TileChunkHash));
 
-	WorldChunk* Chunk = world->TileChunkHash + HashSlot;
+	WorldChunk *Chunk = world->TileChunkHash + HashSlot;
 	do
 	{
 		if ((X == Chunk->X) &&
@@ -92,10 +92,10 @@ inline WorldChunk* GetWorldChunk(World* world, u32 X, u32 Y, u32 ChunkZ, MemoryP
 		Chunk = Chunk->NextInHash;
 	} while (Chunk);
 
-	return(Chunk);
+	return (Chunk);
 }
 
-inline WorldPosition GetChunkPositionFromWorldPosition(World* world, i32 x, i32 y, i32 z)
+inline WorldPosition GetChunkPositionFromWorldPosition(World *world, i32 x, i32 y, i32 z)
 {
 	WorldPosition result = {};
 
@@ -126,21 +126,22 @@ inline WorldPosition GetChunkPositionFromWorldPosition(World* world, i32 x, i32 
 	return result;
 }
 
-inline V3 CalculatePositionDifference(World* world, WorldPosition* position1, WorldPosition* position2)
+inline V3 CalculatePositionDifference(World *world, WorldPosition *position1, WorldPosition *position2)
 {
 	V3 result = {};
 
-	V2 dTile = { (r32)position1->X - (r32)position2->X, (r32)position1->Y - (r32)position2->Y };
+	V2 dTile = {(r32)position1->X - (r32)position2->X, (r32)position1->Y - (r32)position2->Y};
+	
 	r32 dTileZ = (r32)position1->Z - (r32)position2->Z;
 
 	V2 v2 = world->ChunkSideInMeters * dTile + (position1->Offset - position2->Offset);
 
-	result = { v2.X, v2.Y, world->ChunkSideInMeters * dTileZ };
+	result = {v2.X, v2.Y, world->ChunkSideInMeters * dTileZ};
 
 	return result;
 }
 
-void initializeWorld(World* world)
+void initializeWorld(World *world)
 {
 	if (world)
 	{
@@ -158,7 +159,7 @@ void initializeWorld(World* world)
 	}
 }
 
-void RecanonicalizeCoordinant(World* world, i32* coordinate, r32* coordRelative)
+void RecanonicalizeCoordinant(World *world, i32 *coordinate, r32 *coordRelative)
 {
 	// Offset from the current tile center, if its above 1 then it means we moved one tile
 	i32 Offset = RoundReal32ToInt32(*coordRelative / world->ChunkSideInMeters);
@@ -168,7 +169,7 @@ void RecanonicalizeCoordinant(World* world, i32* coordinate, r32* coordRelative)
 	Assert(IsCanonical(world, *coordRelative));
 }
 
-WorldPosition MapIntoChunkSpace(World* world, WorldPosition basePosition, V2 offset)
+WorldPosition MapIntoChunkSpace(World *world, WorldPosition basePosition, V2 offset)
 {
 	WorldPosition result = basePosition;
 	result.Offset += offset;
@@ -187,13 +188,18 @@ inline WorldPosition CenteredChunkPoint(u32 x, u32 y, u32 z)
 	Result.Y = y;
 	Result.Z = z;
 
-	return(Result);
+	return (Result);
 }
 
-inline void ChangeEntityLocationRaw(MemoryPool* pool, World* world, u32 lowEntityIndex, WorldPosition* oldPosition, WorldPosition* newPosition)
+inline void ChangeEntityLocationRaw(
+	MemoryPool *pool,
+	World *world,
+	u32 lowEntityIndex,
+	WorldPosition *oldPosition,
+	WorldPosition *newPosition)
 {
-	Assert(!oldPosition || IsValidLocation(oldPosition));
-	Assert(!newPosition || IsValidLocation(newPosition));
+	Assert(!oldPosition || IsValidPosition(*oldPosition));
+	Assert(!newPosition || IsValidPosition(*newPosition));
 
 	if (oldPosition && newPosition && AreOnSameLocation(world, oldPosition, newPosition))
 	{
@@ -204,15 +210,15 @@ inline void ChangeEntityLocationRaw(MemoryPool* pool, World* world, u32 lowEntit
 		if (oldPosition)
 		{
 			// Pull the entity from its current entity block
-			WorldChunk* chunk = GetWorldChunk(world, oldPosition->X, oldPosition->Y, oldPosition->Z, pool);
+			WorldChunk *chunk = GetWorldChunk(world, oldPosition->X, oldPosition->Y, oldPosition->Z, pool);
 
 			Assert(chunk);
 
 			if (chunk)
 			{
-				EntityBlock* firstBlock = &chunk->FirstBlock;
+				EntityBlock *firstBlock = &chunk->FirstBlock;
 
-				EntityBlock* block = &chunk->FirstBlock;
+				EntityBlock *block = &chunk->FirstBlock;
 
 				while (block)
 				{
@@ -226,7 +232,7 @@ inline void ChangeEntityLocationRaw(MemoryPool* pool, World* world, u32 lowEntit
 							{
 								if (firstBlock->Next)
 								{
-									EntityBlock* nextBlock = firstBlock->Next;
+									EntityBlock *nextBlock = firstBlock->Next;
 									*firstBlock = *nextBlock;
 									nextBlock->Next = world->FirstFreeBlock;
 									world->FirstFreeBlock = nextBlock;
@@ -247,13 +253,13 @@ inline void ChangeEntityLocationRaw(MemoryPool* pool, World* world, u32 lowEntit
 		if (newPosition)
 		{
 			// Insert entity into its new entity block
-			WorldChunk* chunk = GetWorldChunk(world, newPosition->X, newPosition->Y, newPosition->Z, pool);
+			WorldChunk *chunk = GetWorldChunk(world, newPosition->X, newPosition->Y, newPosition->Z, pool);
 
-			EntityBlock* block = &chunk->FirstBlock;
+			EntityBlock *block = &chunk->FirstBlock;
 
 			if (block->EntitiesCount == ArrayCount(block->LowEntitiyIndex))
 			{
-				EntityBlock* oldBlock = world->FirstFreeBlock;
+				EntityBlock *oldBlock = world->FirstFreeBlock;
 
 				if (oldBlock)
 				{
@@ -280,19 +286,35 @@ inline void ChangeEntityLocationRaw(MemoryPool* pool, World* world, u32 lowEntit
 }
 
 void ChangeEntityLocation(
-	MemoryPool* pool, World* world,
-	u32 lowEntityIndex, LowEntity* lowEntity,
-	WorldPosition* oldP, WorldPosition* newP
-)
+	MemoryPool *pool,
+	World *world,
+	u32 lowEntityIndex,
+	LowEntity *lowEntity,
+	WorldPosition newPInit)
 {
-	ChangeEntityLocationRaw(pool, world, lowEntityIndex, oldP, newP);
+	WorldPosition *oldPosition = 0;
+	WorldPosition *newPosition = 0;
 
-	if (newP)
+	if (!HasFlag(&lowEntity->Entity, EntityFlag::Nonspatial) && IsValidPosition(lowEntity->Position))
 	{
-		lowEntity->Position = *newP;
+		oldPosition = &lowEntity->Position;
+	}
+
+	if (IsValidPosition(newPInit))
+	{
+		newPosition = &newPInit;
+	}
+
+	ChangeEntityLocationRaw(pool, world, lowEntityIndex, oldPosition, newPosition);
+
+	if (newPosition)
+	{
+		lowEntity->Position = *newPosition;
+		RemoveFlag(&lowEntity->Entity, EntityFlag::Nonspatial);
 	}
 	else
 	{
 		lowEntity->Position = NullPosition();
+		AddFlag(&lowEntity->Entity, EntityFlag::Nonspatial);
 	}
 }

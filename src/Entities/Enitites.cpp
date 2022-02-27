@@ -1,3 +1,16 @@
+inline void MakeEntityNonSpatial(SimEntity *entity)
+{
+	AddFlag(entity, EntityFlag::Nonspatial);
+	entity->Position = InvalidPosition;
+}
+
+inline void MakeEntitySpatial(SimEntity *entity, V2 position, V2 velocity)
+{
+	RemoveFlag(entity, EntityFlag::Nonspatial);
+	entity->Position = position;
+	entity->Velocity = velocity;
+}
+
 void UpdateFamiliar(SimRegion *simRegion, SimEntity *entity, r32 timeDelta)
 {
 	r32 maximumSearchRadius = Square(5.0f);
@@ -42,6 +55,11 @@ void UpdateMonster(SimRegion *simRegion, SimEntity *entity, r32 dt)
 
 void UpdateSword(SimRegion *simRegion, SimEntity *entity, r32 dt)
 {
+	if (HasFlag(entity, EntityFlag::Nonspatial))
+	{
+		return;
+	}
+
 	MoveSpec moveSpec = GetDefaultMoveSpec();
 
 	moveSpec.Speed = 0.0f;
@@ -56,6 +74,7 @@ void UpdateSword(SimRegion *simRegion, SimEntity *entity, r32 dt)
 
 	if (entity->DistanceRemaining < 0.0f)
 	{
+		MakeEntityNonSpatial(entity);
 		Assert(!"Make entity to move out of region")
 
 		// ChangeEntityLocation(

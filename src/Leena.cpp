@@ -279,7 +279,7 @@ struct AddLowEntityResult
 	LowEntity *LowEntity;
 };
 
-AddLowEntityResult AddLowEntity(GameState *gameState, EntityType type, WorldPosition *position)
+AddLowEntityResult AddLowEntity(GameState *gameState, EntityType type, WorldPosition position)
 {
 	u32 entityIndex = 0;
 	LowEntity *lowEnttiy = 0;
@@ -292,8 +292,9 @@ AddLowEntityResult AddLowEntity(GameState *gameState, EntityType type, WorldPosi
 
 		*lowEnttiy = {};
 		lowEnttiy->Entity.Type = type;
+		lowEnttiy->Position = NullPosition();
 
-		ChangeEntityLocation(&gameState->WorldMemoryPool, gameState->World, entityIndex, lowEnttiy, 0, position);
+		ChangeEntityLocation(&gameState->WorldMemoryPool, gameState->World, entityIndex, lowEnttiy, position);
 	}
 
 	return {entityIndex, lowEnttiy};
@@ -303,10 +304,11 @@ AddLowEntityResult AddWall(GameState *gameState, i32 x, i32 y, i32 z)
 {
 	WorldPosition pos = GetChunkPositionFromWorldPosition(gameState->World, x, y, z);
 
-	AddLowEntityResult result = AddLowEntity(gameState, EntityType::Wall, &pos);
+	AddLowEntityResult result = AddLowEntity(gameState, EntityType::Wall, pos);
 
 	// Order: X Y Z Offset
-	result.LowEntity->Entity.Collides = true;
+	AddFlag(&result.LowEntity->Entity, EntityFlag::Collides);
+
 	result.LowEntity->Entity.Height = gameState->World->TileSideInMeters;
 	result.LowEntity->Entity.Width = result.LowEntity->Entity.Height;
 
@@ -326,10 +328,9 @@ void InitializeHitpoints(SimEntity *entity, u32 hitpointsCount)
 
 AddLowEntityResult AddSword(GameState *state)
 {
-	AddLowEntityResult result = AddLowEntity(state, EntityType::Sword, 0);
+	AddLowEntityResult result = AddLowEntity(state, EntityType::Sword, NullPosition());
 
 	// Order: X Y Z Offset
-	result.LowEntity->Entity.Collides = false;
 	result.LowEntity->Entity.Height = 0.5f;
 	result.LowEntity->Entity.Width = 1.0f;
 	result.LowEntity->Entity.Speed = 20.0f; // M/S2
@@ -339,13 +340,14 @@ AddLowEntityResult AddSword(GameState *state)
 
 void InitializePlayer(GameState *state)
 {
-	AddLowEntityResult result = AddLowEntity(state, EntityType::Player, &state->CameraPosition);
+	AddLowEntityResult result = AddLowEntity(state, EntityType::Player, state->CameraPosition);
 
 	SimEntity *entity = &result.LowEntity->Entity;
 
 	// Order: X Y Z Offset
 	InitializeHitpoints(entity, 5);
-	entity->Collides = true;
+	AddFlag(entity, EntityFlag::Collides);
+
 	entity->Height = 1.0f;
 	entity->Width = 0.75f;
 	entity->Speed = 30.0f; // M/S2
@@ -357,14 +359,14 @@ void InitializePlayer(GameState *state)
 	state->PlayerEntity->StorageIndex = result.LowEntityIndex;
 }
 
-AddLowEntityResult AddMonster(GameState *state, WorldPosition *position)
+AddLowEntityResult AddMonster(GameState *state, WorldPosition position)
 {
 	AddLowEntityResult result = AddLowEntity(state, EntityType::Monster, position);
 
 	// Order: X Y Z Offset
 	InitializeHitpoints(&result.LowEntity->Entity, 3);
 
-	result.LowEntity->Entity.Collides = true;
+	AddFlag(&result.LowEntity->Entity, EntityFlag::Collides);
 	result.LowEntity->Entity.Height = 0.5f;
 	result.LowEntity->Entity.Width = 1.0f;
 	result.LowEntity->Entity.Speed = 20.0f; // M/S2
@@ -372,12 +374,11 @@ AddLowEntityResult AddMonster(GameState *state, WorldPosition *position)
 	return result;
 }
 
-AddLowEntityResult AddFamiliar(GameState *state, WorldPosition *position)
+AddLowEntityResult AddFamiliar(GameState *state, WorldPosition position)
 {
 	AddLowEntityResult result = AddLowEntity(state, EntityType::Familiar, position);
 
 	// Order: X Y Z Offset
-	result.LowEntity->Entity.Collides = false;
 	result.LowEntity->Entity.Height = 0.5f;
 	result.LowEntity->Entity.Width = 1.0f;
 	result.LowEntity->Entity.Speed = 10.0f;
@@ -492,7 +493,7 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 		playerBitMap->Shadow = DebugLoadBmp(thread, gameMemory->ReadFile, "test/test_hero_shadow.bmp");
 		playerBitMap->Align = {72, 182};
 
-		AddLowEntity(gameState, EntityType::Null, {});
+		AddLowEntity(gameState, EntityType::Null, NullPosition());
 
 		u32 ScreenX = 0;
 		u32 ScreenY = 0;
@@ -659,7 +660,7 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 
 		WorldPosition monsterPost = GetChunkPositionFromWorldPosition(world, CameraTileX + 2, CameraTileY + 2, CameraTileZ);
 
-		AddMonster(gameState, &monsterPost);
+		AddMonster(gameState, monsterPost);
 
 		for (int FamiliarIndex = 0; FamiliarIndex < 5; ++FamiliarIndex)
 		{
@@ -670,7 +671,7 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 			{
 				WorldPosition familiarPosition = GetChunkPositionFromWorldPosition(world, CameraTileX + FamiliarOffsetX, CameraTileY + FamiliarOffsetY, CameraTileZ);
 
-				AddFamiliar(gameState, &familiarPosition);
+				AddFamiliar(gameState, familiarPosition);
 			}
 		}
 
@@ -724,7 +725,7 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 
 	if ((input->States[(int)KeyAction::Jump].EndedDown) && player->Z == 0.0f)
 	{
-		player->dZ = 3.0f;
+		controlRequest.Dz = 3.0f;
 	}
 
 	if (input->States[(int)KeyAction::X].EndedDown)
@@ -803,7 +804,10 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 		{
 		case EntityType::Player:
 		{
-			entity->dZ = controlRequest.Dz;
+			if (controlRequest.Dz)
+			{
+				entity->dZ = controlRequest.Dz;
+			}
 			MoveSpec moveSpec = GetDefaultMoveSpec();
 			moveSpec.UnitMaxAccVector = true;
 			moveSpec.Speed = entity->Speed;
