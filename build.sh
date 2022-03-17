@@ -1,4 +1,4 @@
 #!/bin/bash
 echo "Build started"  
-g++ ./Linux/main.cpp -std=c++17 -g -lSDL2 -lSDL2main -o ./Build/Linux/main
+g++ ./src/linux.cpp -std=c++17 -g -lSDL2 -lSDL2main -o ./build/linux.out
 echo "Build finished"  
