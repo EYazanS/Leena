@@ -19,6 +19,33 @@
 #define TRIGGER_THRESHOLD 30
 
 GlobalVariable LinuxProgramState programState = {};
+Internal r32
+SDLGetSecondsElapsed(u64 oldCounter, u64 currentCounter)
+{
+	return ((r32)(currentCounter - oldCounter) / (r32)(SDL_GetPerformanceFrequency()));
+}
+
+Internal i32 SDLGetWindowRefreshRate(SDL_Window *Window)
+{
+	SDL_DisplayMode Mode;
+
+	i32 DisplayIndex = SDL_GetWindowDisplayIndex(Window);
+
+	// If we can't find the refresh rate, we'll return this:
+	i32 DefaultRefreshRate = 60;
+
+	if (SDL_GetDesktopDisplayMode(DisplayIndex, &Mode) != 0)
+	{
+		return DefaultRefreshRate;
+	}
+
+	if (Mode.refresh_rate == 0)
+	{
+		return DefaultRefreshRate;
+	}
+
+	return Mode.refresh_rate;
+}
 
 int StringLength(const char *string)
 {
@@ -50,6 +77,35 @@ void ConCatStrings(
 	}
 
 	*dest++ = 0;
+}
+Internal void SDLCloseGameControllers(SDL_GameController *controllersHandles[MAX_CONTROLLERS])
+{
+	for (int controllerIndex = 0; controllerIndex < MAX_CONTROLLERS; ++controllerIndex)
+	{
+		SDL_GameController *controllerHandle = controllersHandles[controllerIndex];
+
+		if (controllerHandle)
+		{
+			SDL_GameControllerClose(controllerHandle);
+		}
+	}
+}
+
+Internal void SDLUpdateWindow(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *texture, ScreenBuffer *buffer)
+{
+	SDL_UpdateTexture(
+		texture,
+		0,
+		buffer->Memory,
+		buffer->Pitch);
+
+	SDL_RenderCopy(
+		renderer,
+		texture,
+		0,
+		0);
+
+	SDL_RenderPresent(renderer);
 }
 
 void LinuxGetExeFileName(LinuxProgramState *state)
@@ -278,6 +334,9 @@ int main(int args, char *argv[])
 
 	SDL_UpdateWindowSurface(window);
 
+	i32 GameUpdateHz = SDLGetWindowRefreshRate(window) / 2;
+	r32 targetSecondsPerFrame = 1.0f / (r32)GameUpdateHz;
+
 	// GameMemory gameMemory = InitGameMemory();
 
 	LinuxGetExeFileName(&programState);
@@ -310,7 +369,7 @@ int main(int args, char *argv[])
 
 	screenBuffer.Pitch = screenBuffer.Width * screenBuffer.BytesPerPixel;
 
-	SDL_GameController *controllerHandles[MAX_CONTROLLERS] = {};
+	SDL_GameController *controllersHandles[MAX_CONTROLLERS] = {};
 
 	int maxJoysticks = SDL_NumJoysticks();
 
@@ -328,7 +387,7 @@ int main(int args, char *argv[])
 			break;
 		}
 
-		controllerHandles[controllerIndex] = SDL_GameControllerOpen(joystickIndex);
+		controllersHandles[controllerIndex] = SDL_GameControllerOpen(joystickIndex);
 
 		controllerIndex++;
 	}
@@ -347,9 +406,6 @@ int main(int args, char *argv[])
 
 	while (isRunning)
 	{
-		u64 endCounter = SDL_GetPerformanceCounter();
-		u64 counterElapsed = endCounter - lastCounter;
-
 		for (u32 stateIndex = 0; stateIndex < ArrayCount(newInput->Keyboard.Buttons); stateIndex++)
 			newInput->Keyboard.Buttons[stateIndex].EndedDown = oldInput->Keyboard.Buttons[stateIndex].EndedDown;
 
@@ -408,9 +464,9 @@ int main(int args, char *argv[])
 			{
 				for (int controllerIndex = 0; controllerIndex < MAX_CONTROLLERS; ++controllerIndex)
 				{
-					if (controllerHandles[controllerIndex])
+					if (controllersHandles[controllerIndex])
 					{
-						SDL_GameControllerClose(controllerHandles[controllerIndex]);
+						SDL_GameControllerClose(controllersHandles[controllerIndex]);
 					}
 				}
 			}
@@ -425,7 +481,7 @@ int main(int args, char *argv[])
 			 controllerIndex < MAX_CONTROLLERS;
 			 ++controllerIndex)
 		{
-			SDL_GameController *controller = controllerHandles[controllerIndex];
+			SDL_GameController *controller = controllersHandles[controllerIndex];
 
 			if (!controller || !SDL_GameControllerGetAttached(controller))
 			{
@@ -436,7 +492,7 @@ int main(int args, char *argv[])
 			// NOTE: We have a controller with index ControllerIndex.
 			newInput->Controller.IsAnalog = true;
 
-			SDL_GameController *sdlCOntroller = controllerHandles[controllerIndex];
+			SDL_GameController *sdlCOntroller = controllersHandles[controllerIndex];
 
 			ProcessGameControllerButton(
 				&(oldInput->Controller.DpadUp),
@@ -510,8 +566,8 @@ int main(int args, char *argv[])
 				sdlCOntroller,
 				SDL_CONTROLLER_BUTTON_Y);
 
-			i16 StickY = SDL_GameControllerGetAxis(controllerHandles[controllerIndex], SDL_CONTROLLER_AXIS_LEFTY);
-			i16 StickX = SDL_GameControllerGetAxis(controllerHandles[controllerIndex], SDL_CONTROLLER_AXIS_LEFTX);
+			i16 StickY = SDL_GameControllerGetAxis(controllersHandles[controllerIndex], SDL_CONTROLLER_AXIS_LEFTY);
+			i16 StickX = SDL_GameControllerGetAxis(controllersHandles[controllerIndex], SDL_CONTROLLER_AXIS_LEFTX);
 
 			newInput->Controller.LeftStickAverageX = SDLProcessGameControllerAxisValue(StickX, LEFT_THUMB_DEADZONE);
 			newInput->Controller.LeftStickAverageY = SDLProcessGameControllerAxisValue(StickY, RIGHT_THUMB_DEADZONE);
@@ -519,34 +575,37 @@ int main(int args, char *argv[])
 
 		// GAME CODE
 
-		// Update Window
-		if (SDL_UpdateTexture(
-				texture,
-				0,
-				screenBuffer.Memory,
-				screenBuffer.Pitch))
-		{
-			// TODO: Do something about this error!
-		}
-
-		SDL_RenderCopy(
-			renderer,
-			texture,
-			0,
-			0);
-
-		// draw to the window
-		SDL_RenderPresent(renderer);
-
 		GameInput *temp = newInput;
 		newInput = oldInput;
 		oldInput = temp;
 
-		r64 MSPerFrame = (((1000.0f * (r64)counterElapsed) / (r64)perfCountFrequency));
-		r64 FPS = (r64)perfCountFrequency / (r64)counterElapsed;
+		if (SDLGetSecondsElapsed(lastCounter, SDL_GetPerformanceCounter()) < targetSecondsPerFrame)
+		{
+			u32 TimeToSleep = ((targetSecondsPerFrame - SDLGetSecondsElapsed(lastCounter, SDL_GetPerformanceCounter())) * 1000) - 1;
+
+			SDL_Delay(TimeToSleep);
+
+			Assert(SDLGetSecondsElapsed(lastCounter, SDL_GetPerformanceCounter()) < targetSecondsPerFrame);
+
+			while (SDLGetSecondsElapsed(lastCounter, SDL_GetPerformanceCounter()) < targetSecondsPerFrame)
+			{
+				// Waiting...
+			}
+		}
+
+		u64 endCounter = SDL_GetPerformanceCounter();
+
+		// Update Window
+		SDLUpdateWindow(window, renderer, texture, &screenBuffer);
 
 		u64 endCycleCount = _rdtsc();
+
+		u64 counterElapsed = endCounter - lastCounter;
+
 		u64 cyclesElapsed = endCycleCount - lastCycleCount;
+
+		r64 MSPerFrame = (((1000.0f * (r64)counterElapsed) / (r64)perfCountFrequency));
+		r64 FPS = (r64)perfCountFrequency / (r64)counterElapsed;
 		r64 MCPF = ((r64)cyclesElapsed / (1000.0f * 1000.0f));
 
 		printf("%.02fms/f, %.02f/s, %.02fmc/f\n", MSPerFrame, FPS, MCPF);
@@ -559,12 +618,7 @@ int main(int args, char *argv[])
 		munmap(screenBuffer.Memory, windowDim.Height * screenBuffer.Pitch);
 	}
 
-	if (texture)
-	{
-		SDL_DestroyTexture(texture);
-	}
-
-	SDL_DestroyWindow(window);
+	SDLCloseGameControllers(controllersHandles);
 
 	SDL_Quit();
 
