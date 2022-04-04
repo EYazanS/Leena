@@ -99,7 +99,6 @@ b32 DebugPlatformWriteEntireFile(ThreadContext* thread, const char* fileName, u3
 void DebugPlatformFreeFileMemory(ThreadContext* thread, void* memory);
 DebugFileResult DebugPlatformReadEntireFile(ThreadContext* thread, const char* fileName);
 
-
 // Utilities
 internal int StringLength(const char* string);
 internal void ConCatStrings(

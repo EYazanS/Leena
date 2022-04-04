@@ -61,7 +61,7 @@ int WINAPI wWinMain(
 
 		GameMemory gameMemory = InitGameMemory();
 
-		programState.RecordingState.TotalMemorySize = gameMemory.PermanentStorageSize + gameMemory.TransiateStorageSize;
+		programState.RecordingState.TotalMemorySize = gameMemory.PermanentStorageSize + gameMemory.TransientStorageSize;
 		programState.RecordingState.GameMemory = gameMemory.PermanentStorage;
 
 		IXAudio2 *xAudio = {};
@@ -343,12 +343,12 @@ internal GameMemory InitGameMemory()
 #endif
 
 	gameMemory.PermanentStorageSize = Megabytes(256);
-	gameMemory.TransiateStorageSize = Gigabytes(1);
+	gameMemory.TransientStorageSize = Gigabytes(1);
 
-	size_t totalSize = gameMemory.PermanentStorageSize + gameMemory.TransiateStorageSize;
+	size_t totalSize = gameMemory.PermanentStorageSize + gameMemory.TransientStorageSize;
 
 	gameMemory.PermanentStorage = VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-	gameMemory.TransiateStorage = (u8 *)gameMemory.PermanentStorage + gameMemory.PermanentStorageSize;
+	gameMemory.TransientStorage = (u8 *)gameMemory.PermanentStorage + gameMemory.PermanentStorageSize;
 
 	gameMemory.FreeFile = DebugPlatformFreeFileMemory;
 	gameMemory.ReadFile = DebugPlatformReadEntireFile;

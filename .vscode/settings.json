@@ -1,7 +1,10 @@
 {
     "files.associations": {
-        "cstdint": "cpp",
-        "system_error": "cpp",
-        "*.rh": "cpp"
-    }
+		"cstdint": "cpp",
+		"system_error": "cpp",
+		"*.rh": "cpp",
+		"typeinfo": "cpp",
+		"functional": "cpp",
+		"iostream": "cpp"
+	}
 }

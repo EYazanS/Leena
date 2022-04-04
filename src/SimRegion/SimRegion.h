@@ -71,7 +71,7 @@ struct SimEntityHash
 
 struct SimRegion
 {
-	World *World;
+	World *world;
 	WorldPosition Origin;
 	R2 Bounds;
 

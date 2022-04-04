@@ -46,6 +46,7 @@ inline void ZeroSize(MemorySizeIndex size, void *ptr)
 #define Maximum(a, b) ((a > b) ? a : b)
 
 #include "Intrinsics.h"
+
 #include "LeenaMath.h"
 #include "World/World.h"
 #include "SimRegion/SimRegion.h"
@@ -56,6 +57,11 @@ struct LoadedBitmap
 	i64 Width;
 	i64 Height;
 	u32 *Data;
+};
+
+struct WindowDimension
+{
+	i32 Height, Width;
 };
 
 struct PlayerBitMap
@@ -113,13 +119,13 @@ struct GameState
 
 	LoadedBitmap Sword;
 
-	World *World;
+	World *world;
 };
 
 struct EntityVisiblePieceGroup
 {
 	u32 PieceCount;
-	GameState *GameState;
+	GameState *gameState;
 	EntityVisiblePiece Pieces[32];
 };
 

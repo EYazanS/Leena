@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GameStructs.h"
+#include "../GameStructs.h"
 
 struct WorldPosition
 {

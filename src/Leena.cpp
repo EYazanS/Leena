@@ -268,7 +268,7 @@ LoadedBitmap DebugLoadBmp(ThreadContext *thread, PlatformReadEntireFile *readFil
 
 inline V2 GetCameraSpacePosition(GameState *gameState, LowEntity *lowEntity)
 {
-	V3 diff = CalculatePositionDifference(gameState->World, &lowEntity->Position, &gameState->CameraPosition);
+	V3 diff = CalculatePositionDifference(gameState->world, &lowEntity->Position, &gameState->CameraPosition);
 	V2 resutlt = V2{diff.X, diff.Y};
 	return resutlt;
 }
@@ -294,7 +294,7 @@ AddLowEntityResult AddLowEntity(GameState *gameState, EntityType type, WorldPosi
 		lowEnttiy->Entity.Type = type;
 		lowEnttiy->Position = NullPosition();
 
-		ChangeEntityLocation(&gameState->WorldMemoryPool, gameState->World, entityIndex, lowEnttiy, position);
+		ChangeEntityLocation(&gameState->WorldMemoryPool, gameState->world, entityIndex, lowEnttiy, position);
 	}
 
 	return {entityIndex, lowEnttiy};
@@ -302,14 +302,14 @@ AddLowEntityResult AddLowEntity(GameState *gameState, EntityType type, WorldPosi
 
 AddLowEntityResult AddWall(GameState *gameState, i32 x, i32 y, i32 z)
 {
-	WorldPosition pos = GetChunkPositionFromWorldPosition(gameState->World, x, y, z);
+	WorldPosition pos = GetChunkPositionFromWorldPosition(gameState->world, x, y, z);
 
 	AddLowEntityResult result = AddLowEntity(gameState, EntityType::Wall, pos);
 
 	// Order: X Y Z Offset
 	AddFlag(&result.LowEntity->Entity, EntityFlag::Collides);
 
-	result.LowEntity->Entity.Height = gameState->World->TileSideInMeters;
+	result.LowEntity->Entity.Height = gameState->world->TileSideInMeters;
 	result.LowEntity->Entity.Width = result.LowEntity->Entity.Height;
 
 	return result;
@@ -397,8 +397,8 @@ inline void PushPiece(EntityVisiblePieceGroup *group, LoadedBitmap *bitmap, V2 o
 	EntityVisiblePiece *piece = group->Pieces + group->PieceCount++;
 
 	piece->Bitmap = bitmap;
-	piece->Offset = group->GameState->MetersToPixels * V2{offset.X, -offset.Y} - align;
-	piece->Z = group->GameState->MetersToPixels * offsetZ;
+	piece->Offset = group->gameState->MetersToPixels * V2{offset.X, -offset.Y} - align;
+	piece->Z = group->gameState->MetersToPixels * offsetZ;
 	piece->ZCoefficient = zCoefficient;
 	piece->Dimensions = dim;
 	piece->Colour = colour;
@@ -754,7 +754,7 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 
 	MemoryPool simArena;
 
-	initializePool(&simArena, gameMemory->TransiateStorageSize, gameMemory->TransiateStorage);
+	initializePool(&simArena, gameMemory->TransientStorageSize, gameMemory->TransientStorage);
 
 	SimRegion *simRegion = BeginSim(
 		&simArena,

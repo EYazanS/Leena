@@ -20,7 +20,6 @@ extern "C"
 #undef COMPILER_MSVC
 #define COMPILER_MSVC 1
 #else
-// TODO(casey): Moar compilerz!!!
 #undef COMPILER_LLVM
 #define COMPILER_LLVM 1
 #endif
@@ -83,7 +82,7 @@ extern "C"
 	{
 		int PlaceHolder;
 	} ThreadContext;
-	
+
 #if Leena_Internal
 	struct DebugFileResult
 	{
@@ -164,6 +163,30 @@ extern "C"
 
 		r32 RightTrigger;
 		r32 LeftTrigger;
+
+		union
+		{
+			ButtonState Buttons[12];
+
+			struct
+			{
+				ButtonState DpadUp;
+				ButtonState DpadDown;
+				ButtonState DpadLeft;
+				ButtonState DpadRight;
+				ButtonState LeftShoulder;
+				ButtonState RightShoulder;
+				ButtonState A;
+				ButtonState B;
+				ButtonState X;
+				ButtonState Y;
+				ButtonState Start;
+				ButtonState Select;
+
+				// NOTE All buttons must be added above this line
+				ButtonState Terminator;
+			};
+		};
 	};
 
 	struct MouseInput
@@ -172,17 +195,52 @@ extern "C"
 
 		u64 X;
 		u64 Y;
+
+		union
+		{
+			ButtonState Buttons[2];
+
+			struct
+			{
+				ButtonState Right;
+				ButtonState Left;
+				
+				// NOTE All buttons must be added above this line
+				ButtonState Terminator;
+			};
+		};
 	};
 
 	struct KeyboardInput
 	{
 		b32 IsConnected;
+
+		union
+		{
+			ButtonState Buttons[10];
+
+			struct
+			{
+				ButtonState Up;
+				ButtonState Down;
+				ButtonState Left;
+				ButtonState Right;
+				ButtonState A;
+				ButtonState B;
+				ButtonState X;
+				ButtonState Y;
+				ButtonState Start;
+				ButtonState Select;
+
+				// NOTE All buttons must be added above this line
+				ButtonState Terminator;
+			};
+		};
 	};
 
 	struct GameInput
 	{
 		r64 TimeToAdvance;
-		ButtonState States[256];
 
 		MouseInput Mouse;
 		KeyboardInput Keyboard;
@@ -192,9 +250,9 @@ extern "C"
 	struct GameMemory
 	{
 		MemorySizeIndex PermanentStorageSize;
-		MemorySizeIndex TransiateStorageSize;
+		MemorySizeIndex TransientStorageSize;
 		void *PermanentStorage;
-		void *TransiateStorage;
+		void *TransientStorage;
 		b32 IsInitialized;
 
 		PlatformFreeFileMemory *FreeFile;
