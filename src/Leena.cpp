@@ -279,25 +279,27 @@ struct AddLowEntityResult
 	LowEntity *LowEntity;
 };
 
-AddLowEntityResult AddLowEntity(GameState *gameState, EntityType type, WorldPosition position)
+AddLowEntityResult AddLowEntity(GameState *GameState, EntityType Type, WorldPosition P)
 {
-	u32 entityIndex = 0;
-	LowEntity *lowEnttiy = 0;
+	Assert(GameState->LowEntitiesCount < ArrayCount(GameState->LowEntities));
+	u32 EntityIndex = GameState->LowEntitiesCount++;
 
-	if (gameState->LowEntitiesCount < ArrayCount(gameState->LowEntities))
-	{
-		entityIndex = gameState->LowEntitiesCount++;
+	LowEntity *EntityLow = GameState->LowEntities + EntityIndex;
+	*EntityLow = {};
+	EntityLow->Entity.Type = Type;
+	EntityLow->Position = NullPosition();
 
-		lowEnttiy = gameState->LowEntities + entityIndex;
+	ChangeEntityLocation(&GameState->WorldMemoryPool, GameState->World, EntityIndex, EntityLow, P);
 
-		*lowEnttiy = {};
-		lowEnttiy->Entity.Type = type;
-		lowEnttiy->Position = NullPosition();
+	AddLowEntityResult Result;
+	Result.LowEntity = EntityLow;
+	Result.LowEntityIndex = EntityIndex;
 
-		ChangeEntityLocation(&gameState->WorldMemoryPool, gameState->World, entityIndex, lowEnttiy, position);
-	}
+	// TODO(casey): Do we need to have a begin/end paradigm for adding
+	// entities so that they can be brought into the high set when they
+	// are added and are in the camera region?
 
-	return {entityIndex, lowEnttiy};
+	return (Result);
 }
 
 AddLowEntityResult AddWall(GameState *gameState, i32 x, i32 y, i32 z)
@@ -730,7 +732,24 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 
 	if (input->States[(int)KeyAction::X].EndedDown)
 	{
-		controlRequest.SwordAcceleration = controlRequest.Acceleration;
+		if (input->States[(int)KeyAction::MoveUp].EndedDown)
+		{
+			controlRequest.SwordAcceleration = {0.0f, 1.0f};
+		}
+		if (input->States[(int)KeyAction::MoveDown].EndedDown)
+		{
+			controlRequest.SwordAcceleration = {0.0f, -1.0f};
+		}
+
+		if (input->States[(int)KeyAction::MoveLeft].EndedDown)
+		{
+			controlRequest.SwordAcceleration = {-1.0f, 0.0f};
+		}
+
+		if (input->States[(int)KeyAction::MoveRight].EndedDown)
+		{
+			controlRequest.SwordAcceleration = {1.0f, 0.0f};
+		}
 	}
 
 	// if (input->States[(int)KeyAction::Start].EndedDown)
@@ -808,21 +827,22 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 			{
 				entity->dZ = controlRequest.Dz;
 			}
+
 			MoveSpec moveSpec = GetDefaultMoveSpec();
 			moveSpec.UnitMaxAccVector = true;
 			moveSpec.Speed = entity->Speed;
 			moveSpec.Drag = 8.0f;
+
 			MoveEntity(simRegion, entity, (r32)input->TimeToAdvance, controlRequest.Acceleration, &moveSpec);
 
-			if (controlRequest.SwordAcceleration.X != 0 || controlRequest.SwordAcceleration.Y != 0)
+			if (controlRequest.SwordAcceleration.X != 0.0f || controlRequest.SwordAcceleration.Y != 0.0f)
 			{
 				SimEntity *sword = entity->SwordLowIndex.Ptr;
 
-				if (sword)
+				if (sword && HasFlag(sword, EntityFlag::Nonspatial))
 				{
-					sword->Position = entity->Position;
 					sword->DistanceRemaining = 5.0f;
-					sword->Velocity = 10.0f * controlRequest.SwordAcceleration;
+					MakeEntitySpatial(sword, entity->Position, 5.0f * controlRequest.SwordAcceleration);
 				}
 			}
 
@@ -843,9 +863,9 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 
 		case EntityType::Sword:
 		{
-			PushBitmap(&pieceGroup, &gameState->Sword, V2{0, 0}, 0, V2{29, 10});
-			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{0, 0}, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
 			UpdateSword(simRegion, entity, dt);
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{0, 0}, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
+			PushBitmap(&pieceGroup, &gameState->Sword, V2{0, 0}, 0, V2{29, 10});
 		}
 		break;
 

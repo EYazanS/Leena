@@ -21,7 +21,7 @@ struct EntityBlock
 
 struct WorldChunk
 {
-	u32 X, Y, Z;
+	i32 X, Y, Z;
 
 	EntityBlock FirstBlock;
 

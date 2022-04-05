@@ -37,16 +37,6 @@ SimEntityHash *GetHashFromStorageIndex(SimRegion *simRegion, u32 storageIndex)
 	return result;
 }
 
-void MapStorageIndexToEntity(SimRegion *simRegion, u32 storageIndex, SimEntity *entity)
-{
-	SimEntityHash *entry = GetHashFromStorageIndex(simRegion, storageIndex);
-
-	Assert(!entry->Index || entry->Index == storageIndex);
-
-	entry->Index = storageIndex;
-	entry->Ptr = entity;
-}
-
 void LoadEntityReference(GameState *gameState, SimRegion *simRegion, EntityReference *reference)
 {
 	if (reference->Index)
@@ -77,23 +67,31 @@ SimEntity *AddEntityRaw(GameState *gameState, SimRegion *simRegion, u32 storageI
 
 	SimEntity *result = 0;
 
-	if (simRegion->EntitiesCount < simRegion->MaxEntitiesCount)
+	SimEntityHash *entry = GetHashFromStorageIndex(simRegion, storageIndex);
+
+	if (entry->Ptr == 0)
 	{
-		result = simRegion->Entities + simRegion->EntitiesCount++;
-
-		MapStorageIndexToEntity(simRegion, storageIndex, result);
-
-		if (source)
+		if (simRegion->EntitiesCount < simRegion->MaxEntitiesCount)
 		{
-			*result = source->Entity;
-			LoadEntityReference(gameState, simRegion, &result->SwordLowIndex);
-		}
+			result = simRegion->Entities + simRegion->EntitiesCount++;
 
-		result->StorageIndex = storageIndex;
-	}
-	else
-	{
-		InvalidCodePath;
+			entry->Index = storageIndex;
+			entry->Ptr = result;
+
+			if (source)
+			{
+				*result = source->Entity;
+				LoadEntityReference(gameState, simRegion, &result->SwordLowIndex);
+				Assert(!HasFlag(&source->Entity, EntityFlag::Simming));
+				AddFlag(&source->Entity, EntityFlag::Simming);
+			}
+
+			result->StorageIndex = storageIndex;
+		}
+		else
+		{
+			InvalidCodePath;
+		}
 	}
 
 	return result;
@@ -136,9 +134,9 @@ SimRegion *BeginSim(MemoryPool *pool, GameState *gameState, World *world, R2 bou
 	WorldPosition minChunkPos = MapIntoChunkSpace(world, simRegion->Origin, GetMinCorner(simRegion->Bounds));
 	WorldPosition maxChunkPos = MapIntoChunkSpace(world, simRegion->Origin, GetMaxCorner(simRegion->Bounds));
 
-	for (i32 chunkY = minChunkPos.Y; chunkY <= maxChunkPos.Y; chunkY++)
+	for (i32 chunkY = minChunkPos.Y; chunkY <= maxChunkPos.Y; ++chunkY)
 	{
-		for (i32 chunkX = minChunkPos.X; chunkX <= maxChunkPos.X; chunkX++)
+		for (i32 chunkX = minChunkPos.X; chunkX <= maxChunkPos.X; ++chunkX)
 		{
 			WorldChunk *chunk = GetWorldChunk(world, chunkX, chunkY, simRegion->Origin.Z);
 
@@ -146,7 +144,7 @@ SimRegion *BeginSim(MemoryPool *pool, GameState *gameState, World *world, R2 bou
 			{
 				for (EntityBlock *block = &chunk->FirstBlock; block; block = block->Next)
 				{
-					for (u32 entityIndex = 0; entityIndex < block->EntitiesCount; entityIndex++)
+					for (u32 entityIndex = 0; entityIndex < block->EntitiesCount; ++entityIndex)
 					{
 						u32 lowEntityIndex = block->LowEntitiyIndex[entityIndex];
 
@@ -336,7 +334,9 @@ void EndSim(SimRegion *region, GameState *gameState)
 	{
 		LowEntity *stored = gameState->LowEntities + entity->StorageIndex;
 
+		Assert(HasFlag(&stored->Entity, EntityFlag::Simming));
 		stored->Entity = *entity;
+		Assert(!HasFlag(&stored->Entity, EntityFlag::Simming));
 
 		StoreEntityReference(&stored->Entity.SwordLowIndex);
 
