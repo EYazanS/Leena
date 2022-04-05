@@ -43,7 +43,7 @@ void UpdateFamiliar(SimRegion *simRegion, SimEntity *entity, r32 timeDelta)
 	MoveSpec moveSpec = GetDefaultMoveSpec();
 
 	moveSpec.Drag = 8.0f;
-	moveSpec.Speed = 50.0f;
+	moveSpec.Speed = 5.0f;
 	moveSpec.UnitMaxAccVector = true;
 
 	MoveEntity(simRegion, entity, timeDelta, ddP, &moveSpec);
@@ -63,6 +63,7 @@ void UpdateSword(SimRegion *simRegion, SimEntity *entity, r32 dt)
 	MoveSpec moveSpec = GetDefaultMoveSpec();
 
 	moveSpec.Speed = 0.0f;
+	moveSpec.Drag = 0.0f;
 
 	V2 oldPosition = entity->Position;
 
@@ -75,12 +76,5 @@ void UpdateSword(SimRegion *simRegion, SimEntity *entity, r32 dt)
 	if (entity->DistanceRemaining < 0.0f)
 	{
 		MakeEntityNonSpatial(entity);
-
-		// ChangeEntityLocation(
-		// 	&state->WorldMemoryPool,
-		// 	state->World,
-		// 	entity->StorageIndex,
-		// 	entity,
-		// 	&entity.Position, 0);
 	}
 }

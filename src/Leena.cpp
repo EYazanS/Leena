@@ -335,7 +335,6 @@ AddLowEntityResult AddSword(GameState *state)
 	// Order: X Y Z Offset
 	result.LowEntity->Entity.Height = 0.5f;
 	result.LowEntity->Entity.Width = 1.0f;
-	result.LowEntity->Entity.Speed = 20.0f; // M/S2
 
 	return result;
 }
@@ -352,7 +351,7 @@ void InitializePlayer(GameState *state)
 
 	entity->Height = 1.0f;
 	entity->Width = 0.75f;
-	entity->Speed = 30.0f; // M/S2
+	entity->Speed = 20.0f; // M/S2
 
 	AddLowEntityResult sword = AddSword(state);
 
@@ -371,7 +370,7 @@ AddLowEntityResult AddMonster(GameState *state, WorldPosition position)
 	AddFlag(&result.LowEntity->Entity, EntityFlag::Collides);
 	result.LowEntity->Entity.Height = 0.5f;
 	result.LowEntity->Entity.Width = 1.0f;
-	result.LowEntity->Entity.Speed = 20.0f; // M/S2
+	result.LowEntity->Entity.Speed = 5.0f; // M/S2
 
 	return result;
 }
@@ -383,7 +382,7 @@ AddLowEntityResult AddFamiliar(GameState *state, WorldPosition position)
 	// Order: X Y Z Offset
 	result.LowEntity->Entity.Height = 0.5f;
 	result.LowEntity->Entity.Width = 1.0f;
-	result.LowEntity->Entity.Speed = 10.0f;
+	result.LowEntity->Entity.Speed = 5.0f;
 
 	return result;
 }
@@ -759,11 +758,11 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 
 	if (input->States[(int)KeyAction::Run].EndedDown)
 	{
-		player->Speed = 60.0f;
+		player->Speed = 30.0f;
 	}
 	else
 	{
-		player->Speed = 30.0f;
+		player->Speed = 20.0f;
 	}
 
 	r32 tileSpanX = 17.0f * 3.0f;
