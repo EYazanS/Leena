@@ -75,7 +75,6 @@ void UpdateSword(SimRegion *simRegion, SimEntity *entity, r32 dt)
 	if (entity->DistanceRemaining < 0.0f)
 	{
 		MakeEntityNonSpatial(entity);
-		Assert(!"Make entity to move out of region")
 
 		// ChangeEntityLocation(
 		// 	&state->WorldMemoryPool,

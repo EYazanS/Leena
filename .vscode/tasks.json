@@ -5,64 +5,20 @@
 			"type": "shell",
 			"label": "Build Win32",
 			"command": "${workspaceFolder}/build.bat",
-			"group": "build"
+			"group": "build",
+			"windows": {
+				"options": {
+					"shell": {
+						"executable": "powershell.exe",
+					}
+				}
+			}
 		},
 		{
 			"type": "shell",
 			"label": "Build Linux",
 			"command": "bash ${workspaceFolder}/build.sh",
 			"group": "build"
-		},
-		{
-			"type": "cppbuild",
-			"label": "Build Linux main",
-			"command": "g++",
-			"args": [
-				"-g",
-				"${workspaceFolder}/Linux/src/main.cpp",
-				"-I",
-				"${workspaceFolder}/Leena/src",
-				"-D Leena_Internal",
-				"-std=c++17",
-				"-Werror",
-				"-ldl",
-				"-lSDL2",
-				"-lSDL2main",
-				"-o",
-				"${workspaceFolder}/Build/Linux/game"
-			],
-			"options": {
-				"cwd": "${workspaceFolder}"
-			},
-			"problemMatcher": [
-				"$gcc"
-			],
-			"group": "build",
-			"detail": "compiler: /usr/bin/cpp"
-		},
-		{
-			"type": "cppbuild",
-			"label": "Build Game Files",
-			"command": "g++",
-			"args": [
-				"-g",
-				"-shared",
-				"-D Leena_Internal",
-				"-W",
-				"-std=c++17",
-				"-fPIC",
-				"-o",
-				"${workspaceFolder}/Build/Linux/Leena.dll",
-				"${workspaceFolder}/Leena/src/Leena.cpp"
-			],
-			"options": {
-				"cwd": "${workspaceFolder}"
-			},
-			"problemMatcher": [
-				"$gcc"
-			],
-			"group": "build",
-			"detail": "compiler: /usr/bin/cpp"
 		}
 	]
 }
