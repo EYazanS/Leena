@@ -348,7 +348,7 @@ internal GameMemory InitGameMemory()
 	size_t totalSize = gameMemory.PermanentStorageSize + gameMemory.TransientStorageSize;
 
 	gameMemory.PermanentStorage = VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-	gameMemory.TransientStorage = (u8 *)gameMemory.PermanentStorage + gameMemory.PermanentStorageSize;
+	gameMemory.TransiateStorage = (u8 *)gameMemory.PermanentStorage + gameMemory.PermanentStorageSize;
 
 	gameMemory.FreeFile = DebugPlatformFreeFileMemory;
 	gameMemory.ReadFile = DebugPlatformReadEntireFile;

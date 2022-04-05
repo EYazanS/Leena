@@ -30,6 +30,7 @@ enum EntityFlag
 {
 	Collides = (1 << 1),
 	Nonspatial = (1 << 2),
+	Simming = (1 << 30),
 };
 
 struct SimEntity
@@ -71,7 +72,7 @@ struct SimEntityHash
 
 struct SimRegion
 {
-	World *world;
+	World *World;
 	WorldPosition Origin;
 	R2 Bounds;
 

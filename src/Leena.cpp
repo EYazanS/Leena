@@ -268,7 +268,7 @@ LoadedBitmap DebugLoadBmp(ThreadContext *thread, PlatformReadEntireFile *readFil
 
 inline V2 GetCameraSpacePosition(GameState *gameState, LowEntity *lowEntity)
 {
-	V3 diff = CalculatePositionDifference(gameState->world, &lowEntity->Position, &gameState->CameraPosition);
+	V3 diff = CalculatePositionDifference(gameState->World, &lowEntity->Position, &gameState->CameraPosition);
 	V2 resutlt = V2{diff.X, diff.Y};
 	return resutlt;
 }
@@ -279,37 +279,39 @@ struct AddLowEntityResult
 	LowEntity *LowEntity;
 };
 
-AddLowEntityResult AddLowEntity(GameState *gameState, EntityType type, WorldPosition position)
+AddLowEntityResult AddLowEntity(GameState *GameState, EntityType Type, WorldPosition P)
 {
-	u32 entityIndex = 0;
-	LowEntity *lowEnttiy = 0;
+	Assert(GameState->LowEntitiesCount < ArrayCount(GameState->LowEntities));
+	u32 EntityIndex = GameState->LowEntitiesCount++;
 
-	if (gameState->LowEntitiesCount < ArrayCount(gameState->LowEntities))
-	{
-		entityIndex = gameState->LowEntitiesCount++;
+	LowEntity *EntityLow = GameState->LowEntities + EntityIndex;
+	*EntityLow = {};
+	EntityLow->Entity.Type = Type;
+	EntityLow->Position = NullPosition();
 
-		lowEnttiy = gameState->LowEntities + entityIndex;
+	ChangeEntityLocation(&GameState->WorldMemoryPool, GameState->World, EntityIndex, EntityLow, P);
 
-		*lowEnttiy = {};
-		lowEnttiy->Entity.Type = type;
-		lowEnttiy->Position = NullPosition();
+	AddLowEntityResult Result;
+	Result.LowEntity = EntityLow;
+	Result.LowEntityIndex = EntityIndex;
 
-		ChangeEntityLocation(&gameState->WorldMemoryPool, gameState->world, entityIndex, lowEnttiy, position);
-	}
+	// TODO(casey): Do we need to have a begin/end paradigm for adding
+	// entities so that they can be brought into the high set when they
+	// are added and are in the camera region?
 
-	return {entityIndex, lowEnttiy};
+	return (Result);
 }
 
 AddLowEntityResult AddWall(GameState *gameState, i32 x, i32 y, i32 z)
 {
-	WorldPosition pos = GetChunkPositionFromWorldPosition(gameState->world, x, y, z);
+	WorldPosition pos = GetChunkPositionFromWorldPosition(gameState->World, x, y, z);
 
 	AddLowEntityResult result = AddLowEntity(gameState, EntityType::Wall, pos);
 
 	// Order: X Y Z Offset
 	AddFlag(&result.LowEntity->Entity, EntityFlag::Collides);
 
-	result.LowEntity->Entity.Height = gameState->world->TileSideInMeters;
+	result.LowEntity->Entity.Height = gameState->World->TileSideInMeters;
 	result.LowEntity->Entity.Width = result.LowEntity->Entity.Height;
 
 	return result;
@@ -397,8 +399,8 @@ inline void PushPiece(EntityVisiblePieceGroup *group, LoadedBitmap *bitmap, V2 o
 	EntityVisiblePiece *piece = group->Pieces + group->PieceCount++;
 
 	piece->Bitmap = bitmap;
-	piece->Offset = group->gameState->MetersToPixels * V2{offset.X, -offset.Y} - align;
-	piece->Z = group->gameState->MetersToPixels * offsetZ;
+	piece->Offset = group->GameState->MetersToPixels * V2{offset.X, -offset.Y} - align;
+	piece->Z = group->GameState->MetersToPixels * offsetZ;
 	piece->ZCoefficient = zCoefficient;
 	piece->Dimensions = dim;
 	piece->Colour = colour;
@@ -730,7 +732,24 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 
 	if (input->States[(int)KeyAction::X].EndedDown)
 	{
-		controlRequest.SwordAcceleration = controlRequest.Acceleration;
+		if (input->States[(int)KeyAction::MoveUp].EndedDown)
+		{
+			controlRequest.SwordAcceleration = {0.0f, 1.0f};
+		}
+		if (input->States[(int)KeyAction::MoveDown].EndedDown)
+		{
+			controlRequest.SwordAcceleration = {0.0f, -1.0f};
+		}
+
+		if (input->States[(int)KeyAction::MoveLeft].EndedDown)
+		{
+			controlRequest.SwordAcceleration = {-1.0f, 0.0f};
+		}
+
+		if (input->States[(int)KeyAction::MoveRight].EndedDown)
+		{
+			controlRequest.SwordAcceleration = {1.0f, 0.0f};
+		}
 	}
 
 	// if (input->States[(int)KeyAction::Start].EndedDown)
@@ -754,7 +773,7 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 
 	MemoryPool simArena;
 
-	initializePool(&simArena, gameMemory->TransientStorageSize, gameMemory->TransientStorage);
+	initializePool(&simArena, gameMemory->TransiateStorageSize, gameMemory->TransiateStorage);
 
 	SimRegion *simRegion = BeginSim(
 		&simArena,
@@ -812,17 +831,17 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 			moveSpec.UnitMaxAccVector = true;
 			moveSpec.Speed = entity->Speed;
 			moveSpec.Drag = 8.0f;
+
 			MoveEntity(simRegion, entity, (r32)input->TimeToAdvance, controlRequest.Acceleration, &moveSpec);
 
-			if (controlRequest.SwordAcceleration.X != 0 || controlRequest.SwordAcceleration.Y != 0)
+			if (controlRequest.SwordAcceleration.X != 0.0f || controlRequest.SwordAcceleration.Y != 0.0f)
 			{
 				SimEntity *sword = entity->SwordLowIndex.Ptr;
 
-				if (sword)
+				if (sword && HasFlag(sword, EntityFlag::Nonspatial))
 				{
-					sword->Position = entity->Position;
 					sword->DistanceRemaining = 5.0f;
-					sword->Velocity = 10.0f * controlRequest.SwordAcceleration;
+					MakeEntitySpatial(sword, entity->Position, 5.0f * controlRequest.SwordAcceleration);
 				}
 			}
 
@@ -843,9 +862,9 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 
 		case EntityType::Sword:
 		{
-			PushBitmap(&pieceGroup, &gameState->Sword, V2{0, 0}, 0, V2{29, 10});
-			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{0, 0}, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
 			UpdateSword(simRegion, entity, dt);
+			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{0, 0}, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
+			PushBitmap(&pieceGroup, &gameState->Sword, V2{0, 0}, 0, V2{29, 10});
 		}
 		break;
 

@@ -46,7 +46,6 @@ inline void ZeroSize(MemorySizeIndex size, void *ptr)
 #define Maximum(a, b) ((a > b) ? a : b)
 
 #include "Intrinsics.h"
-
 #include "LeenaMath.h"
 #include "World/World.h"
 #include "SimRegion/SimRegion.h"
@@ -119,13 +118,13 @@ struct GameState
 
 	LoadedBitmap Sword;
 
-	World *world;
+	World *World;
 };
 
 struct EntityVisiblePieceGroup
 {
 	u32 PieceCount;
-	GameState *gameState;
+	GameState *GameState;
 	EntityVisiblePiece Pieces[32];
 };
 

@@ -20,6 +20,7 @@ extern "C"
 #undef COMPILER_MSVC
 #define COMPILER_MSVC 1
 #else
+// TODO(casey): Moar compilerz!!!
 #undef COMPILER_LLVM
 #define COMPILER_LLVM 1
 #endif
@@ -82,7 +83,7 @@ extern "C"
 	{
 		int PlaceHolder;
 	} ThreadContext;
-
+	
 #if Leena_Internal
 	struct DebugFileResult
 	{
@@ -211,6 +212,14 @@ extern "C"
 		};
 	};
 
+	struct MouseInput
+	{
+		b32 IsConnected;
+
+		u64 X;
+		u64 Y;
+	};
+
 	struct KeyboardInput
 	{
 		b32 IsConnected;
@@ -250,9 +259,9 @@ extern "C"
 	struct GameMemory
 	{
 		MemorySizeIndex PermanentStorageSize;
-		MemorySizeIndex TransientStorageSize;
+		MemorySizeIndex TransiateStorageSize;
 		void *PermanentStorage;
-		void *TransientStorage;
+		void *TransiateStorage;
 		b32 IsInitialized;
 
 		PlatformFreeFileMemory *FreeFile;
