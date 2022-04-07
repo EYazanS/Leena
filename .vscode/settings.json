@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "cstdint": "cpp",
-        "system_error": "cpp",
-        "*.rh": "cpp"
-    }
-}
