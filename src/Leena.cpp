@@ -758,11 +758,11 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 
 	if (input->States[(int)KeyAction::Run].EndedDown)
 	{
-		player->Speed = 30.0f;
+		player->Speed = 60.0f;
 	}
 	else
 	{
-		player->Speed = 20.0f;
+		player->Speed = 30.0f;
 	}
 
 	r32 tileSpanX = 17.0f * 3.0f;
@@ -804,6 +804,11 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 	// Render Entities
 	for (u32 entityIndex = 0; entityIndex < simRegion->EntitiesCount; entityIndex++, ++entity)
 	{
+		if (!entity->Updatable)
+		{
+			continue;
+		}
+
 		pieceGroup.PieceCount = 0;
 
 		r32 dt = (r32)input->TimeToAdvance;

@@ -73,20 +73,20 @@ inline V2 operator*(r32 a, V2 b)
 	return b * a;
 }
 
-inline V2& operator+=(V2& a, V2 b)
+inline V2 &operator+=(V2 &a, V2 b)
 {
 	a = a + b;
 	return a;
 }
 
-inline V2& operator*=(V2& a, r32 b)
+inline V2 &operator*=(V2 &a, r32 b)
 {
 	a = a * b;
 
 	return a;
 }
 
-inline r32 InnerProduct(V2& a, V2& b)
+inline r32 InnerProduct(V2 &a, V2 &b)
 {
 	r32 result = (a.X * b.X) + (a.Y * b.Y);
 
@@ -109,7 +109,7 @@ inline r32 Length(V2 v)
 
 inline R2 RectMinMax(V2 min, V2 max)
 {
-	R2 rect = { min, max };
+	R2 rect = {min, max};
 
 	return rect;
 }
@@ -141,35 +141,45 @@ inline R2 RectCenterDim(V2 center, V2 dim)
 	return result;
 }
 
+inline R2 AddRadiusToBound(R2 source, r32 radiusWidth, r32 radiusHeight)
+{
+	R2 result;
+
+	result.Min = source.Min - V2{radiusWidth, radiusWidth};
+	result.Max = source.Max + V2{radiusWidth, radiusWidth};
+
+	return result;
+}
+
 inline b32 IsInRectangle(R2 rectangle, V2 test)
 {
 	b32 result = ((test.X >= rectangle.Min.X) &&
-		(test.Y >= rectangle.Min.Y) &&
-		(test.X < rectangle.Max.X) &&
-		(test.Y < rectangle.Max.Y));
+				  (test.Y >= rectangle.Min.Y) &&
+				  (test.X < rectangle.Max.X) &&
+				  (test.Y < rectangle.Max.Y));
 
-	return(result);
+	return (result);
 }
 
 inline V2 GetMinCorner(R2 rectangle)
 {
 	V2 result = rectangle.Min;
 
-	return(result);
+	return (result);
 }
 
 inline V2 GetMaxCorner(R2 rectangle)
 {
 	V2 result = rectangle.Max;
 
-	return(result);
+	return (result);
 }
 
 inline V2 GetCenterCorner(R2 rectangle)
 {
 	V2 result = 0.5f * (rectangle.Min + rectangle.Max);
 
-	return(result);
+	return (result);
 }
 
 struct V3
@@ -199,7 +209,8 @@ inline V3 operator-(V3 a)
 	V3 result = {};
 
 	result.X = -a.X;
-	result.Y = -a.Y;result.Z = -a.Z;
+	result.Y = -a.Y;
+	result.Z = -a.Z;
 
 	return result;
 }
@@ -242,18 +253,17 @@ inline V3 operator*(r32 a, V3 b)
 	return b * a;
 }
 
-inline V3& operator+=(V3& a, V3 b)
+inline V3 &operator+=(V3 &a, V3 b)
 {
 	a = a + b;
 	return a;
 }
 
-inline V3& operator*=(V3& a, r32 b)
+inline V3 &operator*=(V3 &a, r32 b)
 {
 	a = a * b;
 	return a;
 }
-
 
 struct V4
 {
@@ -332,13 +342,13 @@ inline V4 operator*(r32 a, V4 b)
 	return b * a;
 }
 
-inline V4& operator+=(V4& a, V4 b)
+inline V4 &operator+=(V4 &a, V4 b)
 {
 	a = a + b;
 	return a;
 }
 
-inline V4& operator*=(V4& a, r32 b)
+inline V4 &operator*=(V4 &a, r32 b)
 {
 	a = a * b;
 	return a;

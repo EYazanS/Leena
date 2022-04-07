@@ -36,6 +36,7 @@ enum EntityFlag
 struct SimEntity
 {
 	u32 StorageIndex;
+	b32 Updatable;
 
 	EntityType Type;
 	u32 Flags;
@@ -73,8 +74,10 @@ struct SimEntityHash
 struct SimRegion
 {
 	World *World;
+	
 	WorldPosition Origin;
 	R2 Bounds;
+	R2 UpdateableBounds;
 
 	u32 MaxEntitiesCount;
 	u32 EntitiesCount;

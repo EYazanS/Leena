@@ -46,7 +46,9 @@ void LoadEntityReference(GameState *gameState, SimRegion *simRegion, EntityRefer
 		if (!entry->Ptr)
 		{
 			entry->Index = reference->Index;
-			entry->Ptr = AddEntity(gameState, simRegion, reference->Index, GetLowEntity(gameState, reference->Index), 0);
+			LowEntity *entity = GetLowEntity(gameState, reference->Index);
+			V2 postition = GetSimSpacePosition(simRegion, entity);
+			entry->Ptr = AddEntity(gameState, simRegion, reference->Index, entity, &postition);
 		}
 
 		reference->Ptr = entry->Ptr;
@@ -87,6 +89,7 @@ SimEntity *AddEntityRaw(GameState *gameState, SimRegion *simRegion, u32 storageI
 			}
 
 			result->StorageIndex = storageIndex;
+			result->Updatable = false;
 		}
 		else
 		{
@@ -107,6 +110,7 @@ SimEntity *AddEntity(GameState *gameState, SimRegion *simRegion, u32 storedIndex
 		if (position)
 		{
 			dest->Position = *position;
+			dest->Updatable = IsInRectangle(simRegion->UpdateableBounds, dest->Position);
 		}
 		else
 		{
@@ -123,9 +127,13 @@ SimRegion *BeginSim(MemoryPool *pool, GameState *gameState, World *world, R2 bou
 
 	ZeroStruct(simRegion->Hash);
 
+	// TODO: Calculate this from the maximun value for the biggest entity radius
+	r32 updateSafteyMargin = 1.0f; // 1 meter
+
 	simRegion->World = world;
 	simRegion->Origin = origin;
-	simRegion->Bounds = bounds;
+	simRegion->UpdateableBounds = bounds;
+	simRegion->Bounds = AddRadiusToBound(simRegion->UpdateableBounds, updateSafteyMargin, updateSafteyMargin);
 
 	simRegion->MaxEntitiesCount = 4096;
 	simRegion->EntitiesCount = 0;
