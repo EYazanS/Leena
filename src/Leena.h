@@ -4,6 +4,10 @@
 
 #include "GameStructs.h"
 
+#define LocalPersist static
+#define GlobalVariable static
+#define internal static
+
 struct MemoryPool
 {
 	MemorySizeIndex Size;

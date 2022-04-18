@@ -45,10 +45,6 @@ struct Win32ProgramState
 	char* OnePastLastEXEFileNameSlash;
 };
 
-#define LocalPersist static
-#define GlobalVariable static
-#define internal static
-
 LRESULT CALLBACK Win32WindowCallback(HWND, UINT, WPARAM, LPARAM);
 
 // Windows
