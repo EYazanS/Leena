@@ -28,8 +28,8 @@ union EntityReference
 
 enum EntityFlag
 {
-	Collides = (1 << 1),
-	Nonspatial = (1 << 2),
+	Collides = (1 << 0),
+	Nonspatial = (1 << 1),
 	Simming = (1 << 30),
 };
 

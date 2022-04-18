@@ -823,6 +823,10 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 
 		PlayerBitMap *playerFacingDirectionMap = &gameState->BitMaps[entity->FacingDirection];
 
+		MoveSpec moveSpec = GetDefaultMoveSpec();
+
+		V2 ddP = {};
+
 		switch (entity->Type)
 		{
 		case EntityType::Player:
@@ -832,12 +836,10 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 				entity->dZ = controlRequest.Dz;
 			}
 
-			MoveSpec moveSpec = GetDefaultMoveSpec();
 			moveSpec.UnitMaxAccVector = true;
 			moveSpec.Speed = entity->Speed;
 			moveSpec.Drag = 8.0f;
-
-			MoveEntity(simRegion, entity, (r32)input->TimeToAdvance, controlRequest.Acceleration, &moveSpec);
+			ddP = controlRequest.Acceleration;
 
 			if (controlRequest.SwordAcceleration.X != 0.0f || controlRequest.SwordAcceleration.Y != 0.0f)
 			{
@@ -867,7 +869,26 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 
 		case EntityType::Sword:
 		{
-			UpdateSword(simRegion, entity, dt);
+			if (HasFlag(entity, EntityFlag::Nonspatial))
+			{
+				return;
+			}
+
+			moveSpec.Speed = 0.0f;
+			moveSpec.Drag = 0.0f;
+			moveSpec.UnitMaxAccVector = false;
+
+			V2 oldPosition = entity->Position;
+
+			r32 distanceTraveled = Length(entity->Position - oldPosition);
+
+			entity->DistanceRemaining -= distanceTraveled;
+
+			if (entity->DistanceRemaining < 0.0f)
+			{
+				MakeEntityNonSpatial(entity);
+			}
+
 			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{0, 0}, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
 			PushBitmap(&pieceGroup, &gameState->Sword, V2{0, 0}, 0, V2{29, 10});
 		}
@@ -875,7 +896,35 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 
 		case EntityType::Familiar:
 		{
-			UpdateFamiliar(simRegion, entity, dt);
+			r32 maximumSearchRadius = Square(5.0f);
+
+			SimEntity *testEntity = simRegion->Entities;
+
+			for (u32 textEntityIndex = 0; textEntityIndex < simRegion->EntitiesCount; textEntityIndex++, ++testEntity)
+			{
+				if (testEntity->Type != EntityType::Player)
+				{
+					continue;
+				}
+
+				r32 testSq = LengthSq(testEntity->Position - entity->Position);
+
+				if (testSq < maximumSearchRadius && testSq > 0.01f)
+				{
+					r32 acceleration = 0.5f;
+
+					r32 oneOverLength = acceleration / SquareRoot(testSq);
+
+					ddP = oneOverLength * (testEntity->Position - entity->Position);
+				}
+
+				break;
+			}
+
+			moveSpec.Drag = 8.0f;
+			moveSpec.Speed = 5.0f;
+			moveSpec.UnitMaxAccVector = true;
+
 			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Head, V2{0, 0}, 0, playerFacingDirectionMap->Align);
 			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{0, 0}, 0, playerFacingDirectionMap->Align, shadowAlpha, 0);
 		}
@@ -883,7 +932,6 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 
 		case EntityType::Monster:
 		{
-			UpdateMonster(simRegion, entity, dt);
 			PushBitmap(&pieceGroup, &gameState->Rock, V2{0, 0}, 0, V2{40, 80});
 			PushBitmap(&pieceGroup, &playerFacingDirectionMap->Shadow, V2{0, 0}, 0, playerFacingDirectionMap->Align, shadowAlpha);
 
@@ -908,6 +956,11 @@ DllExport void GameUpdateAndRender(ThreadContext *thread, GameMemory *gameMemory
 		if (entity->Z < 0)
 		{
 			entity->Z = 0;
+		}
+
+		if (!HasFlag(entity, EntityFlag::Nonspatial))
+		{
+			MoveEntity(simRegion, entity, (r32)input->TimeToAdvance, ddP, &moveSpec);
 		}
 
 		r32 groundPointX = screenCenter.X + metersToPixels * entity->Position.X;

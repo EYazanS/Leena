@@ -51,7 +51,7 @@ int WINAPI wWinMain(
 		if (win32VRefreshRate > 1)
 			monitorRefreshRate = win32VRefreshRate;
 
-		u32 gameUpdateInHz = 30; // monitorRefreshRate / 2; // In HZ
+		u32 gameUpdateInHz = monitorRefreshRate / 2; // In HZ
 		r64 targetSecondsToAdvanceBy = 1.f / gameUpdateInHz;
 
 		programState.RecordingState.InputRecordingIndex = 0;
